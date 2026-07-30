@@ -1,0 +1,16 @@
+﻿Role portraits — attribution
+============================
+
+Source: Twemoji 14.0.2 (https://github.com/twitter/twemoji)
+License: CC-BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+Copyright: Twitter, Inc. and other contributors
+
+Files:
+  Elephant.png  ← U+1F418
+  Human.png     ← U+1F9D1
+  Monkey.png    ← U+1F435
+  Cat.png       ← U+1F431
+
+CDN: https://cdn.jsdelivr.net/gh/twitter/twemoji@14.0.2/assets/72x72/
+
+When distributing the game, keep this credit (CC-BY requires attribution).
