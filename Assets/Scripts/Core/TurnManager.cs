@@ -14,6 +14,8 @@ public enum TurnPhase
     SelectingAmmo,
     SelectingTimedBombDelay,
     SelectingFlameDirection,
+    SelectingMotorcycleRam,
+    SelectingHookTarget,
     SelectingPickup,
     SelectingSkillReinforce,
     SelectingMonkeySkillMode,
@@ -44,6 +46,8 @@ public class TurnManager : MonoBehaviour
     public int PendingItemIndex { get; private set; } = -1;
     public ItemKind PendingAmmoKind { get; private set; } = ItemKind.Arrow;
     public UnitActor PendingSkillTargetUnit { get; set; }
+    /// <summary>勾爪抢夺选物（复用 SelectingMonkeyMarkItem）。</summary>
+    public bool PendingHookSteal { get; set; }
 
     public event Action OnTurnChanged;
     public event Action OnStateChanged;
@@ -91,6 +95,7 @@ public class TurnManager : MonoBehaviour
         HasMoved = false;
         HasMeleeAttacked = false;
         AwaitingCapacityTrim = false;
+        WeatherService.ResetForMatch(1);
         BeginTurnFor(units[0], firstTurn: true);
     }
 
@@ -159,9 +164,22 @@ public class TurnManager : MonoBehaviour
             // 3b) 冰地：20% 跌倒
             unit.TickIceTerrainOnTurnStart();
 
+            // 3c) 晕眩：跳过本次行动
+            if (unit.HasStatus(StatusType.Stun))
+            {
+                unit.ClearStatus(StatusType.Stun);
+                Log($"{RoleInfo.GetDisplayName(unit.Role)} 处于【晕眩】，跳过行动");
+                RefreshSelectionVisuals();
+                OnTurnChanged?.Invoke();
+                OnStateChanged?.Invoke();
+                if (Phase != TurnPhase.GameOver)
+                    EndTurn();
+                return;
+            }
+
             unit.ResetCrossbowActionFlags();
             DeckManager.Instance?.DrawFor(unit);
-            Log($"—— 第{RoundNumber}轮 · {RoleInfo.GetDisplayName(unit.Role)} 的行动 ——");
+            Log($"—— 第{RoundNumber}轮 · {GameClock.GetStatusLine(RoundNumber)} · {WeatherService.GetDisplayName()} · {RoleInfo.GetDisplayName(unit.Role)} 的行动 ——");
             StealthService.CheckBreakFor(unit);
         }
 
@@ -282,6 +300,29 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    public void EnterMotorcycleRam(int itemIndex)
+    {
+        Phase = TurnPhase.SelectingMotorcycleRam;
+        PendingItemIndex = itemIndex;
+        NotifyActionDone();
+    }
+
+    public void EnterHookTarget(int itemIndex)
+    {
+        Phase = TurnPhase.SelectingHookTarget;
+        PendingItemIndex = itemIndex;
+        PendingHookSteal = false;
+        NotifyActionDone();
+    }
+
+    public void EnterHookItemPick(UnitActor target)
+    {
+        PendingSkillTargetUnit = target;
+        PendingHookSteal = true;
+        Phase = TurnPhase.SelectingMonkeyMarkItem;
+        NotifyActionDone();
+    }
+
     public void EnterPickupMode()
     {
         Phase = TurnPhase.SelectingPickup;
@@ -293,6 +334,7 @@ public class TurnManager : MonoBehaviour
     {
         PendingItemIndex = -1;
         PendingSkillTargetUnit = null;
+        PendingHookSteal = false;
         if (AwaitingCapacityTrim)
         {
             Phase = TurnPhase.MandatoryDiscard;
@@ -379,6 +421,11 @@ public class TurnManager : MonoBehaviour
 
                 if (RoundNumber % 5 == 0)
                     GameManager.Instance?.ApplyLavaShrink();
+
+                WeatherService.OnFullRoundAdvanced(RoundNumber);
+
+                Log($"—— 进入第{RoundNumber}回合 · {GameClock.GetStatusLine(RoundNumber)} · {WeatherService.GetDisplayName()}（时段视 {GameClock.GetBaseVisibility(RoundNumber)}）——");
+                VisibilityService.RefreshWorld();
             }
         }
         while (units[CurrentIndex].IsDead && CurrentIndex != start);

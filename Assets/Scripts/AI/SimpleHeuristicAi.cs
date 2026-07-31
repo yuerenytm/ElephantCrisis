@@ -279,7 +279,7 @@ public static class SimpleHeuristicAi
             if (dist > unit.AttackRange)
                 continue;
 
-            int expected = Mathf.Max(0, unit.CurrentAtk - other.CurrentDef);
+            int expected = Mathf.Max(0, unit.MeleeAtk - other.CurrentDef);
             float score = expected * 10f - dist;
             if (other.IsDying) score += 80f;
             else if (expected >= other.Hp) score += 100f;
@@ -396,7 +396,9 @@ public static class SimpleHeuristicAi
                 if (dist == 0 || dist > move)
                     continue;
                 var cell = unit.Cell + new Vector2Int(dx, dy);
-                if (!grid.IsValidCell(cell) || grid.IsCellOccupied(cell))
+                if (!grid.IsValidCell(cell))
+                    continue;
+                if (StealthService.BlocksMovementFor(unit, cell))
                     continue;
                 if (!VisibilityService.CanMoveTo(unit, cell))
                     continue;

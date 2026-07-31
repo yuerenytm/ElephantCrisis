@@ -7,7 +7,9 @@ public enum StatusType
     Poison,   // 中毒：攻/防-3 移-1
     Burning,  // 着火：行动开始 10 法伤，持续按自身行动开始倒数
     Hidden,   // 隐匿：直至破隐或攻击解除
-    Leader    // 领袖：攻防+9 移+3；行动开始 6 真伤
+    Leader,   // 领袖：攻防+9 移+3；行动开始 6 真伤
+    Stun,     // 晕眩：行动开始跳过本次行动
+    Blind     // 致盲：能见度 0
 }
 
 public struct StatusEffect
@@ -46,6 +48,8 @@ public static class StatusInfo
             case StatusType.Burning: return "着火";
             case StatusType.Hidden: return "隐匿";
             case StatusType.Leader: return "领袖";
+            case StatusType.Stun: return "晕眩";
+            case StatusType.Blind: return "致盲";
             default: return type.ToString();
         }
     }
@@ -59,6 +63,8 @@ public static class StatusInfo
             case StatusType.Burning: return "行动开始10法伤";
             case StatusType.Hidden: return "非邻接不可被攻";
             case StatusType.Leader: return "攻防+9 移+3；行动开始6真伤";
+            case StatusType.Stun: return "跳过本次行动";
+            case StatusType.Blind: return "能见度0";
             default: return "";
         }
     }
@@ -80,6 +86,8 @@ public static class StatusIconFactory
             StatusType.Burning => CreateFireIcon(),
             StatusType.Hidden => CreateHiddenIcon(),
             StatusType.Leader => CreateLeaderIcon(),
+            StatusType.Stun => SpriteFactory.CreateBorderedSprite(new Color(0.7f, 0.55f, 0.9f), new Color(0.3f, 0.2f, 0.45f), 32, 2),
+            StatusType.Blind => SpriteFactory.CreateBorderedSprite(new Color(0.15f, 0.15f, 0.18f), new Color(0.6f, 0.6f, 0.65f), 32, 2),
             _ => SpriteFactory.CreateColorSprite(Color.white, 32)
         };
         cache[type] = s;

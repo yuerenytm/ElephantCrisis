@@ -1,10 +1,11 @@
 using UnityEngine;
 
 /// <summary>
-/// 能见度：默认半径 10；不可移动到自身能见度外；迷雾按当前视野角色刷新（热座=行动者；AI 对战=玩家角色）。
+/// 能见度：基础半径由虚拟时钟时段决定；不可移动到自身能见度外；迷雾按当前视野角色刷新（热座=行动者；AI 对战=玩家角色）。
 /// </summary>
 public static class VisibilityService
 {
+    /// <summary>白天基础能见度（兼容旧引用）。</summary>
     public const int DefaultVisibility = 10;
 
     public static UnitActor GetFogViewer()

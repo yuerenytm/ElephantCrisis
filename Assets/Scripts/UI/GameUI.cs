@@ -21,6 +21,7 @@ public class GameUI : MonoBehaviour
     private Button skillBtn;
     private Button leaderBtn;
     private Button adminGrantBtn;
+    private Button adminWeatherBtn;
     private Button menuBtn;
 
     private Text rightTitle;
@@ -235,6 +236,11 @@ public class GameUI : MonoBehaviour
         {
             ToggleAdminGrantPanel();
         });
+        adminWeatherBtn = CreateButton(left, "天气", ref y, step, () =>
+        {
+            if (WeatherService.AdminCycleWeather())
+                RequestRefresh();
+        });
 
         var statusTitle = CreateText(left, "StatusTitle", new Vector2(0.08f, 0.02f), new Vector2(0.92f, 0.14f), 14, TextAnchor.MiddleCenter);
         statusTitle.text = "当前状态";
@@ -443,12 +449,14 @@ public class GameUI : MonoBehaviour
         string deckInfo = DeckManager.Instance != null
             ? $"库{DeckManager.Instance.DrawCount}/弃{DeckManager.Instance.DiscardCount}"
             : "";
+        string clock = GameClock.GetStatusLine(turn.RoundNumber);
+        string weather = WeatherService.GetDisplayName();
         if (MatchConfig.IsAdminMode)
-            titleText.text = $"象群危机 管理员  |  你={RoleInfo.GetDisplayName(MatchConfig.HumanRole)}  |  第{turn.RoundNumber}轮  |  {deckInfo}";
+            titleText.text = $"象群危机 管理员  |  你={RoleInfo.GetDisplayName(MatchConfig.HumanRole)}  |  第{turn.RoundNumber}轮 · {clock} · {weather}  |  {deckInfo}";
         else if (MatchConfig.IsAiBattle)
-            titleText.text = $"象群危机 AI  |  你={RoleInfo.GetDisplayName(MatchConfig.HumanRole)}  |  第{turn.RoundNumber}轮  |  {deckInfo}";
+            titleText.text = $"象群危机 AI  |  你={RoleInfo.GetDisplayName(MatchConfig.HumanRole)}  |  第{turn.RoundNumber}轮 · {clock} · {weather}  |  {deckInfo}";
         else
-            titleText.text = $"象群危机 Demo  |  第{turn.RoundNumber}轮  |  {deckInfo}";
+            titleText.text = $"象群危机 Demo  |  第{turn.RoundNumber}轮 · {clock} · {weather}  |  {deckInfo}";
 
         if (game != null && game.IsGameOver)
         {
@@ -476,6 +484,8 @@ public class GameUI : MonoBehaviour
                 TurnPhase.SelectingAmmo => "选择弹药（右键取消）",
                 TurnPhase.SelectingTimedBombDelay => "选择延时（右键取消）",
                 TurnPhase.SelectingFlameDirection => "选择喷射方向（右键取消）",
+                TurnPhase.SelectingMotorcycleRam => "选择冲击终点（四向5–10格，右键取消）",
+                TurnPhase.SelectingHookTarget => "选择勾爪目标（半径3，右键取消）",
                 TurnPhase.SelectingPickup => "选择拾取（右键取消）",
                 TurnPhase.MandatoryDiscard => "超重强制弃置（降至容量内才能结束）",
                 _ => humanTurn ? "左键移动/近战" : "AI 行动中…"
@@ -506,6 +516,8 @@ public class GameUI : MonoBehaviour
             || turn.Phase == TurnPhase.SelectingAmmo
             || turn.Phase == TurnPhase.SelectingTimedBombDelay
             || turn.Phase == TurnPhase.SelectingFlameDirection
+            || turn.Phase == TurnPhase.SelectingMotorcycleRam
+            || turn.Phase == TurnPhase.SelectingHookTarget
             || turn.Phase == TurnPhase.SelectingPickup;
 
         bool canAct = playing && humanTurnActive;
@@ -567,6 +579,18 @@ public class GameUI : MonoBehaviour
                     label.text = "领取卡牌";
             }
         }
+        if (adminWeatherBtn != null)
+        {
+            bool showWeather = MatchConfig.IsAdminMode;
+            adminWeatherBtn.gameObject.SetActive(showWeather);
+            if (showWeather)
+            {
+                adminWeatherBtn.interactable = true;
+                var label = adminWeatherBtn.GetComponentInChildren<Text>();
+                if (label != null)
+                    label.text = $"天气\n{WeatherService.GetDisplayName()}";
+            }
+        }
         if (menuBtn != null)
             menuBtn.interactable = true;
 
@@ -590,7 +614,7 @@ public class GameUI : MonoBehaviour
         }
         else if (turn.Phase == TurnPhase.SelectingMonkeyMarkItem && canAct)
         {
-            rightTitle.text = "抢夺物品";
+            rightTitle.text = turn.PendingHookSteal ? "勾爪夺取" : "抢夺物品";
             RebuildMonkeyMarkList();
         }
         else if (MatchConfig.IsAiBattle && !humanTurnActive && !MatchConfig.IsAdminMode)
@@ -914,7 +938,11 @@ public class GameUI : MonoBehaviour
                 new Vector2(0.02f, 0.08f), new Vector2(0.98f, 0.92f),
                 () =>
                 {
-                    SkillService.TryMonkeyTakeItem(TurnManager.Instance?.CurrentUnit, idx);
+                    var tm = TurnManager.Instance;
+                    if (tm != null && tm.PendingHookSteal)
+                        ActionService.TryHookTakeItem(tm.CurrentUnit, idx);
+                    else
+                        SkillService.TryMonkeyTakeItem(tm?.CurrentUnit, idx);
                     RequestRefresh();
                 });
             btn.interactable = !ItemInfo.IsDoll(it.Kind);
@@ -1086,6 +1114,12 @@ public class GameUI : MonoBehaviour
                         : "蓄力";
                 else if (kind == ItemKind.Flamethrower)
                     useLabel = "喷射";
+                else if (kind == ItemKind.Motorcycle)
+                    useLabel = (unit.MotorcycleCooldown > 0 || turn.HasMoved)
+                        ? (unit.MotorcycleCooldown > 0 ? $"卸下·CD{unit.MotorcycleCooldown}" : "卸下")
+                        : "冲击";
+                else if (kind == ItemKind.GrappleHook)
+                    useLabel = "抢夺";
                 else
                     useLabel = "卸下";
             }
@@ -1099,7 +1133,6 @@ public class GameUI : MonoBehaviour
                 (turn.Phase == TurnPhase.WaitingAction || turn.Phase == TurnPhase.MandatoryDiscard);
             bool crossbowLocked = isEquip && entry.Equipped && kind == ItemKind.Crossbow
                 && unit.CrossbowCharged && unit.CrossbowChargedThisAction;
-
             var useBtn = CreateSmallButton(row.transform, useLabel, new Vector2(0.5f, 0.15f), new Vector2(0.74f, 0.85f), () =>
             {
                 ItemUseService.TryBeginUse(TurnManager.Instance?.CurrentUnit, index);

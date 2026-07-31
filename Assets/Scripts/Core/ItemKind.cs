@@ -24,7 +24,14 @@ public enum ItemKind
     Adrenaline,
     Mine,
     LargePotion,
-    SkillUpgrade
+    SkillUpgrade,
+    NightVision,
+    Skateboard,
+    Motorcycle,
+    GrappleHook,
+    Flashbang,
+    Dagger,
+    Longsword
 }
 
 public enum ItemUseKind
@@ -68,6 +75,13 @@ public static class ItemInfo
             case ItemKind.Adrenaline: return "肾上腺素";
             case ItemKind.Mine: return "地雷";
             case ItemKind.SkillUpgrade: return "技能升级卡";
+            case ItemKind.NightVision: return "夜视镜";
+            case ItemKind.Skateboard: return "滑板";
+            case ItemKind.Motorcycle: return "摩托车";
+            case ItemKind.GrappleHook: return "抢夺勾爪";
+            case ItemKind.Flashbang: return "闪光弹";
+            case ItemKind.Dagger: return "匕首";
+            case ItemKind.Longsword: return "长剑";
             default: return kind.ToString();
         }
     }
@@ -95,6 +109,13 @@ public static class ItemInfo
             case ItemKind.Adrenaline: return "HP低于30%：移+2攻+3，3回合";
             case ItemKind.Mine: return "放置陷阱，踩中15法伤；弃置可捡";
             case ItemKind.SkillUpgrade: return "集齐3张：技能等级+1";
+            case ItemKind.NightVision: return "装备；黑夜基础能见度按8";
+            case ItemKind.Skateboard: return "装备；移动力+2";
+            case ItemKind.Motorcycle: return "装备；移+3；冲击5–10格";
+            case ItemKind.GrappleHook: return "装备；半径3抢一件，用后毁";
+            case ItemKind.Flashbang: return "投掷；爆点半径2致盲1回合";
+            case ItemKind.Dagger: return "装备；近战距1 伤害+6";
+            case ItemKind.Longsword: return "装备；近战距2 伤害+8";
             default: return IsDoll(kind) ? "金色·持有增益/集齐获胜" : "";
         }
     }
@@ -151,11 +172,19 @@ public static class ItemInfo
             case ItemKind.Bow:
             case ItemKind.Crossbow:
             case ItemKind.Flamethrower:
+            case ItemKind.Dagger:
+            case ItemKind.Longsword:
                 return EquipSlot.Weapon;
             case ItemKind.WoodArmor:
             case ItemKind.IronArmor:
             case ItemKind.EnergyShield:
                 return EquipSlot.Armor;
+            case ItemKind.NightVision:
+            case ItemKind.GrappleHook:
+                return EquipSlot.Accessory;
+            case ItemKind.Skateboard:
+            case ItemKind.Motorcycle:
+                return EquipSlot.Vehicle;
             default:
                 return EquipSlot.None;
         }
@@ -185,13 +214,50 @@ public static class ItemInfo
     }
 
     public static bool IsWeapon(ItemKind kind)
-        => kind == ItemKind.Bow || kind == ItemKind.Crossbow || kind == ItemKind.Flamethrower;
+        => kind == ItemKind.Bow || kind == ItemKind.Crossbow || kind == ItemKind.Flamethrower
+            || IsMeleeWeapon(kind);
 
     public static bool IsRangedWeapon(ItemKind kind)
         => kind == ItemKind.Bow || kind == ItemKind.Crossbow;
 
+    public static bool IsMeleeWeapon(ItemKind kind)
+        => kind == ItemKind.Dagger || kind == ItemKind.Longsword;
+
+    /// <summary>近战武器基础攻击距离（不含高地等外部增益）。无近战武器时为 1。</summary>
+    public static int GetMeleeWeaponRange(ItemKind kind)
+    {
+        switch (kind)
+        {
+            case ItemKind.Dagger: return 1;
+            case ItemKind.Longsword: return 2;
+            default: return 1;
+        }
+    }
+
+    public static int GetMeleeWeaponAtkBonus(ItemKind kind)
+    {
+        switch (kind)
+        {
+            case ItemKind.Dagger: return 6;
+            case ItemKind.Longsword: return 8;
+            default: return 0;
+        }
+    }
+
     public static bool IsThrowableBomb(ItemKind kind)
         => kind == ItemKind.Bomb || kind == ItemKind.MegaBomb;
+
+    public static bool IsFlashbang(ItemKind kind) => kind == ItemKind.Flashbang;
+
+    public static int GetVehicleMoveBonus(ItemKind kind)
+    {
+        switch (kind)
+        {
+            case ItemKind.Skateboard: return 2;
+            case ItemKind.Motorcycle: return 3;
+            default: return 0;
+        }
+    }
 
     public static bool IsArmor(ItemKind kind)
         => kind == ItemKind.WoodArmor || kind == ItemKind.IronArmor;
@@ -272,6 +338,7 @@ public static class ItemInfo
                 return ItemUseKind.ChooseStat;
             case ItemKind.Bomb:
             case ItemKind.MegaBomb:
+            case ItemKind.Flashbang:
             case ItemKind.BananaPeel:
             case ItemKind.Mine:
                 return ItemUseKind.TargetCell;
@@ -280,9 +347,15 @@ public static class ItemInfo
             case ItemKind.Bow:
             case ItemKind.Crossbow:
             case ItemKind.Flamethrower:
+            case ItemKind.Dagger:
+            case ItemKind.Longsword:
             case ItemKind.WoodArmor:
             case ItemKind.IronArmor:
             case ItemKind.EnergyShield:
+            case ItemKind.NightVision:
+            case ItemKind.Skateboard:
+            case ItemKind.Motorcycle:
+            case ItemKind.GrappleHook:
                 return ItemUseKind.EquipToggle;
             default:
                 return ItemUseKind.None;

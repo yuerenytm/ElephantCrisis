@@ -120,6 +120,8 @@ public class PlayerInputController : MonoBehaviour
             || phase == TurnPhase.SelectingAmmo
             || phase == TurnPhase.SelectingTimedBombDelay
             || phase == TurnPhase.SelectingFlameDirection
+            || phase == TurnPhase.SelectingMotorcycleRam
+            || phase == TurnPhase.SelectingHookTarget
             || phase == TurnPhase.SelectingPickup;
     }
 
@@ -201,10 +203,41 @@ public class PlayerInputController : MonoBehaviour
                 return;
 
             case TurnPhase.SelectingBombTarget:
-                if (!ActionService.TryThrowBomb(unit, cell))
+            {
+                int pidx = turn.PendingItemIndex;
+                bool flash = pidx >= 0 && pidx < unit.Inventory.Count
+                    && unit.Inventory.Items[pidx].Kind == ItemKind.Flashbang;
+                if (flash)
+                {
+                    if (!ActionService.TryThrowFlashbang(unit, cell))
+                        turn.LogFor(unit, "闪光弹投放失败（超距或无效）");
+                }
+                else if (!ActionService.TryThrowBomb(unit, cell))
                     turn.LogFor(unit, "炸弹投放失败（超距或无效）");
                 RefreshHints();
                 return;
+            }
+
+            case TurnPhase.SelectingMotorcycleRam:
+                if (!ActionService.TryMotorcycleRam(unit, cell))
+                    turn.LogFor(unit, "冲击失败（需四向直线 5–10 格且终点可站）");
+                RefreshHints();
+                return;
+
+            case TurnPhase.SelectingHookTarget:
+            {
+                var occ = GridManager.Instance.GetOccupant(cell);
+                var target = occ != null ? occ.GetComponent<UnitActor>() : null;
+                if (target == null || target == unit || target.IsDead)
+                {
+                    turn.LogFor(unit, "请点击半径 3 内可见的其他角色");
+                    return;
+                }
+                if (!ActionService.TryHookSelectTarget(unit, target))
+                    turn.LogFor(unit, "无法对该目标使用勾爪");
+                RefreshHints();
+                return;
+            }
 
             case TurnPhase.SelectingBananaTarget:
                 if (!ActionService.TryThrowBanana(unit, cell))
@@ -275,8 +308,10 @@ public class PlayerInputController : MonoBehaviour
         if (occupant != null)
         {
             var target = occupant.GetComponent<UnitActor>();
-            if (target != null && target != unit && !target.IsDead)
+            if (target != null && target != unit && !target.IsDead
+                && VisibilityService.CanSeeUnit(unit, target))
             {
+                // 仅对「看得见」的单位优先攻击；看不见的隐匿占格按空格走移动（撞入弹回）
                 if (!ActionService.TryAttack(unit, target))
                     turn.LogFor(unit, "无法攻击（已攻击过、超出范围或目标无效）");
                 RefreshHints();
@@ -331,6 +366,42 @@ public class PlayerInputController : MonoBehaviour
         turn.EnterMineTargeting(itemIndex);
         MapVisual.Instance?.ShowBananaHints(unit);
         turn.LogFor(unit, $"选择地雷落点（攻击距离 {unit.AttackRange}，放置后全员可见，右键取消）");
+    }
+
+    public void StartFlashbangMode(int itemIndex)
+    {
+        var turn = TurnManager.Instance;
+        var unit = turn?.CurrentUnit;
+        if (unit == null || unit.IsDying)
+            return;
+        if (itemIndex < 0 || itemIndex >= unit.Inventory.Count
+            || unit.Inventory.Items[itemIndex].Kind != ItemKind.Flashbang)
+            return;
+        turn.EnterBombTargeting(itemIndex);
+        MapVisual.Instance?.ShowBombHints(unit, 5, 2);
+        turn.LogFor(unit, "选择闪光弹落点（射程5，爆点半径2致盲，右键取消）");
+    }
+
+    public void StartMotorcycleRamMode(int itemIndex)
+    {
+        var turn = TurnManager.Instance;
+        var unit = turn?.CurrentUnit;
+        if (unit == null || unit.IsDying)
+            return;
+        turn.EnterMotorcycleRam(itemIndex);
+        MapVisual.Instance?.ShowMotorcycleRamHints(unit);
+        turn.LogFor(unit, "选择冲击终点（四向直线 5–10 格，占用移动，右键取消）");
+    }
+
+    public void StartHookMode(int itemIndex)
+    {
+        var turn = TurnManager.Instance;
+        var unit = turn?.CurrentUnit;
+        if (unit == null || unit.IsDying)
+            return;
+        turn.EnterHookTarget(itemIndex);
+        MapVisual.Instance?.ShowHookHints(unit);
+        turn.LogFor(unit, "选择抢夺目标（半径3，用后勾爪损毁，右键取消）");
     }
 
     public void StartFlameMode(int itemIndex)
@@ -435,7 +506,8 @@ public class PlayerInputController : MonoBehaviour
                 var kind = turn.PendingItemIndex >= 0 && turn.PendingItemIndex < unit.Inventory.Count
                     ? unit.Inventory.Items[turn.PendingItemIndex].Kind
                     : ItemKind.Bomb;
-                MapVisual.Instance?.ShowBombHints(unit, 5, ItemInfo.GetBombBlastRadius(kind));
+                int blast = kind == ItemKind.Flashbang ? 2 : ItemInfo.GetBombBlastRadius(kind);
+                MapVisual.Instance?.ShowBombHints(unit, 5, blast);
                 return;
             }
             case TurnPhase.SelectingBananaTarget:
@@ -446,6 +518,12 @@ public class PlayerInputController : MonoBehaviour
                 return;
             case TurnPhase.SelectingFlameDirection:
                 MapVisual.Instance?.ShowFlameHints(unit);
+                return;
+            case TurnPhase.SelectingMotorcycleRam:
+                MapVisual.Instance?.ShowMotorcycleRamHints(unit);
+                return;
+            case TurnPhase.SelectingHookTarget:
+                MapVisual.Instance?.ShowHookHints(unit);
                 return;
             case TurnPhase.SelectingDiscardTarget:
                 MapVisual.Instance?.ShowDiscardHints(unit);

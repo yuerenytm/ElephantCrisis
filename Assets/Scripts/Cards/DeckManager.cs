@@ -38,6 +38,8 @@ public class DeckManager : MonoBehaviour
         AddCopies(ItemKind.Reinforce, 3);
         AddCopies(ItemKind.Bow, 3);
         AddCopies(ItemKind.Crossbow, 1);
+        AddCopies(ItemKind.Dagger, 3);
+        AddCopies(ItemKind.Longsword, 2);
         AddCopies(ItemKind.Arrow, 15);
         AddCopies(ItemKind.PoisonArrow, 6);
         AddCopies(ItemKind.FireRocket, 6);
@@ -48,6 +50,11 @@ public class DeckManager : MonoBehaviour
         AddCopies(ItemKind.IronArmor, 1);
         AddCopies(ItemKind.EnergyShield, 3);
         AddCopies(ItemKind.Adrenaline, 5);
+        AddCopies(ItemKind.NightVision, 2);
+        AddCopies(ItemKind.Skateboard, 3);
+        AddCopies(ItemKind.Motorcycle, 1);
+        AddCopies(ItemKind.GrappleHook, 3);
+        AddCopies(ItemKind.Flashbang, 3);
         AddCopies(ItemKind.SkillUpgrade, 12);
         // 四只玩偶各 1 张，入共用牌库（开局不携带、不散落）
         AddCopies(ItemKind.DollElephant, 1);

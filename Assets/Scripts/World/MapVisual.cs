@@ -12,7 +12,8 @@ public class MapVisual : MonoBehaviour
     private static readonly Color BombHint = new Color(0.95f, 0.7f, 0.15f, 0.4f);
     private static readonly Color BlastHint = new Color(1f, 0.2f, 0.05f, 0.55f);
     private static readonly Color BlastCenter = new Color(1f, 0.45f, 0.1f, 0.7f);
-    private static readonly Color FogColor = new Color(0.04f, 0.05f, 0.07f, 0.78f);
+    /// <summary>不透明迷雾：视野外完全遮住地形色。</summary>
+    private static readonly Color FogColor = new Color(0.04f, 0.05f, 0.07f, 1f);
 
     private SpriteRenderer[,] overlayRenderers;
     private SpriteRenderer[,] fogRenderers;
@@ -148,7 +149,8 @@ public class MapVisual : MonoBehaviour
                     continue;
                 if (!VisibilityService.CanMoveTo(unit, cell))
                     continue;
-                if (grid.IsCellOccupied(cell))
+                // 对不可见（隐匿）占格者不显示阻挡，避免占格泄露
+                if (StealthService.BlocksMovementFor(unit, cell))
                     continue;
                 overlayRenderers[x, y].color = MoveHint;
             }
@@ -167,7 +169,8 @@ public class MapVisual : MonoBehaviour
             for (int y = 0; y < grid.gridHeight; y++)
             {
                 var cell = new Vector2Int(x, y);
-                if (grid.GetManhattanDistance(unit.Cell, cell) != unit.AttackRange)
+                int dist = grid.GetManhattanDistance(unit.Cell, cell);
+                if (dist < 1 || dist > unit.AttackRange)
                     continue;
                 var occ = grid.GetOccupant(cell);
                 if (occ == null)
@@ -176,6 +179,56 @@ public class MapVisual : MonoBehaviour
                 if (target == null || target.IsDead)
                     continue;
                 if (!VisibilityService.CanSeeCell(unit, cell))
+                    continue;
+                if (!StealthService.CanTargetDespiteHidden(unit, target))
+                    continue;
+                overlayRenderers[x, y].color = AttackHint;
+            }
+        }
+    }
+
+    public void ShowMotorcycleRamHints(UnitActor unit)
+    {
+        ClearHints();
+        if (unit == null || unit.IsDead)
+            return;
+        var grid = GridManager.Instance;
+        var dirs = new[]
+        {
+            new Vector2Int(1, 0), new Vector2Int(-1, 0),
+            new Vector2Int(0, 1), new Vector2Int(0, -1)
+        };
+        foreach (var d in dirs)
+        {
+            for (int dist = 5; dist <= 10; dist++)
+            {
+                var cell = unit.Cell + d * dist;
+                if (!grid.IsValidCell(cell))
+                    break;
+                if (StealthService.BlocksMovementFor(unit, cell))
+                    continue;
+                overlayRenderers[cell.x, cell.y].color = AttackHint;
+            }
+        }
+    }
+
+    public void ShowHookHints(UnitActor unit)
+    {
+        ClearHints();
+        if (unit == null || unit.IsDead)
+            return;
+        var grid = GridManager.Instance;
+        for (int x = 0; x < grid.gridWidth; x++)
+        {
+            for (int y = 0; y < grid.gridHeight; y++)
+            {
+                var cell = new Vector2Int(x, y);
+                if (grid.GetManhattanDistance(unit.Cell, cell) > 3 || cell == unit.Cell)
+                    continue;
+                var target = StealthService.GetOccupantUnit(cell);
+                if (target == null)
+                    continue;
+                if (!VisibilityService.CanSeeUnit(unit, target))
                     continue;
                 if (!StealthService.CanTargetDespiteHidden(unit, target))
                     continue;

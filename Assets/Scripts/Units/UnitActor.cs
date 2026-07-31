@@ -24,6 +24,8 @@ public class UnitActor : MonoBehaviour
     public int AdrenalineRoundsLeft { get; private set; }
 
     public int FlamethrowerCooldown { get; set; }
+    /// <summary>摩托车冲击冷却（完整回合倒数）。</summary>
+    public int MotorcycleCooldown { get; set; }
 
     /// <summary>弩已蓄力，可在后续行动射击。</summary>
     public bool CrossbowCharged { get; private set; }
@@ -52,23 +54,35 @@ public class UnitActor : MonoBehaviour
     /// <summary>角色默认近战射程（不计入远程武器叠加）。</summary>
     public int BaseAttackRange => 1;
 
-    /// <summary>基础能见度半径（白天默认；昼夜/天气稍后修正）。</summary>
-    public int BaseVisibility => VisibilityService.DefaultVisibility;
+    /// <summary>基础能见度半径（虚拟时钟时段；夜视镜黑夜按 8）。</summary>
+    public int BaseVisibility
+    {
+        get
+        {
+            int round = TurnManager.Instance != null ? TurnManager.Instance.RoundNumber : 1;
+            int v = GameClock.GetBaseVisibility(round);
+            if (GameClock.GetPeriod(round) == GameClock.Period.Night
+                && FindEquippedIndex(ItemKind.NightVision) >= 0)
+                v = GameClock.NightVisionVisibility;
+            return v;
+        }
+    }
 
-    /// <summary>当前能见度（曼哈顿半径）。濒死/中毒为 1；致盲等未实装。</summary>
+    /// <summary>当前能见度（曼哈顿半径）。致盲=0；濒死/中毒=1；再叠天气。</summary>
     public int CurrentVisibility
     {
         get
         {
             if (IsDead) return 0;
+            if (HasStatus(StatusType.Blind)) return 0;
             if (IsDying) return 1;
             if (HasStatus(StatusType.Poison)) return 1;
-            return Mathf.Max(0, BaseVisibility);
+            return Mathf.Max(0, WeatherService.GetVisibilityAfterWeather(BaseVisibility));
         }
     }
 
-    /// <summary>近战射程 = 默认射程 + 外部增益（高地等）。</summary>
-    public int AttackRange => BaseAttackRange + GetRangeBonus();
+    /// <summary>近战射程 = 近战武器距离（无则默认 1）+ 外部增益（高地等）。</summary>
+    public int AttackRange => GetMeleeWeaponRange() + GetRangeBonus();
 
     /// <summary>仅高地等外部增益，不含角色默认射程；供弓弩等叠加。</summary>
     public int GetRangeBonus()
@@ -78,6 +92,33 @@ public class UnitActor : MonoBehaviour
             return 0;
         return TerrainInfo.GetRangeBonus(grid.GetTileType(Cell));
     }
+
+    public int GetMeleeWeaponRange()
+    {
+        if (Inventory == null) return BaseAttackRange;
+        foreach (var item in Inventory.Items)
+        {
+            if (!item.Equipped || !ItemInfo.IsMeleeWeapon(item.Kind))
+                continue;
+            return ItemInfo.GetMeleeWeaponRange(item.Kind);
+        }
+        return BaseAttackRange;
+    }
+
+    public int GetMeleeWeaponAtkBonus()
+    {
+        if (Inventory == null) return 0;
+        foreach (var item in Inventory.Items)
+        {
+            if (!item.Equipped || !ItemInfo.IsMeleeWeapon(item.Kind))
+                continue;
+            return ItemInfo.GetMeleeWeaponAtkBonus(item.Kind);
+        }
+        return 0;
+    }
+
+    /// <summary>普攻物伤用的攻击力（含近战武器加成）。</summary>
+    public int MeleeAtk => CurrentAtk + GetMeleeWeaponAtkBonus();
 
     public TileType CurrentTile
     {
@@ -97,7 +138,8 @@ public class UnitActor : MonoBehaviour
     }
 
     public int Atk => BaseAtk + PermAtk + TempAtk + GetDollAtkBonus() + GetStatusAtkMod() + GetTerrainAtkMod();
-    public int Def => BaseDef + PermDef + GetDollDefBonus() + (Inventory?.GetArmorDefenseBonus() ?? 0) + GetStatusDefMod() + GetTerrainDefMod();
+    public int Def => BaseDef + PermDef + GetDollDefBonus() + (Inventory?.GetArmorDefenseBonus() ?? 0)
+        + GetStatusDefMod() + GetTerrainDefMod() + WeatherService.GetDefMod();
 
     public int CurrentMove
     {
@@ -105,10 +147,25 @@ public class UnitActor : MonoBehaviour
         {
             if (IsDead) return 0;
             if (IsDying) return 1;
-            int m = BaseMove + PermMove + TempMove + GetDollMoveBonus() + GetStatusMoveMod() + GetTerrainMoveMod();
+            int m = BaseMove + PermMove + TempMove + GetDollMoveBonus() + GetStatusMoveMod()
+                + GetTerrainMoveMod() + GetVehicleMoveBonus();
             m -= GetDeterrencePenalty();
             return Mathf.Max(1, m);
         }
+    }
+
+    public int GetVehicleMoveBonus()
+    {
+        if (Inventory == null)
+            return 0;
+        int best = 0;
+        foreach (var item in Inventory.Items)
+        {
+            if (!item.Equipped)
+                continue;
+            best = Mathf.Max(best, ItemInfo.GetVehicleMoveBonus(item.Kind));
+        }
+        return best;
     }
 
     public int CurrentAtk => IsDead ? 0 : Atk;
@@ -316,6 +373,8 @@ public class UnitActor : MonoBehaviour
     {
         if (IsDead || IsDying || rounds <= 0)
             return;
+        if (type == StatusType.Burning && WeatherService.BlocksBurning)
+            return;
 
         StatusEffect next = source != null
             ? new StatusEffect(type, rounds, source.Role)
@@ -466,6 +525,7 @@ public class UnitActor : MonoBehaviour
         TempAtk = 0;
         AdrenalineRoundsLeft = 0;
         FlamethrowerCooldown = 0;
+        MotorcycleCooldown = 0;
         CrossbowCharged = false;
         CrossbowChargedThisAction = false;
         SkillCooldownLeft = 0;
@@ -528,17 +588,46 @@ public class UnitActor : MonoBehaviour
             grid.SetCellOccupied(cell, gameObject);
     }
 
+    /// <summary>尝试移动。若撞上不可见的隐匿占格者，会弹回来向邻格并破隐；LastMoveBumped 供日志。</summary>
+    public bool LastMoveBumped { get; private set; }
+    public Vector2Int LastMoveIntendedCell { get; private set; }
+    public UnitActor LastMoveBumpedUnit { get; private set; }
+
     public bool TryMoveTo(Vector2Int target)
     {
+        LastMoveBumped = false;
+        LastMoveIntendedCell = target;
+        LastMoveBumpedUnit = null;
+
         if (IsDead)
             return false;
 
         var grid = GridManager.Instance;
-        if (!grid.IsValidCell(target) || grid.IsCellOccupied(target))
+        if (!grid.IsValidCell(target))
+            return false;
+        if (StealthService.BlocksMovementFor(this, target))
             return false;
         if (grid.GetManhattanDistance(Cell, target) > CurrentMove)
             return false;
         if (!VisibilityService.CanMoveTo(this, target))
+            return false;
+
+        Vector2Int from = Cell;
+        var invisibleOcc = StealthService.GetOccupantUnit(target);
+        if (invisibleOcc != null && invisibleOcc != this
+            && !VisibilityService.CanSeeUnit(this, invisibleOcc))
+        {
+            // 不解除对方隐匿：弹至邻格后仅邻接者可见，避免把位置广播给全场
+            Vector2Int land = StealthService.GetBumpLandCell(from, target);
+            PlaceAt(land, true);
+            ApplyTerrainEnterEffects();
+            LastMoveBumped = true;
+            LastMoveBumpedUnit = invisibleOcc;
+            LastMoveIntendedCell = target;
+            return true;
+        }
+
+        if (grid.IsCellOccupied(target))
             return false;
 
         PlaceAt(target, true);
@@ -640,6 +729,8 @@ public class UnitActor : MonoBehaviour
 
         if (FlamethrowerCooldown > 0)
             FlamethrowerCooldown--;
+        if (MotorcycleCooldown > 0)
+            MotorcycleCooldown--;
 
         for (int i = statuses.Count - 1; i >= 0; i--)
         {

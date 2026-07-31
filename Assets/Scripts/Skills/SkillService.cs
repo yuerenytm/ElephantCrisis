@@ -183,7 +183,7 @@ public static class SkillService
     }
 }
 
-/// <summary>隐匿：邻接外不可被选为目标；攻击解除。破隐半径规则已取消（见角色分册现行）。</summary>
+/// <summary>隐匿：邻接外不可见/不可选为目标；攻击解除；撞入隐匿格则弹回来向邻格（不解除隐匿）。</summary>
 public static class StealthService
 {
     public static void CheckAll() { }
@@ -197,5 +197,97 @@ public static class StealthService
         if (attacker == null)
             return false;
         return GridManager.Instance.GetManhattanDistance(attacker.Cell, defender.Cell) <= 1;
+    }
+
+    public static UnitActor GetOccupantUnit(Vector2Int cell)
+    {
+        var go = GridManager.Instance?.GetOccupant(cell);
+        if (go == null)
+            return null;
+        var u = go.GetComponent<UnitActor>();
+        if (u == null || u.IsDead)
+            return null;
+        return u;
+    }
+
+    /// <summary>对移动者可见的占格者会阻挡移动预判与落入。</summary>
+    public static bool BlocksMovementFor(UnitActor mover, Vector2Int cell)
+    {
+        var occ = GetOccupantUnit(cell);
+        if (occ == null || occ == mover)
+            return false;
+        return VisibilityService.CanSeeUnit(mover, occ);
+    }
+
+    /// <summary>
+    /// 落入对移动者不可见的占格者所在格时，弹回「来向」邻格。
+    /// 主轴优先；等距对角线则在两正交来向邻格中随机。
+    /// </summary>
+    public static Vector2Int GetBumpLandCell(Vector2Int from, Vector2Int occupied)
+    {
+        var grid = GridManager.Instance;
+        int sx = from.x == occupied.x ? 0 : (from.x > occupied.x ? 1 : -1);
+        int sy = from.y == occupied.y ? 0 : (from.y > occupied.y ? 1 : -1);
+
+        var preferred = new System.Collections.Generic.List<Vector2Int>(2);
+        if (sx != 0 && sy != 0)
+        {
+            int adx = Mathf.Abs(from.x - occupied.x);
+            int ady = Mathf.Abs(from.y - occupied.y);
+            var alongX = new Vector2Int(occupied.x + sx, occupied.y);
+            var alongY = new Vector2Int(occupied.x, occupied.y + sy);
+            if (adx == ady)
+            {
+                preferred.Add(alongX);
+                preferred.Add(alongY);
+            }
+            else if (ady > adx)
+                preferred.Add(alongY);
+            else
+                preferred.Add(alongX);
+        }
+        else if (sx != 0)
+            preferred.Add(new Vector2Int(occupied.x + sx, occupied.y));
+        else if (sy != 0)
+            preferred.Add(new Vector2Int(occupied.x, occupied.y + sy));
+
+        // 等距时打乱顺序再按可落点筛选
+        if (preferred.Count == 2 && Random.value < 0.5f)
+            (preferred[0], preferred[1]) = (preferred[1], preferred[0]);
+
+        for (int i = 0; i < preferred.Count; i++)
+        {
+            if (IsValidBumpLand(grid, preferred[i], from, occupied))
+                return preferred[i];
+        }
+
+        // 后备：其它来向邻格 / 任意空邻格
+        var fallback = new System.Collections.Generic.List<Vector2Int>(4);
+        if (sx != 0) fallback.Add(new Vector2Int(occupied.x + sx, occupied.y));
+        if (sy != 0) fallback.Add(new Vector2Int(occupied.x, occupied.y + sy));
+        fallback.Add(occupied + Vector2Int.up);
+        fallback.Add(occupied + Vector2Int.down);
+        fallback.Add(occupied + Vector2Int.left);
+        fallback.Add(occupied + Vector2Int.right);
+        for (int i = 0; i < fallback.Count; i++)
+        {
+            if (IsValidBumpLand(grid, fallback[i], from, occupied))
+                return fallback[i];
+        }
+
+        return from;
+    }
+
+    private static bool IsValidBumpLand(GridManager grid, Vector2Int cell, Vector2Int from, Vector2Int occupied)
+    {
+        if (grid == null || !grid.IsValidCell(cell))
+            return false;
+        if (cell == occupied)
+            return false;
+        if (cell == from)
+            return true;
+        if (!grid.IsCellOccupied(cell))
+            return true;
+        return false;
     }
 }

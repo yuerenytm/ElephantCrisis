@@ -114,6 +114,8 @@ public static class ItemUseService
                     PlayerInputController.Instance?.StartBananaMode(itemIndex);
                 else if (kind == ItemKind.Mine)
                     PlayerInputController.Instance?.StartMineMode(itemIndex);
+                else if (kind == ItemKind.Flashbang)
+                    PlayerInputController.Instance?.StartFlashbangMode(itemIndex);
                 else
                     PlayerInputController.Instance?.StartBombMode(itemIndex);
                 return true;
@@ -197,14 +199,16 @@ public static class ActionService
             TurnManager.Instance.LogFor(attacker, "本回合普通攻击已使用");
             return false;
         }
-        if (GridManager.Instance.GetManhattanDistance(attacker.Cell, defender.Cell) > attacker.AttackRange)
+        int dist = GridManager.Instance.GetManhattanDistance(attacker.Cell, defender.Cell);
+        if (dist > attacker.AttackRange)
             return false;
+        // 隐匿者仅邻接可打（长剑距 2 也打不到）——已由 CanTargetDespiteHidden 保证
 
         BreakStealthIfAttacking(attacker, defender);
-        int dealt = defender.TakeDamage(attacker.CurrentAtk, magicDamage: false);
+        int dealt = defender.TakeDamage(attacker.MeleeAtk, magicDamage: false);
         TurnManager.Instance.MarkMeleeAttacked();
         TurnManager.Instance.Log(
-            $"{RoleInfo.GetDisplayName(attacker.Role)} 攻击 {RoleInfo.GetDisplayName(defender.Role)}，造成 {dealt} 伤害" +
+            $"{RoleInfo.GetDisplayName(attacker.Role)} 近战攻击 {RoleInfo.GetDisplayName(defender.Role)}，造成 {dealt} 伤害" +
             (defender.IsDead ? "（击杀）" : defender.IsDying ? "（濒死）" : dealt <= 0 ? "（被挡下）" : $"（剩余HP {defender.Hp}）"));
 
         GameManager.Instance?.CheckWinConditions();
@@ -320,7 +324,17 @@ public static class ActionService
 
         HazardManager.Instance?.ResolveTrapsAfterMove(unit);
         TurnManager.Instance.MarkMoved();
-        TurnManager.Instance.LogFor(unit, $"{RoleInfo.GetDisplayName(unit.Role)} 移动到 ({target.x},{target.y})");
+        if (unit.LastMoveBumped && unit.LastMoveBumpedUnit != null)
+        {
+            var bumped = unit.LastMoveBumpedUnit;
+            TurnManager.Instance.LogFor(unit,
+                $"{RoleInfo.GetDisplayName(unit.Role)} 撞上隐匿的{RoleInfo.GetDisplayName(bumped.Role)}（{unit.LastMoveIntendedCell.x},{unit.LastMoveIntendedCell.y}），弹至 ({unit.Cell.x},{unit.Cell.y})（对方仍隐匿，仅邻接可见）");
+        }
+        else
+        {
+            TurnManager.Instance.LogFor(unit,
+                $"{RoleInfo.GetDisplayName(unit.Role)} 移动到 ({unit.Cell.x},{unit.Cell.y})");
+        }
         StealthService.CheckAll();
         VisibilityService.RefreshWorld();
         return true;
@@ -574,6 +588,18 @@ public static class ActionService
             PlayerInputController.Instance?.StartFlameMode(itemIndex);
             return true;
         }
+        if (entry.Kind == ItemKind.Motorcycle)
+        {
+            if (TurnManager.Instance.HasMoved || unit.MotorcycleCooldown > 0)
+                return TryToggleEquip(unit, itemIndex); // 不可冲击时点按卸下
+            PlayerInputController.Instance?.StartMotorcycleRamMode(itemIndex);
+            return true;
+        }
+        if (entry.Kind == ItemKind.GrappleHook)
+        {
+            PlayerInputController.Instance?.StartHookMode(itemIndex);
+            return true;
+        }
 
         return TryToggleEquip(unit, itemIndex);
     }
@@ -607,6 +633,7 @@ public static class ActionService
             unit.ConsumeCrossbowCharge();
 
         TurnManager.Instance.LogFor(unit, $"{RoleInfo.GetDisplayName(unit.Role)} {log}");
+        VisibilityService.RefreshWorld();
         TurnManager.Instance.NotifyActionDone();
         return true;
     }
@@ -917,6 +944,238 @@ public static class ActionService
             $"{RoleInfo.GetDisplayName(unit.Role)} 使用火焰喷射器，命中 {hits} 人，{damaged} 人扣血并着火（冷却3回合）");
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
+        return true;
+    }
+
+    public static bool TryThrowFlashbang(UnitActor unit, Vector2Int target)
+    {
+        if (unit == null || unit.IsDead || unit.IsDying)
+            return false;
+        if (TurnManager.Instance.CurrentUnit != unit)
+            return false;
+        if (TurnManager.Instance.Phase != TurnPhase.SelectingBombTarget)
+            return false;
+
+        int idx = TurnManager.Instance.PendingItemIndex;
+        if (idx < 0 || idx >= unit.Inventory.Count || unit.Inventory.Items[idx].Kind != ItemKind.Flashbang)
+            return false;
+
+        var grid = GridManager.Instance;
+        if (grid.GetManhattanDistance(unit.Cell, target) > 5)
+            return false;
+
+        unit.Inventory.RemoveAt(idx);
+        DeckManager.Instance?.AddToDiscard(ItemKind.Flashbang);
+        BreakStealthIfAttacking(unit);
+
+        int hits = 0;
+        foreach (var other in GameManager.Instance.Units)
+        {
+            if (other == null || other.IsDead)
+                continue;
+            if (grid.GetManhattanDistance(target, other.Cell) > 2)
+                continue;
+            other.ApplyStatus(StatusType.Blind, 1, unit);
+            hits++;
+        }
+
+        TurnManager.Instance.CancelTargeting();
+        TurnManager.Instance.Log(
+            $"{RoleInfo.GetDisplayName(unit.Role)} 投掷闪光弹于 ({target.x},{target.y})，{hits} 人获得【致盲】1回合");
+        VisibilityService.RefreshWorld();
+        TurnManager.Instance.NotifyActionDone();
+        return true;
+    }
+
+    public static bool TryMotorcycleRam(UnitActor unit, Vector2Int target)
+    {
+        if (unit == null || unit.IsDead || unit.IsDying)
+            return false;
+        if (TurnManager.Instance.CurrentUnit != unit)
+            return false;
+        if (TurnManager.Instance.Phase != TurnPhase.SelectingMotorcycleRam)
+            return false;
+        if (TurnManager.Instance.HasMoved)
+            return false;
+        if (unit.MotorcycleCooldown > 0)
+            return false;
+
+        int idx = TurnManager.Instance.PendingItemIndex;
+        if (idx < 0 || idx >= unit.Inventory.Count || unit.Inventory.Items[idx].Kind != ItemKind.Motorcycle)
+            return false;
+        if (!unit.Inventory.Items[idx].Equipped)
+        {
+            TurnManager.Instance.LogFor(unit, "请先装备摩托车");
+            return false;
+        }
+
+        var grid = GridManager.Instance;
+        int dx = target.x - unit.Cell.x;
+        int dy = target.y - unit.Cell.y;
+        int dist = Mathf.Abs(dx) + Mathf.Abs(dy);
+        if (dist < 5 || dist > 10)
+            return false;
+        if (!((dx == 0 && dy != 0) || (dy == 0 && dx != 0)))
+            return false;
+
+        int sx = dx == 0 ? 0 : (dx > 0 ? 1 : -1);
+        int sy = dy == 0 ? 0 : (dy > 0 ? 1 : -1);
+
+        // 终点须可站：无可见占格；路径上的人受伤但不挡落点
+        if (StealthService.BlocksMovementFor(unit, target))
+        {
+            TurnManager.Instance.LogFor(unit, "冲击终点被占据");
+            return false;
+        }
+        for (int step = 1; step < dist; step++)
+        {
+            var cell = unit.Cell + new Vector2Int(sx * step, sy * step);
+            if (!grid.IsValidCell(cell))
+                return false;
+        }
+        if (!grid.IsValidCell(target))
+            return false;
+
+        Vector2Int from = unit.Cell;
+        int damage = unit.CurrentAtk + 9;
+        int hits = 0;
+        bool wasHidden = unit.HasStatus(StatusType.Hidden);
+        for (int step = 1; step <= dist; step++)
+        {
+            var cell = from + new Vector2Int(sx * step, sy * step);
+            var occ = StealthService.GetOccupantUnit(cell);
+            if (occ == null || occ == unit)
+                continue;
+            // 冲击对隐匿者也造成伤害（身体冲撞）
+            hits++;
+            int dealt = occ.TakeDamage(damage, magicDamage: false);
+            if (!occ.IsDead)
+                occ.ApplyStatus(StatusType.Stun, 1, unit);
+            if (dealt > 0 && wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= 3)
+                occ.ApplyStatus(StatusType.Poison, 1, unit);
+        }
+
+        if (hits > 0)
+            BreakStealthIfAttacking(unit);
+
+        // 落点：若终点有不可见隐匿者则弹回逻辑
+        var endOcc = StealthService.GetOccupantUnit(target);
+        if (endOcc != null && endOcc != unit && !VisibilityService.CanSeeUnit(unit, endOcc))
+        {
+            Vector2Int land = StealthService.GetBumpLandCell(from, target);
+            unit.PlaceAt(land, true);
+            unit.ApplyTerrainEnterEffects();
+        }
+        else if (endOcc == null)
+        {
+            unit.PlaceAt(target, true);
+            unit.ApplyTerrainEnterEffects();
+        }
+        else
+        {
+            // 可见占格（理论上已拦）：停在终点前一格
+            var stop = from + new Vector2Int(sx * (dist - 1), sy * (dist - 1));
+            if (stop != from && grid.IsValidCell(stop) && !StealthService.BlocksMovementFor(unit, stop))
+            {
+                unit.PlaceAt(stop, true);
+                unit.ApplyTerrainEnterEffects();
+            }
+        }
+
+        HazardManager.Instance?.ResolveTrapsAfterMove(unit);
+        unit.MotorcycleCooldown = 5;
+        TurnManager.Instance.MarkMoved();
+        TurnManager.Instance.CancelTargeting();
+        TurnManager.Instance.Log(
+            $"{RoleInfo.GetDisplayName(unit.Role)} 摩托车冲击至 ({unit.Cell.x},{unit.Cell.y})，命中 {hits} 人（物伤攻+9，晕眩1；冷却5回合）");
+        GameManager.Instance?.CheckWinConditions();
+        VisibilityService.RefreshWorld();
+        TurnManager.Instance.NotifyActionDone();
+        return true;
+    }
+
+    public static bool TryHookSelectTarget(UnitActor unit, UnitActor target)
+    {
+        if (unit == null || target == null || unit.IsDead || target.IsDead || target == unit)
+            return false;
+        if (TurnManager.Instance.Phase != TurnPhase.SelectingHookTarget)
+            return false;
+        if (GridManager.Instance.GetManhattanDistance(unit.Cell, target.Cell) > 3)
+        {
+            TurnManager.Instance.LogFor(unit, "目标超出勾爪半径 3");
+            return false;
+        }
+        if (!VisibilityService.CanSeeUnit(unit, target))
+        {
+            TurnManager.Instance.LogFor(unit, "看不见该目标");
+            return false;
+        }
+        if (!StealthService.CanTargetDespiteHidden(unit, target))
+        {
+            TurnManager.Instance.LogFor(unit, "目标处于隐匿（需邻接）");
+            return false;
+        }
+
+        bool hasLoot = false;
+        foreach (var it in target.Inventory.Items)
+        {
+            if (!ItemInfo.IsDoll(it.Kind))
+            {
+                hasLoot = true;
+                break;
+            }
+        }
+        if (!hasLoot)
+        {
+            TurnManager.Instance.LogFor(unit, "目标没有可抢的非玩偶物品");
+            return false;
+        }
+
+        TurnManager.Instance.EnterHookItemPick(target);
+        TurnManager.Instance.LogFor(unit,
+            $"查看 {RoleInfo.GetDisplayName(target.Role)} 的物品，点选一件夺取（勾爪用后损毁）");
+        return true;
+    }
+
+    public static bool TryHookTakeItem(UnitActor unit, int itemIndex)
+    {
+        var turn = TurnManager.Instance;
+        if (unit == null || turn == null || !turn.PendingHookSteal)
+            return false;
+        var target = turn.PendingSkillTargetUnit;
+        if (target == null || turn.Phase != TurnPhase.SelectingMonkeyMarkItem)
+            return false;
+
+        int hookIdx = turn.PendingItemIndex;
+        if (hookIdx < 0 || hookIdx >= unit.Inventory.Count
+            || unit.Inventory.Items[hookIdx].Kind != ItemKind.GrappleHook
+            || !unit.Inventory.Items[hookIdx].Equipped)
+            return false;
+
+        if (itemIndex < 0 || itemIndex >= target.Inventory.Count)
+            return false;
+        var item = target.Inventory.Items[itemIndex];
+        if (ItemInfo.IsDoll(item.Kind))
+        {
+            turn.LogFor(unit, "不可抢夺玩偶");
+            return false;
+        }
+        if (GridManager.Instance.GetManhattanDistance(unit.Cell, target.Cell) > 3)
+            return false;
+
+        target.Inventory.RemoveAt(itemIndex);
+        unit.Inventory.Add(item);
+        // 勾爪损毁
+        unit.Inventory.RemoveAt(hookIdx);
+        DeckManager.Instance?.AddToDiscard(ItemKind.GrappleHook);
+        unit.RefreshBagCapacity();
+        target.RefreshBagCapacity();
+
+        turn.CancelTargeting();
+        turn.Log(
+            $"{RoleInfo.GetDisplayName(unit.Role)} 用抢夺勾爪获得 {RoleInfo.GetDisplayName(target.Role)} 的【{ItemInfo.GetDisplayName(item.Kind)}】（勾爪损毁）");
+        GameManager.Instance?.CheckWinConditions();
+        turn.NotifyActionDone();
         return true;
     }
 
