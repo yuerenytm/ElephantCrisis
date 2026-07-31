@@ -31,6 +31,7 @@ public class DeckManager : MonoBehaviour
         discardPile.Clear();
 
         AddCopies(ItemKind.SmallPotion, 5);
+        AddCopies(ItemKind.LargePotion, 2);
         AddCopies(ItemKind.Bomb, 5);
         AddCopies(ItemKind.MegaBomb, 2);
         AddCopies(ItemKind.TimedBomb, 3);
@@ -47,6 +48,12 @@ public class DeckManager : MonoBehaviour
         AddCopies(ItemKind.IronArmor, 1);
         AddCopies(ItemKind.EnergyShield, 3);
         AddCopies(ItemKind.Adrenaline, 5);
+        AddCopies(ItemKind.SkillUpgrade, 12);
+        // 四只玩偶各 1 张，入共用牌库（开局不携带、不散落）
+        AddCopies(ItemKind.DollElephant, 1);
+        AddCopies(ItemKind.DollHuman, 1);
+        AddCopies(ItemKind.DollMonkey, 1);
+        AddCopies(ItemKind.DollCat, 1);
         Shuffle(drawPile);
 
         TurnManager.Instance?.Log($"牌库已构建：{drawPile.Count} 张");
@@ -85,6 +92,52 @@ public class DeckManager : MonoBehaviour
         return true;
     }
 
+    public int CountInDraw(ItemKind kind)
+    {
+        int n = 0;
+        for (int i = 0; i < drawPile.Count; i++)
+        {
+            if (drawPile[i] == kind)
+                n++;
+        }
+        return n;
+    }
+
+    public int CountInDiscard(ItemKind kind)
+    {
+        int n = 0;
+        for (int i = 0; i < discardPile.Count; i++)
+        {
+            if (discardPile[i] == kind)
+                n++;
+        }
+        return n;
+    }
+
+    /// <summary>牌库+弃牌堆中该牌剩余张数（管理员选牌用）。</summary>
+    public int CountAvailable(ItemKind kind) => CountInDraw(kind) + CountInDiscard(kind);
+
+    /// <summary>从牌库取出指定牌（牌库无则先洗入弃牌堆）；成功则移出牌库。</summary>
+    public bool TryTakeSpecific(ItemKind kind)
+    {
+        if (TryRemoveFromDraw(kind))
+            return true;
+        ReshuffleDiscardIntoDraw();
+        return TryRemoveFromDraw(kind);
+    }
+
+    private bool TryRemoveFromDraw(ItemKind kind)
+    {
+        for (int i = drawPile.Count - 1; i >= 0; i--)
+        {
+            if (drawPile[i] != kind)
+                continue;
+            drawPile.RemoveAt(i);
+            return true;
+        }
+        return false;
+    }
+
     public void DrawFor(UnitActor unit)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -97,12 +150,15 @@ public class DeckManager : MonoBehaviour
         }
 
         unit.Inventory.Add(card);
+        string drawName = ItemInfo.GetDisplayName(card);
+        if (ItemInfo.IsDoll(card))
+            drawName = $"★{drawName}★";
         TurnManager.Instance?.LogFor(unit,
-            $"{RoleInfo.GetDisplayName(unit.Role)} 抽到【{ItemInfo.GetDisplayName(card)}】（库{drawPile.Count}/弃{discardPile.Count}）");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 抽到【{drawName}】（库{drawPile.Count}/弃{discardPile.Count}）");
         if (unit.Inventory.IsOverCapacity)
         {
             TurnManager.Instance?.LogFor(unit,
-                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），结束回合前需弃置");
+                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），结束行动前需弃置");
         }
     }
 

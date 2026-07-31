@@ -18,7 +18,19 @@ public static class SimpleHeuristicAi
             TurnManager.Instance.CancelTargeting();
 
         if (unit.IsDying)
-            return TryHeal(unit);
+            return ActionService.TryUseGroundPotion(unit);
+
+        if (LeaderDeclarationService.CanDeclare(unit, out _, out _, out _))
+            return LeaderDeclarationService.TryDeclare(unit);
+
+        if (unit.Inventory != null
+            && unit.Inventory.CountOf(ItemKind.SkillUpgrade) >= 3
+            && unit.SkillLevel < 3
+            && ActionService.TryUseSkillUpgrade(unit))
+            return true;
+
+        if (TryUseSkill(unit))
+            return true;
 
         if (unit.Hp * 100 < unit.MaxHp * 35 && TryHeal(unit))
             return true;
@@ -44,8 +56,72 @@ public static class SimpleHeuristicAi
         return false;
     }
 
+    private static bool TryUseSkill(UnitActor unit)
+    {
+        if (unit.SkillCooldownLeft > 0 || SkillInfo.IsPassive(unit.Role))
+            return false;
+
+        switch (unit.Role)
+        {
+            case RoleType.Human:
+                if (!SkillService.CanUseActiveSkill(unit, out _))
+                    return false;
+                TurnManager.Instance.EnterSkillReinforce();
+                return SkillService.TryConfirmHumanReinforce(unit, StatBoost.Attack);
+
+            case RoleType.Cat:
+                if (unit.Hp * 100 < unit.MaxHp * 55 || unit.HasStatus(StatusType.Hidden))
+                    return false;
+                return SkillService.TryCatStealth(unit);
+
+            case RoleType.Monkey:
+                if (!SkillService.CanUseActiveSkill(unit, out _))
+                    return false;
+                int radius = SkillInfo.GetMonkeyRadius(unit.SkillLevel);
+                UnitActor best = null;
+                int bestDist = 99;
+                int bestItem = -1;
+                foreach (var other in TurnManager.Instance.Units)
+                {
+                    if (other == null || other.IsDead || other == unit)
+                        continue;
+                    int d = GridManager.Instance.GetManhattanDistance(unit.Cell, other.Cell);
+                    if (d > radius || d >= bestDist)
+                        continue;
+                    int itemIdx = -1;
+                    for (int i = 0; i < other.Inventory.Count; i++)
+                    {
+                        if (ItemInfo.IsDoll(other.Inventory.Items[i].Kind))
+                            continue;
+                        itemIdx = i;
+                        break;
+                    }
+                    if (itemIdx < 0)
+                        continue;
+                    best = other;
+                    bestDist = d;
+                    bestItem = itemIdx;
+                }
+                if (best == null || bestItem < 0)
+                    return false;
+                if (!SkillService.TryBeginMonkeySteal(unit))
+                    return false;
+                if (!SkillService.TryMonkeySelectTarget(unit, best))
+                {
+                    TurnManager.Instance.CancelTargeting();
+                    return false;
+                }
+                return SkillService.TryMonkeyTakeItem(unit, bestItem);
+
+            default:
+                return false;
+        }
+    }
+
     private static bool TryHeal(UnitActor unit)
     {
+        if (unit.Inventory.CountOf(ItemKind.LargePotion) > 0)
+            return ActionService.TryUsePotion(unit, ItemKind.LargePotion);
         if (unit.Inventory.CountOf(ItemKind.SmallPotion) > 0)
             return ActionService.TryUseSmallPotion(unit);
         return false;
@@ -54,19 +130,42 @@ public static class SimpleHeuristicAi
     private static bool TryEquipGear(UnitActor unit)
     {
         var items = unit.Inventory.Items;
+        bool hasWeapon = false;
         bool wearingArmor = false;
         bool wearingShield = false;
         for (int i = 0; i < items.Count; i++)
         {
             if (!items[i].Equipped)
                 continue;
+            if (ItemInfo.GetEquipSlot(items[i].Kind) == ItemInfo.EquipSlot.Weapon)
+                hasWeapon = true;
             if (ItemInfo.IsArmor(items[i].Kind))
                 wearingArmor = true;
             if (items[i].Kind == ItemKind.EnergyShield)
                 wearingShield = true;
         }
 
-        // 已有甲/盾则不再换装，避免两件甲互相穿脱死循环
+        if (!hasWeapon && unit.Inventory.TotalAmmoCharges() > 0)
+        {
+            for (int i = 0; i < items.Count; i++)
+            {
+                if (items[i].Equipped) continue;
+                if (items[i].Kind == ItemKind.Crossbow || items[i].Kind == ItemKind.Bow)
+                {
+                    if (ActionService.TryToggleEquip(unit, i))
+                        return true;
+                }
+            }
+        }
+
+        int cb = unit.FindEquippedIndex(ItemKind.Crossbow);
+        if (cb >= 0 && !unit.CrossbowCharged && unit.TryChargeCrossbow())
+        {
+            TurnManager.Instance.LogFor(unit, $"{RoleInfo.GetDisplayName(unit.Role)} 为弩蓄力");
+            TurnManager.Instance.NotifyActionDone();
+            return true;
+        }
+
         int bestArmor = -1;
         int bestArmorScore = -1;
         int shieldIndex = -1;
@@ -83,7 +182,7 @@ public static class SimpleHeuristicAi
                     bestArmor = i;
                 }
             }
-            if (!wearingShield && items[i].Kind == ItemKind.EnergyShield)
+            if (!wearingShield && !wearingArmor && items[i].Kind == ItemKind.EnergyShield)
                 shieldIndex = i;
         }
 
@@ -105,7 +204,9 @@ public static class SimpleHeuristicAi
         for (int wi = 0; wi < items.Count; wi++)
         {
             var weapon = items[wi].Kind;
-            if (!ItemInfo.IsWeapon(weapon))
+            if (!ItemInfo.IsRangedWeapon(weapon) || !items[wi].Equipped)
+                continue;
+            if (weapon == ItemKind.Crossbow && !unit.CanFireCrossbow())
                 continue;
 
             int need = ItemInfo.GetArrowCost(weapon);
@@ -130,6 +231,8 @@ public static class SimpleHeuristicAi
             foreach (var other in GameManager.Instance.Units)
             {
                 if (other == null || other == unit || other.IsDead)
+                    continue;
+                if (!StealthService.CanTargetDespiteHidden(unit, other))
                     continue;
                 int dist = GridManager.Instance.GetManhattanDistance(unit.Cell, other.Cell);
                 if (dist > range)
@@ -295,6 +398,8 @@ public static class SimpleHeuristicAi
                 var cell = unit.Cell + new Vector2Int(dx, dy);
                 if (!grid.IsValidCell(cell) || grid.IsCellOccupied(cell))
                     continue;
+                if (!VisibilityService.CanMoveTo(unit, cell))
+                    continue;
                 if (grid.GetTileType(cell) == TileType.Lava)
                     continue;
 
@@ -397,6 +502,26 @@ public static class SimpleHeuristicAi
             score -= 40f;
         else if (edgeDist <= 2)
             score -= 15f;
+
+        // 地形：避开沼泽，略偏好高地/丛林
+        switch (grid.GetTileType(cell))
+        {
+            case TileType.Swamp:
+                score -= 18f;
+                break;
+            case TileType.Sand:
+                score -= 6f;
+                break;
+            case TileType.Highland:
+                score += 12f;
+                break;
+            case TileType.Jungle:
+                score += 8f;
+                break;
+            case TileType.Ice:
+                score += 2f; // 移速好，但有跌倒风险
+                break;
+        }
 
         // 略向中心
         var center = new Vector2Int(grid.gridWidth / 2, grid.gridHeight / 2);

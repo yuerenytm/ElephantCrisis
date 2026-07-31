@@ -7,16 +7,15 @@ public class MapVisual : MonoBehaviour
     private SpriteRenderer[,] cellRenderers;
     private Transform root;
 
-    private static readonly Color NormalColor = new Color(0.22f, 0.32f, 0.24f);
-    private static readonly Color NormalAlt = new Color(0.18f, 0.28f, 0.22f);
-    private static readonly Color LavaColor = new Color(0.85f, 0.28f, 0.1f);
     private static readonly Color MoveHint = new Color(0.25f, 0.55f, 0.95f, 0.55f);
     private static readonly Color AttackHint = new Color(0.95f, 0.25f, 0.2f, 0.55f);
     private static readonly Color BombHint = new Color(0.95f, 0.7f, 0.15f, 0.4f);
     private static readonly Color BlastHint = new Color(1f, 0.2f, 0.05f, 0.55f);
     private static readonly Color BlastCenter = new Color(1f, 0.45f, 0.1f, 0.7f);
+    private static readonly Color FogColor = new Color(0.04f, 0.05f, 0.07f, 0.78f);
 
     private SpriteRenderer[,] overlayRenderers;
+    private SpriteRenderer[,] fogRenderers;
     private Vector2Int? bombHoverCell;
     private int bombThrowRange = 5;
     private int bombBlastRadius = 2;
@@ -43,9 +42,9 @@ public class MapVisual : MonoBehaviour
 
         cellRenderers = new SpriteRenderer[grid.gridWidth, grid.gridHeight];
         overlayRenderers = new SpriteRenderer[grid.gridWidth, grid.gridHeight];
+        fogRenderers = new SpriteRenderer[grid.gridWidth, grid.gridHeight];
 
-        var normalA = SpriteFactory.CreateBorderedSprite(NormalColor, new Color(0.12f, 0.16f, 0.12f), 32, 1);
-        var normalB = SpriteFactory.CreateBorderedSprite(NormalAlt, new Color(0.12f, 0.16f, 0.12f), 32, 1);
+        var fogSprite = SpriteFactory.CreateColorSprite(Color.white);
 
         for (int x = 0; x < grid.gridWidth; x++)
         {
@@ -57,19 +56,28 @@ public class MapVisual : MonoBehaviour
                 go.transform.position = grid.CellToWorld(cell);
                 go.transform.localScale = Vector3.one * 0.98f;
                 var sr = go.AddComponent<SpriteRenderer>();
-                sr.sprite = ((x + y) % 2 == 0) ? normalA : normalB;
                 sr.sortingOrder = 0;
                 cellRenderers[x, y] = sr;
+
+                var fog = new GameObject("Fog");
+                fog.transform.SetParent(go.transform, false);
+                var fsr = fog.AddComponent<SpriteRenderer>();
+                fsr.sprite = fogSprite;
+                fsr.sortingOrder = 1;
+                fsr.color = Color.clear;
+                fogRenderers[x, y] = fsr;
 
                 var overlay = new GameObject("Overlay");
                 overlay.transform.SetParent(go.transform, false);
                 var osr = overlay.AddComponent<SpriteRenderer>();
                 osr.sprite = SpriteFactory.CreateColorSprite(Color.white);
-                osr.sortingOrder = 1;
+                osr.sortingOrder = 2;
                 osr.color = Color.clear;
                 overlayRenderers[x, y] = osr;
             }
         }
+
+        RefreshAllTiles(grid);
     }
 
     public void RefreshAllTiles(GridManager grid)
@@ -77,19 +85,37 @@ public class MapVisual : MonoBehaviour
         if (cellRenderers == null)
             return;
 
-        var lavaSprite = SpriteFactory.CreateBorderedSprite(LavaColor, new Color(0.4f, 0.1f, 0.05f), 32, 1);
-        var normalA = SpriteFactory.CreateBorderedSprite(NormalColor, new Color(0.12f, 0.16f, 0.12f), 32, 1);
-        var normalB = SpriteFactory.CreateBorderedSprite(NormalAlt, new Color(0.12f, 0.16f, 0.12f), 32, 1);
-
         for (int x = 0; x < grid.gridWidth; x++)
         {
             for (int y = 0; y < grid.gridHeight; y++)
             {
                 var type = grid.GetTileType(new Vector2Int(x, y));
-                if (type == TileType.Lava)
-                    cellRenderers[x, y].sprite = lavaSprite;
-                else
-                    cellRenderers[x, y].sprite = ((x + y) % 2 == 0) ? normalA : normalB;
+                bool alt = ((x + y) % 2) != 0;
+                var fill = TerrainInfo.GetFillColor(type, alt);
+                var border = TerrainInfo.GetBorderColor(type);
+                cellRenderers[x, y].sprite = SpriteFactory.CreateBorderedSprite(fill, border, 32, 1);
+            }
+        }
+
+        ApplyFog(VisibilityService.GetFogViewer());
+    }
+
+    /// <summary>迷雾：视野外地块遮罩。</summary>
+    public void ApplyFog(UnitActor viewer)
+    {
+        if (fogRenderers == null)
+            return;
+        var grid = GridManager.Instance;
+        if (grid == null)
+            return;
+
+        for (int x = 0; x < grid.gridWidth; x++)
+        {
+            for (int y = 0; y < grid.gridHeight; y++)
+            {
+                var cell = new Vector2Int(x, y);
+                bool seen = viewer == null || VisibilityService.CanSeeCell(viewer, cell);
+                fogRenderers[x, y].color = seen ? Color.clear : FogColor;
             }
         }
     }
@@ -120,6 +146,8 @@ public class MapVisual : MonoBehaviour
                     continue;
                 if (grid.GetManhattanDistance(unit.Cell, cell) > range)
                     continue;
+                if (!VisibilityService.CanMoveTo(unit, cell))
+                    continue;
                 if (grid.IsCellOccupied(cell))
                     continue;
                 overlayRenderers[x, y].color = MoveHint;
@@ -130,7 +158,7 @@ public class MapVisual : MonoBehaviour
     public void ShowAttackHints(UnitActor unit)
     {
         ClearHints();
-        if (unit == null || unit.IsDead || unit.IsDying)
+        if (unit == null || unit.IsDead)
             return;
 
         var grid = GridManager.Instance;
@@ -146,6 +174,10 @@ public class MapVisual : MonoBehaviour
                     continue;
                 var target = occ.GetComponent<UnitActor>();
                 if (target == null || target.IsDead)
+                    continue;
+                if (!VisibilityService.CanSeeCell(unit, cell))
+                    continue;
+                if (!StealthService.CanTargetDespiteHidden(unit, target))
                     continue;
                 overlayRenderers[x, y].color = AttackHint;
             }
@@ -278,7 +310,7 @@ public class MapVisual : MonoBehaviour
     public void ShowShootHints(UnitActor unit, int range)
     {
         ClearHints();
-        if (unit == null || unit.IsDead || unit.IsDying)
+        if (unit == null || unit.IsDead)
             return;
 
         var grid = GridManager.Instance;

@@ -27,6 +27,9 @@ public class MainMenuUI : MonoBehaviour
     private GameObject settingsPanel;
     private GameObject roleSelectPanel;
     private GameObject mainButtonsRoot;
+    private bool roleSelectForAdmin;
+    private Text roleSelectTitle;
+    private Text roleSelectTip;
     private Text displayModeLabel;
     private Text resolutionValueLabel;
     private readonly List<Button> resolutionPresetButtons = new List<Button>();
@@ -134,14 +137,16 @@ public class MainMenuUI : MonoBehaviour
         mrt.offsetMin = Vector2.zero;
         mrt.offsetMax = Vector2.zero;
 
-        float y = 0.56f;
-        float step = 0.1f;
+        float y = 0.58f;
+        float step = 0.085f;
         CreateMenuButton(mainButtonsRoot.transform, "热座模式", ref y, step, new Color(0.22f, 0.48f, 0.36f, 0.95f), () =>
         {
             GameBootstrap.Instance?.StartHotseat();
         });
 
         CreateMenuButton(mainButtonsRoot.transform, "AI 对战", ref y, step, new Color(0.4f, 0.32f, 0.18f, 0.95f), OnAiBattleClicked);
+
+        CreateMenuButton(mainButtonsRoot.transform, "管理员模式", ref y, step, new Color(0.55f, 0.28f, 0.45f, 0.95f), OnAdminModeClicked);
 
         var onlineBtn = CreateMenuButton(mainButtonsRoot.transform, "联机模式（即将推出）", ref y, step, new Color(0.28f, 0.28f, 0.28f, 0.7f), OnOnlineClicked);
         onlineBtn.interactable = false;
@@ -155,8 +160,28 @@ public class MainMenuUI : MonoBehaviour
 
     public void OnAiBattleClicked()
     {
+        roleSelectForAdmin = false;
+        OpenRoleSelect();
+    }
+
+    public void OnAdminModeClicked()
+    {
+        roleSelectForAdmin = true;
+        OpenRoleSelect();
+    }
+
+    private void OpenRoleSelect()
+    {
         if (mainButtonsRoot != null)
             mainButtonsRoot.SetActive(false);
+        if (roleSelectTitle != null)
+            roleSelectTitle.text = roleSelectForAdmin ? "管理员模式 · 选择角色" : "选择你的角色";
+        if (roleSelectTip != null)
+        {
+            roleSelectTip.text = roleSelectForAdmin
+                ? "基于 AI 对战 · 全屏视野 · 可查 AI 背包/技能 · 行动中可从牌库任选领取（不限次数）"
+                : "四人混战 · 其余三人由 AI 操控";
+        }
         if (roleSelectPanel != null)
             roleSelectPanel.SetActive(true);
     }
@@ -391,10 +416,12 @@ public class MainMenuUI : MonoBehaviour
         var title = CreateText(roleSelectPanel.transform, "RoleTitle", new Vector2(0.1f, 0.78f), new Vector2(0.9f, 0.92f), 36, TextAnchor.MiddleCenter);
         title.text = "选择你的角色";
         title.color = new Color(0.92f, 0.88f, 0.7f);
+        roleSelectTitle = title;
 
-        var tip = CreateText(roleSelectPanel.transform, "RoleTip", new Vector2(0.15f, 0.7f), new Vector2(0.85f, 0.78f), 18, TextAnchor.MiddleCenter);
+        var tip = CreateText(roleSelectPanel.transform, "RoleTip", new Vector2(0.1f, 0.68f), new Vector2(0.9f, 0.78f), 16, TextAnchor.MiddleCenter);
         tip.text = "四人混战 · 其余三人由 AI 操控";
         tip.color = new Color(0.7f, 0.75f, 0.68f);
+        roleSelectTip = tip;
 
         var roles = new[]
         {
@@ -422,7 +449,10 @@ public class MainMenuUI : MonoBehaviour
             float bottom = y - step + 0.015f;
             CreateMenuButton(roleSelectPanel.transform, text, ref y, step, colors[i], () =>
             {
-                GameBootstrap.Instance?.StartAiBattle(role);
+                if (roleSelectForAdmin)
+                    GameBootstrap.Instance?.StartAdminMode(role);
+                else
+                    GameBootstrap.Instance?.StartAiBattle(role);
             }, new Vector2(0.18f, bottom), new Vector2(0.82f, y));
             y -= step;
         }
@@ -430,6 +460,7 @@ public class MainMenuUI : MonoBehaviour
         CreateMenuButton(roleSelectPanel.transform, "返回", ref y, step, new Color(0.3f, 0.3f, 0.3f, 0.9f), () =>
         {
             roleSelectPanel.SetActive(false);
+            roleSelectForAdmin = false;
             if (mainButtonsRoot != null)
                 mainButtonsRoot.SetActive(true);
         });
@@ -738,7 +769,7 @@ public static class PlayerRulesText
 然后我醒了。
 
 【怎么赢】
-四人各自为战（象、人、猴、猫）。开局每人带着自己的本命玩偶。
+四人各自为战（象、人、猴、猫）。四只玩偶各 1 张在共用牌库中，抽到后持有；界面以金色标识。
 满足任一条件即获胜：
 · 集齐四种玩偶（象/人/猴/猫各一）
 · 成为场上唯一存活的人
@@ -750,59 +781,66 @@ public static class PlayerRulesText
 
 【怎么玩（热座）】
 四位玩家轮流用同一台电脑操作。轮到谁，谁才能行动。
-每名玩家的行动回合开始时会抽 1 张牌。
-本回合你可以：
+术语：一名玩家的抽牌/移动/攻击等合计为「行动」；四人各行动一次为「回合」。
+每名玩家行动开始时会抽 1 张牌。
+本行动你可以：
 · 移动一次（蓝格为可走范围）
 · 普通近战攻击一次（邻格左键）；弓/弩/炸弹等可多次使用（受弹药与手牌限制）
 · 不限次数地弃置物品；用血瓶、强化剂等非攻击牌
-· 拾取：点「拾取」，在半径 0～1 的掉落物里挑选（背包满了也能捡，但结束回合前要弃到容量以内）
+· 拾取：点「拾取」，在半径 0～1 的掉落物里挑选（背包满了也能捡，但结束行动前要弃到容量以内）
 右键可取消瞄准/拾取/强化选择。
 鼠标悬停在角色上，底部会显示属性；悬停在蓝/红角标格子上，可查看掉落物或陷阱信息。
-蓝角标 = 掉落物；红角标 = 地雷 / 你放置的定时炸弹或香蕉皮。
+蓝角标 = 掉落物（含弃置的地雷）；红角标 = 武装地雷 / 你放置的定时炸弹或香蕉皮。
 
 【伤害】
 普通攻击与炸弹、弓箭等多为「物伤」：最终扣血 = max(0, 伤害 − 防御)。
-若攻不破防（扣 0 血），不算「打中」对方（不耗甲）。
-熔岩造成「真伤」，无视防御。
+若攻不破防（扣 0 血），不算「打中」对方；但装备中的木甲/铁甲仍会耗 1 次耐久。
+熔岩站立造成「真伤」（护盾挡不住），不减防；可附加着火（着火为法伤）。
 
 【濒死】
-血量掉到 0 以下进入濒死：几乎无法作战，物品掉一地，移动力只剩 1。
-若再受到会扣血的伤害，或连续几个完整回合没人用血瓶救你，就会死亡。
-血瓶可以在濒死当回合自救。
+血量掉到 0 以下进入濒死：移动力变 1，其余属性不变，不清除其他状态；物品（含装备）掉一地。
+不可拾取、不可用背包卡、不可放技能；仍可移动与近战。
+若脚下有血瓶，行动中可直接使用自救；再受伤或数回合无人救治则会死亡。
 
 【角色基础（当前版本，血攻防与背包已放大）】
-· 象：移3 血120 攻9 防10 包15
-· 人：移5 血90 攻9 防8 包24
-· 猴：移6 血90 攻6 防6 包18
-· 猫：移8 血60 攻9 防4 包12
+· 象：移3 血100 攻9 防10 包15
+· 人：移5 血90 攻10 防8 包24
+· 猴：移6 血90 攻8 防6 包18
+· 猫：移8 血60 攻6 防4 包15
 
 【卡牌与装备（当前版本）】
 共用一副限量牌库，用完的牌进弃牌堆，牌库空了会洗回去。
 常见效果：
-· 小血瓶：回 9 血，可救濒死
+· 小血瓶：回 9 血；大血瓶：回 15 血；可救濒死
 · 炸弹 / 高爆炸弹：投掷，15 / 24 点物伤（悬停可预览爆炸范围）
-· 定时炸弹：安在脚下，选 1～5 回合后爆，半径 4，仅自己可见；猫回合结束后结算倒计时
-· 香蕉皮：投掷到攻击距离内（仅你可见）；别人回合开始踩到会跌倒；弃置则可见且不触发
-· 地雷：弃置到格上（红角标）；踩上受 15 真伤后销毁
-· 毒箭 / 火箭：每张牌 3 支（同弓箭合并规则）；命中附加中毒 / 着火
-· 弓箭：每张牌 3 支，同种合并为「×N」；每用尽 3 支进弃牌堆
-· 弓 / 弩 + 弹药：远程射击（弓攻+2 耗1 / 弩攻+10 耗3）
-· 火焰喷射器：直线 5 格 15 物伤+着火，冷却 3 回合
+· 定时炸弹：安在脚下，选 1～5 回合后爆，半径 4，仅自己可见；猫行动结束后结算倒计时
+· 香蕉皮：投掷到攻击距离内（仅你可见）；别人移动踩到会跌倒；弃置则可见且不触发
+· 地雷：放置到攻击距离内（红角标，全员可见）；移动踩上受 15 法伤后销毁；弃置则变为掉落物可捡，踩到不伤人
+· 毒箭 / 火箭：每张牌 1 支；命中附加中毒 / 着火
+· 弓箭：每张牌 1 支，重 1，同种可合并；射出 1 支弃 1 张
+· 弓 / 弩：须装备；弓耗1可直接射；弩耗1须先蓄力，蓄力与射击不可同一行动
+· 火焰喷射器：装备后直线 5 格 10 法伤+着火1，冷却 3 回合
 · 强化剂：攻/防永久 +3，或移动 +1
-· 木甲 / 铁甲：点「穿戴」后防 +4 / +8；己方回合可「卸下」；未穿戴不减伤；物伤扣血后耗耐久
-· 能量护盾：点「穿戴」后挡物伤；己方回合可卸下；未穿戴不生效；共 3 次
-· 肾上腺素：仅 HP 低于 30% 可用；移+2 攻+3，持续 3 完整回合（不可叠加）
-背包有容量；3 支弓箭约占 1 点容量。行动中可以超重（抽牌/拾取仍可进行）；点「结束回合」时若仍超重，必须先弃置到容量以内才会换手。弃置的东西留在地上，别人可以捡；格子被熔岩吞掉后，地上的牌会进弃牌堆。濒死时物品（含穿戴中的甲/盾）掉落并解除穿戴。
-左侧「拾取」下方显示当前行动角色的状态图标（着火/跌倒/中毒等）。
+· 木甲 / 铁甲：装备后防 +4 / +8；同槽只能一件；受到物伤即耗耐久（含破不开防）
+· 能量护盾：装备后可吸收物伤或法伤；与甲同属防具槽；共 3 次
+· 肾上腺素：仅 HP 低于 30% 可用；移+2 攻+3，持续 3 回合（不可叠加）
+· 技能升级卡：牌库 12 张；集齐 3 张可使用，技能等级 +1（上限 3）
+背包有容量；弹药一张一支占 1 点。行动中可以超重（抽牌/拾取仍可进行）；点「结束行动」时若仍超重，必须先弃置到容量以内才会换手。弃置的东西留在地上，别人可以捡；格子被熔岩吞掉后，地上的牌会进弃牌堆。濒死时物品（含装备）掉落并解除装备。
+· 左侧「技能」：象威慑为被动；人/猴/猫可主动发动（冷却按回合）。本命玩偶与升级卡可提升技能等级。
+· 「领袖宣言」：每局限一次；持有任意三只玩偶且缺的一只在其他玩家身上时可发动：领袖状态 10 回合、抽 5 张、得知缺偶位置。
+· 能见度默认半径 10；迷雾遮罩视野外格子；不可移动到能见度外；濒死/中毒时能见度为 1。
+· 管理员模式（菜单）：基于 AI 对战；全屏视野；可查看 AI 背包/技能/状态；你的行动中可从牌库任选领取（不限次数，耗牌库）。
 
 【地图压力】
-地图 18×18。每隔 5 个完整回合，最外圈会变成熔岩并不断向内收缩。
-站在熔岩上，你的回合开始时会受到 9 点真伤——别站太久。
+地图 18×18；开局用种子生长铺出沙地/沼泽/冰地（淡蓝）/丛林/高地斑块，四角出生附近为普通地。
+沙地移-1；沼泽移-2防-3；冰地移+1且行动开始20%跌倒；进丛林获隐匿；高地攻防+3射程+1。水系暂未加入。
+每隔 5 个回合，最外圈会变成熔岩并不断向内收缩（覆盖原地形）。
+站在熔岩上，你的行动开始时会先结算着火等状态，再受到 20 点真伤并可能再次着火——别站太久。
 
 【操作速查】
 · 左键：移动 / 近战攻击 / 确认落点
 · 右键：取消当前选择
-· 右下角圆形「结束回合」或 Enter：结束当前行动回合（超重时会先要求弃置）
+· 右下角圆形「结束行动」或 Enter：结束当前行动（超重时会先要求弃置）
 · 右侧背包：使用 / 弃置
 · 左上角「重新开始 / 主菜单」：再开一局或回标题";
 }

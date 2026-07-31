@@ -5,7 +5,8 @@ public enum StatBoost
 {
     Attack,
     Defense,
-    Move
+    Move,
+    Draw
 }
 
 /// <summary>统一卡牌/物品使用入口，UI 只调用这里，不写死每种按钮。</summary>
@@ -44,23 +45,17 @@ public static class ItemUseService
             return false;
         }
 
-        if (unit.IsDying && kind != ItemKind.SmallPotion)
+        if (unit.IsDying)
         {
-            reason = "濒死时只能使用血瓶";
+            reason = "濒死时不可使用背包卡牌（仅可使用脚下血瓶）";
             return false;
         }
 
-        if (ItemInfo.IsWeapon(kind))
+        if (ItemInfo.IsRangedWeapon(kind))
         {
-            int need = ItemInfo.GetArrowCost(kind);
-            if (unit.Inventory.TotalAmmoCharges() < need)
-            {
-                reason = $"弹药不足（需要{need}）";
-                return false;
-            }
+            // 装备操作用不着检查弹药；开火时再查
         }
-
-        if (kind == ItemKind.Flamethrower && unit.FlamethrowerCooldown > 0)
+        else if (kind == ItemKind.Flamethrower && unit.FlamethrowerCooldown > 0)
         {
             reason = $"火焰喷射器冷却中（剩{unit.FlamethrowerCooldown}回合）";
             return false;
@@ -70,6 +65,20 @@ public static class ItemUseService
         {
             reason = "仅当 HP < 30% 时可使用肾上腺素";
             return false;
+        }
+
+        if (kind == ItemKind.SkillUpgrade)
+        {
+            if (unit.Inventory.CountOf(ItemKind.SkillUpgrade) < 3)
+            {
+                reason = "需集齐 3 张技能升级卡才能使用";
+                return false;
+            }
+            if (unit.SkillLevel >= 3)
+            {
+                reason = "技能等级已达上限";
+                return false;
+            }
         }
 
         return true;
@@ -87,10 +96,12 @@ public static class ItemUseService
         switch (ItemInfo.GetUseKind(kind))
         {
             case ItemUseKind.Instant:
-                if (kind == ItemKind.SmallPotion)
-                    return ActionService.TryUseSmallPotion(unit);
+                if (kind == ItemKind.SmallPotion || kind == ItemKind.LargePotion)
+                    return ActionService.TryUsePotion(unit, kind);
                 if (kind == ItemKind.Adrenaline)
                     return ActionService.TryUseAdrenaline(unit);
+                if (kind == ItemKind.SkillUpgrade)
+                    return ActionService.TryUseSkillUpgrade(unit);
                 return false;
 
             case ItemUseKind.ChooseStat:
@@ -101,13 +112,15 @@ public static class ItemUseService
             case ItemUseKind.TargetCell:
                 if (kind == ItemKind.BananaPeel)
                     PlayerInputController.Instance?.StartBananaMode(itemIndex);
+                else if (kind == ItemKind.Mine)
+                    PlayerInputController.Instance?.StartMineMode(itemIndex);
                 else
                     PlayerInputController.Instance?.StartBombMode(itemIndex);
                 return true;
 
             case ItemUseKind.ChooseDelay:
                 TurnManager.Instance.EnterTimedBombDelay(itemIndex);
-                TurnManager.Instance.LogFor(unit, "选择定时炸弹延时：1～5 完整回合后爆炸");
+                TurnManager.Instance.LogFor(unit, "选择定时炸弹延时：1～5 回合后爆炸");
                 return true;
 
             case ItemUseKind.ChooseDirection:
@@ -119,7 +132,7 @@ public static class ItemUseService
                 return true;
 
             case ItemUseKind.EquipToggle:
-                return ActionService.TryToggleEquip(unit, itemIndex);
+                return ActionService.TryUseEquipable(unit, itemIndex);
 
             default:
                 return false;
@@ -167,8 +180,18 @@ public static class ActionService
     {
         if (attacker == null || defender == null)
             return false;
-        if (attacker.IsDead || attacker.IsDying || defender.IsDead)
+        if (attacker.IsDead || defender.IsDead)
             return false;
+        if (!StealthService.CanTargetDespiteHidden(attacker, defender))
+        {
+            TurnManager.Instance.LogFor(attacker, "目标处于隐匿，无法攻击（需邻接）");
+            return false;
+        }
+        if (!VisibilityService.CanSeeCell(attacker, defender.Cell))
+        {
+            TurnManager.Instance.LogFor(attacker, "目标在能见度之外");
+            return false;
+        }
         if (TurnManager.Instance.HasMeleeAttacked)
         {
             TurnManager.Instance.LogFor(attacker, "本回合普通攻击已使用");
@@ -177,7 +200,8 @@ public static class ActionService
         if (GridManager.Instance.GetManhattanDistance(attacker.Cell, defender.Cell) > attacker.AttackRange)
             return false;
 
-        int dealt = defender.TakeDamage(attacker.CurrentAtk, trueDamage: false);
+        BreakStealthIfAttacking(attacker, defender);
+        int dealt = defender.TakeDamage(attacker.CurrentAtk, magicDamage: false);
         TurnManager.Instance.MarkMeleeAttacked();
         TurnManager.Instance.Log(
             $"{RoleInfo.GetDisplayName(attacker.Role)} 攻击 {RoleInfo.GetDisplayName(defender.Role)}，造成 {dealt} 伤害" +
@@ -187,18 +211,54 @@ public static class ActionService
         return true;
     }
 
+    private static void BreakStealthIfAttacking(UnitActor attacker, UnitActor defender = null)
+    {
+        if (attacker == null || !attacker.HasStatus(StatusType.Hidden))
+            return;
+        attacker.ClearStatus(StatusType.Hidden);
+        TurnManager.Instance?.Log(
+            $"{RoleInfo.GetDisplayName(attacker.Role)} 进行攻击，【隐匿】解除");
+        // 猫 Lv3：攻击破隐时，被攻击者获得中毒 1 回合
+        if (attacker.Role == RoleType.Cat && attacker.SkillLevel >= 3 && defender != null && !defender.IsDead)
+        {
+            defender.ApplyStatus(StatusType.Poison, 1, attacker);
+            TurnManager.Instance?.Log(
+                $"{RoleInfo.GetDisplayName(defender.Role)} 因破隐攻击获得【中毒】");
+        }
+    }
+
     public static bool TryShoot(UnitActor attacker, int weaponIndex, UnitActor defender)
     {
         if (attacker == null || defender == null)
             return false;
         if (attacker.IsDead || attacker.IsDying || defender.IsDead)
             return false;
+        if (!StealthService.CanTargetDespiteHidden(attacker, defender))
+        {
+            TurnManager.Instance.LogFor(attacker, "目标处于隐匿，无法射击（需邻接）");
+            return false;
+        }
+        if (!VisibilityService.CanSeeCell(attacker, defender.Cell))
+        {
+            TurnManager.Instance.LogFor(attacker, "目标在能见度之外");
+            return false;
+        }
         if (weaponIndex < 0 || weaponIndex >= attacker.Inventory.Count)
             return false;
 
         var weapon = attacker.Inventory.Items[weaponIndex].Kind;
-        if (!ItemInfo.IsWeapon(weapon))
+        if (!ItemInfo.IsRangedWeapon(weapon))
             return false;
+        if (!attacker.Inventory.Items[weaponIndex].Equipped)
+        {
+            TurnManager.Instance.LogFor(attacker, "请先装备该武器");
+            return false;
+        }
+        if (weapon == ItemKind.Crossbow && !attacker.CanFireCrossbow())
+        {
+            TurnManager.Instance.LogFor(attacker, "弩需先蓄力，且不可在同一行动内射击");
+            return false;
+        }
 
         int cost = ItemInfo.GetArrowCost(weapon);
         var ammo = TurnManager.Instance.PendingAmmoKind;
@@ -217,13 +277,17 @@ public static class ActionService
         foreach (var a in spent)
             DeckManager.Instance?.AddToDiscard(a);
 
+        if (weapon == ItemKind.Crossbow)
+            attacker.ConsumeCrossbowCharge();
+
+        BreakStealthIfAttacking(attacker, defender);
         int power = attacker.CurrentAtk + ItemInfo.GetWeaponAtkBonus(weapon);
-        int dealt = defender.TakeDamage(power, trueDamage: false);
+        int dealt = defender.TakeDamage(power, magicDamage: false);
 
         if (ammo == ItemKind.PoisonArrow)
-            defender.ApplyStatus(StatusType.Poison, 1);
+            defender.ApplyStatus(StatusType.Poison, 1, attacker);
         else if (ammo == ItemKind.FireRocket)
-            defender.ApplyStatus(StatusType.Burning, 1);
+            defender.ApplyStatus(StatusType.Burning, 1, attacker);
 
         TurnManager.Instance.CancelTargeting();
         if (MatchConfig.IsAiBattle && !MatchConfig.IsHumanControlled(attacker))
@@ -254,9 +318,11 @@ public static class ActionService
         if (!unit.TryMoveTo(target))
             return false;
 
-        HazardManager.Instance?.ResolveMineAt(unit);
+        HazardManager.Instance?.ResolveTrapsAfterMove(unit);
         TurnManager.Instance.MarkMoved();
         TurnManager.Instance.LogFor(unit, $"{RoleInfo.GetDisplayName(unit.Role)} 移动到 ({target.x},{target.y})");
+        StealthService.CheckAll();
+        VisibilityService.RefreshWorld();
         return true;
     }
 
@@ -275,7 +341,8 @@ public static class ActionService
         TurnManager.Instance.LogFor(unit, $"{RoleInfo.GetDisplayName(unit.Role)} 拾取了 {n} 件物品");
         if (unit.Inventory.IsOverCapacity)
             TurnManager.Instance.LogFor(unit,
-                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），结束回合前需弃置");
+                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），结束行动前需弃置");
+        unit.RefreshBagCapacity();
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
         return true;
@@ -333,7 +400,8 @@ public static class ActionService
                 $"{RoleInfo.GetDisplayName(unit.Role)} 拾取了【{ItemInfo.GetDisplayName(kind)}】于 ({cell.x},{cell.y})");
         if (unit.Inventory.IsOverCapacity)
             TurnManager.Instance.LogFor(unit,
-                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），结束回合前需弃置");
+                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），结束行动前需弃置");
+        unit.RefreshBagCapacity();
         GameManager.Instance?.CheckWinConditions();
 
         var remaining = GroundItemManager.Instance.GetLootInRange(unit.Cell, 1);
@@ -365,16 +433,6 @@ public static class ActionService
         item.Equipped = false;
         unit.Inventory.RemoveAt(itemIndex);
 
-        if (item.Kind == ItemKind.Mine)
-        {
-            HazardManager.Instance?.PlaceMine(cell);
-            TurnManager.Instance.CancelTargeting();
-            TurnManager.Instance.Log(
-                $"{RoleInfo.GetDisplayName(unit.Role)} 在 ({cell.x},{cell.y}) 安置了地雷");
-            FinishDiscardSideEffects(unit);
-            return true;
-        }
-
         GroundItemManager.Instance.DropItem(cell, item);
 
         TurnManager.Instance.CancelTargeting();
@@ -390,6 +448,7 @@ public static class ActionService
 
     private static void FinishDiscardSideEffects(UnitActor unit)
     {
+        unit.RefreshBagCapacity();
         if (TurnManager.Instance.AwaitingCapacityTrim)
         {
             if (unit.Inventory.IsOverCapacity)
@@ -451,6 +510,74 @@ public static class ActionService
         return best;
     }
 
+    /// <summary>装备栏：未装备则装备；甲/盾已装备则卸下；武器已装备则发动（射击/蓄力/喷射）。</summary>
+    public static bool TryUseEquipable(UnitActor unit, int itemIndex)
+    {
+        if (unit == null || unit.IsDead || unit.IsDying)
+            return false;
+        if (TurnManager.Instance.CurrentUnit != unit || TurnManager.Instance.Phase != TurnPhase.WaitingAction)
+            return false;
+        if (itemIndex < 0 || itemIndex >= unit.Inventory.Count)
+            return false;
+
+        var entry = unit.Inventory.Items[itemIndex];
+        if (!ItemInfo.IsEquipable(entry.Kind))
+            return false;
+
+        if (!entry.Equipped)
+            return TryToggleEquip(unit, itemIndex);
+
+        // 已装备：武器发动，其余卸下
+        if (entry.Kind == ItemKind.Bow)
+        {
+            if (unit.Inventory.TotalAmmoCharges() < 1)
+            {
+                TurnManager.Instance.LogFor(unit, "弹药不足");
+                return false;
+            }
+            PlayerInputController.Instance?.StartShootMode(itemIndex);
+            return true;
+        }
+        if (entry.Kind == ItemKind.Crossbow)
+        {
+            if (!unit.CrossbowCharged)
+            {
+                if (!unit.TryChargeCrossbow())
+                {
+                    TurnManager.Instance.LogFor(unit, "无法蓄力");
+                    return false;
+                }
+                TurnManager.Instance.LogFor(unit, $"{RoleInfo.GetDisplayName(unit.Role)} 为弩蓄力（本行动不可射击）");
+                TurnManager.Instance.NotifyActionDone();
+                return true;
+            }
+            if (!unit.CanFireCrossbow())
+            {
+                TurnManager.Instance.LogFor(unit, "弩刚蓄力，须等到下一次行动才能射击");
+                return false;
+            }
+            if (unit.Inventory.TotalAmmoCharges() < 1)
+            {
+                TurnManager.Instance.LogFor(unit, "弹药不足");
+                return false;
+            }
+            PlayerInputController.Instance?.StartShootMode(itemIndex);
+            return true;
+        }
+        if (entry.Kind == ItemKind.Flamethrower)
+        {
+            if (unit.FlamethrowerCooldown > 0)
+            {
+                TurnManager.Instance.LogFor(unit, $"火焰喷射器冷却中（剩{unit.FlamethrowerCooldown}回合）");
+                return false;
+            }
+            PlayerInputController.Instance?.StartFlameMode(itemIndex);
+            return true;
+        }
+
+        return TryToggleEquip(unit, itemIndex);
+    }
+
     public static bool TryToggleEquip(UnitActor unit, int itemIndex)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -475,23 +602,70 @@ public static class ActionService
             return false;
         }
 
+        // 卸下弩时清除蓄力
+        if (ok && entry.Kind == ItemKind.Crossbow && entry.Equipped)
+            unit.ConsumeCrossbowCharge();
+
         TurnManager.Instance.LogFor(unit, $"{RoleInfo.GetDisplayName(unit.Role)} {log}");
         TurnManager.Instance.NotifyActionDone();
         return true;
     }
 
-    public static bool TryUseSmallPotion(UnitActor unit)
+    public static bool TryUsePotion(UnitActor unit, ItemKind kind)
     {
-        if (!CanUseOwned(unit, ItemKind.SmallPotion))
+        if (!ItemInfo.IsPotion(kind) || !CanUseOwned(unit, kind))
             return false;
 
-        unit.Inventory.Remove(ItemKind.SmallPotion);
-        DeckManager.Instance?.AddToDiscard(ItemKind.SmallPotion);
-        unit.Heal(9);
+        int heal = ItemInfo.GetPotionHeal(kind);
+        unit.Inventory.Remove(kind);
+        DeckManager.Instance?.AddToDiscard(kind);
+        unit.Heal(heal);
         TurnManager.Instance.CancelTargeting();
-        TurnManager.Instance.LogFor(unit, $"{RoleInfo.GetDisplayName(unit.Role)} 使用小血瓶，HP={unit.Hp}");
+        TurnManager.Instance.LogFor(unit,
+            $"{RoleInfo.GetDisplayName(unit.Role)} 使用{ItemInfo.GetDisplayName(kind)}，HP={unit.Hp}");
         TurnManager.Instance.NotifyActionDone();
         return true;
+    }
+
+    public static bool TryUseSmallPotion(UnitActor unit)
+        => TryUsePotion(unit, ItemKind.SmallPotion);
+
+    /// <summary>濒死自救：直接使用自己脚下格子上的血瓶（不经背包）。</summary>
+    public static bool TryUseGroundPotion(UnitActor unit)
+    {
+        if (unit == null || unit.IsDead)
+            return false;
+        if (TurnManager.Instance.CurrentUnit != unit || TurnManager.Instance.Phase == TurnPhase.GameOver)
+            return false;
+        if (!unit.IsDying)
+        {
+            TurnManager.Instance.LogFor(unit, "仅濒死时可直接使用脚下血瓶");
+            return false;
+        }
+
+        var ground = GroundItemManager.Instance;
+        if (ground == null || !ground.TryTakeFirstPotion(unit.Cell, out var potion))
+        {
+            TurnManager.Instance.LogFor(unit, "脚下没有血瓶");
+            return false;
+        }
+
+        int heal = ItemInfo.GetPotionHeal(potion.Kind);
+        DeckManager.Instance?.AddToDiscard(potion.Kind);
+        unit.Heal(heal);
+        TurnManager.Instance.CancelTargeting();
+        TurnManager.Instance.LogFor(unit,
+            $"{RoleInfo.GetDisplayName(unit.Role)} 使用脚下【{ItemInfo.GetDisplayName(potion.Kind)}】，HP={unit.Hp}");
+        GameManager.Instance?.CheckWinConditions();
+        TurnManager.Instance.NotifyActionDone();
+        return true;
+    }
+
+    public static bool HasGroundPotionAt(UnitActor unit)
+    {
+        if (unit == null || GroundItemManager.Instance == null)
+            return false;
+        return GroundItemManager.Instance.HasPotionAt(unit.Cell);
     }
 
     public static bool TryUseAdrenaline(UnitActor unit)
@@ -511,13 +685,36 @@ public static class ActionService
         unit.TryApplyAdrenaline();
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.LogFor(unit,
-            $"{RoleInfo.GetDisplayName(unit.Role)} 使用肾上腺素：移+2 攻+3，持续 3 完整回合");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 使用肾上腺素：移+2 攻+3，持续 3 回合");
+        TurnManager.Instance.NotifyActionDone();
+        return true;
+    }
+
+    public static bool TryUseSkillUpgrade(UnitActor unit)
+    {
+        if (unit == null || unit.IsDead || unit.IsDying)
+            return false;
+        if (TurnManager.Instance == null || TurnManager.Instance.CurrentUnit != unit)
+            return false;
+        if (TurnManager.Instance.Phase != TurnPhase.WaitingAction)
+            return false;
+        if (!unit.TryConsumeSkillUpgradeCards(out string reason))
+        {
+            TurnManager.Instance.LogFor(unit, reason);
+            return false;
+        }
+
+        TurnManager.Instance.CancelTargeting();
+        TurnManager.Instance.LogFor(unit,
+            $"{RoleInfo.GetDisplayName(unit.Role)} 使用 3 张技能升级卡，技能升至 Lv{unit.SkillLevel}");
         TurnManager.Instance.NotifyActionDone();
         return true;
     }
 
     public static bool TryUseReinforce(UnitActor unit, StatBoost boost)
     {
+        if (boost == StatBoost.Draw)
+            return false;
         if (!CanUseOwned(unit, ItemKind.Reinforce))
             return false;
         if (unit.IsDying)
@@ -559,6 +756,8 @@ public static class ActionService
         int damage = ItemInfo.GetBombDamage(kind);
         unit.Inventory.RemoveAt(idx);
         DeckManager.Instance?.AddToDiscard(kind);
+        bool wasHidden = unit.HasStatus(StatusType.Hidden);
+        BreakStealthIfAttacking(unit);
 
         int hits = 0;
         int damaged = 0;
@@ -569,9 +768,13 @@ public static class ActionService
             if (grid.GetManhattanDistance(target, other.Cell) <= 2)
             {
                 hits++;
-                int dealt = other.TakeDamage(damage, trueDamage: false);
+                int dealt = other.TakeDamage(damage, magicDamage: false);
                 if (dealt > 0)
+                {
                     damaged++;
+                    if (wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= 3)
+                        other.ApplyStatus(StatusType.Poison, 1, unit);
+                }
             }
         }
 
@@ -613,6 +816,34 @@ public static class ActionService
         return true;
     }
 
+    public static bool TryPlaceMine(UnitActor unit, Vector2Int target)
+    {
+        if (unit == null || unit.IsDead || unit.IsDying)
+            return false;
+        if (TurnManager.Instance.CurrentUnit != unit)
+            return false;
+        if (TurnManager.Instance.Phase != TurnPhase.SelectingMineTarget)
+            return false;
+
+        int idx = TurnManager.Instance.PendingItemIndex;
+        if (idx < 0 || idx >= unit.Inventory.Count)
+            return false;
+        if (unit.Inventory.Items[idx].Kind != ItemKind.Mine)
+            return false;
+
+        var grid = GridManager.Instance;
+        if (grid.GetManhattanDistance(unit.Cell, target) > unit.AttackRange)
+            return false;
+
+        unit.Inventory.RemoveAt(idx);
+        HazardManager.Instance?.PlaceMine(target);
+        TurnManager.Instance.CancelTargeting();
+        TurnManager.Instance.Log(
+            $"{RoleInfo.GetDisplayName(unit.Role)} 在 ({target.x},{target.y}) 安置了地雷");
+        TurnManager.Instance.NotifyActionDone();
+        return true;
+    }
+
     public static bool TryPlaceTimedBomb(UnitActor unit, int rounds)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -626,7 +857,7 @@ public static class ActionService
         HazardManager.Instance?.PlaceTimedBomb(unit.Cell, rounds, unit.Role);
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.LogFor(unit,
-            $"{RoleInfo.GetDisplayName(unit.Role)} 在脚下安置定时炸弹，{rounds} 完整回合后爆炸（仅你可见；猫回合结束后结算）");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 在脚下安置定时炸弹，{rounds} 回合后爆炸（仅你可见；猫行动结束后结算）");
         TurnManager.Instance.NotifyActionDone();
         return true;
     }
@@ -643,6 +874,11 @@ public static class ActionService
         int idx = TurnManager.Instance.PendingItemIndex;
         if (idx < 0 || idx >= unit.Inventory.Count || unit.Inventory.Items[idx].Kind != ItemKind.Flamethrower)
             return false;
+        if (!unit.Inventory.Items[idx].Equipped)
+        {
+            TurnManager.Instance.LogFor(unit, "请先装备火焰喷射器");
+            return false;
+        }
 
         var grid = GridManager.Instance;
         int dx = dirCell.x - unit.Cell.x;
@@ -652,6 +888,7 @@ public static class ActionService
             return false;
 
         int hits = 0, damaged = 0;
+        bool wasHidden = unit.HasStatus(StatusType.Hidden);
         for (int step = 1; step <= 5; step++)
         {
             var cell = unit.Cell + new Vector2Int(dx * step, dy * step);
@@ -662,15 +899,22 @@ public static class ActionService
             var other = occ.GetComponent<UnitActor>();
             if (other == null || other.IsDead || other == unit) continue;
             hits++;
-            int dealt = other.TakeDamage(15, trueDamage: false);
-            other.ApplyStatus(StatusType.Burning, 3);
-            if (dealt > 0) damaged++;
+            int dealt = other.TakeDamage(10, magicDamage: true);
+            if (dealt > 0 && !other.IsDead)
+                other.ApplyStatus(StatusType.Burning, 1, unit);
+            if (dealt > 0)
+            {
+                damaged++;
+                if (wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= 3)
+                    other.ApplyStatus(StatusType.Poison, 1, unit);
+            }
         }
 
+        BreakStealthIfAttacking(unit);
         unit.FlamethrowerCooldown = 3;
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.Log(
-            $"{RoleInfo.GetDisplayName(unit.Role)} 使用火焰喷射器，命中 {hits} 人，{damaged} 人扣血（冷却3回合）");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 使用火焰喷射器，命中 {hits} 人，{damaged} 人扣血并着火（冷却3回合）");
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
         return true;

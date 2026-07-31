@@ -36,6 +36,7 @@ public class GridManager : MonoBehaviour
         for (int x = 0; x < gridWidth; x++)
             for (int y = 0; y < gridHeight; y++)
                 tiles[x, y] = TileType.Normal;
+        TerrainGenerator.Generate(this);
     }
 
     public bool IsValidCell(Vector2Int cell)

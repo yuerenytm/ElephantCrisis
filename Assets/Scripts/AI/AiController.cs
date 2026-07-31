@@ -109,7 +109,7 @@ public class AiController : MonoBehaviour
                 break;
 
             // 濒死治疗后若仍濒死且无药，结束
-            if (unit.IsDying && unit.Inventory.CountOf(ItemKind.SmallPotion) <= 0)
+            if (unit.IsDying && !ActionService.HasGroundPotionAt(unit))
                 break;
 
             yield return new WaitForSeconds(stepDelay);

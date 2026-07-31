@@ -76,7 +76,9 @@ public class GameBootstrap : MonoBehaviour
         matchRunning = false;
         transitionQueued = false;
 
-        if (mode == GameMode.AiBattle)
+        if (mode == GameMode.AdminMode)
+            StartAdminMode(human);
+        else if (mode == GameMode.AiBattle)
             StartAiBattle(human);
         else
             StartHotseat();
@@ -151,6 +153,12 @@ public class GameBootstrap : MonoBehaviour
         StartMatch();
     }
 
+    public void StartAdminMode(RoleType humanRole)
+    {
+        MatchConfig.SetAdminMode(humanRole);
+        StartMatch();
+    }
+
     /// <summary>兼容旧入口。</summary>
     public void StartAiBattle() => MainMenuUI.Instance?.OnAiBattleClicked();
 
@@ -186,6 +194,7 @@ public class GameBootstrap : MonoBehaviour
         TurnManager.Instance.Setup(units);
         GameUI.Instance.ForceRefresh();
         PlayerInputController.Instance.RefreshHints();
+        VisibilityService.RefreshWorld();
 
         if (AiController.Instance != null)
         {

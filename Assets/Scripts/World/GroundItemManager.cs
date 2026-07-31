@@ -18,26 +18,13 @@ public class GroundItemManager : MonoBehaviour
         if (items == null || items.Count == 0)
             return;
 
-        var normal = new List<InventoryItem>();
-        foreach (var item in items)
-        {
-            if (item.Kind == ItemKind.Mine)
-            {
-                HazardManager.Instance?.PlaceMine(cell);
-                continue;
-            }
-            normal.Add(item);
-        }
-        if (normal.Count == 0)
-            return;
-
         if (!piles.TryGetValue(cell, out var list))
         {
             list = new List<InventoryItem>();
             piles[cell] = list;
         }
 
-        list.AddRange(normal);
+        list.AddRange(items);
         RefreshVisual(cell);
     }
 
@@ -98,6 +85,28 @@ public class GroundItemManager : MonoBehaviour
         return result;
     }
 
+    public bool TryPeek(Vector2Int cell, int index, out InventoryItem item)
+    {
+        item = default;
+        if (!piles.TryGetValue(cell, out var list) || index < 0 || index >= list.Count)
+            return false;
+        item = list[index];
+        return true;
+    }
+
+    public bool TryTakeAt(Vector2Int cell, int index, out InventoryItem item)
+    {
+        item = default;
+        if (!piles.TryGetValue(cell, out var list) || index < 0 || index >= list.Count)
+            return false;
+        item = list[index];
+        list.RemoveAt(index);
+        if (list.Count == 0)
+            piles.Remove(cell);
+        RefreshVisual(cell);
+        return true;
+    }
+
     /// <summary>拾取指定格上指定下标的一件物品（允许暂时超重）。</summary>
     public bool TryPickupOne(Vector2Int cell, int index, Inventory inventory)
     {
@@ -113,6 +122,39 @@ public class GroundItemManager : MonoBehaviour
             piles.Remove(cell);
         RefreshVisual(cell);
         return true;
+    }
+
+    /// <summary>脚下是否有可直接使用的血瓶（濒死自救）。</summary>
+    public bool HasPotionAt(Vector2Int cell)
+    {
+        if (!piles.TryGetValue(cell, out var list))
+            return false;
+        foreach (var item in list)
+        {
+            if (ItemInfo.IsPotion(item.Kind))
+                return true;
+        }
+        return false;
+    }
+
+    /// <summary>取走该格第一瓶血瓶（不进入背包）。</summary>
+    public bool TryTakeFirstPotion(Vector2Int cell, out InventoryItem item)
+    {
+        item = default;
+        if (!piles.TryGetValue(cell, out var list))
+            return false;
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (!ItemInfo.IsPotion(list[i].Kind))
+                continue;
+            item = list[i];
+            list.RemoveAt(i);
+            if (list.Count == 0)
+                piles.Remove(cell);
+            RefreshVisual(cell);
+            return true;
+        }
+        return false;
     }
 
     public int TryPickupAll(Vector2Int cell, Inventory inventory)
@@ -212,22 +254,51 @@ public class GroundItemManager : MonoBehaviour
             return;
         }
 
+        bool hasDoll = false;
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (ItemInfo.IsDoll(list[i].Kind))
+            {
+                hasDoll = true;
+                break;
+            }
+        }
+
+        Color fill = hasDoll
+            ? ItemInfo.GetDollGoldFill()
+            : new Color(0.25f, 0.55f, 0.95f, 1f);
+        Color border = hasDoll
+            ? ItemInfo.GetDollGoldBorder()
+            : new Color(0.1f, 0.25f, 0.5f, 1f);
+
         if (!visuals.TryGetValue(cell, out var go) || go == null)
         {
             go = new GameObject($"Loot_{cell.x}_{cell.y}");
             go.transform.SetParent(transform, false);
-            var sr = go.AddComponent<SpriteRenderer>();
-            // 一小块蓝色角标，表示有掉落物
-            sr.sprite = SpriteFactory.CreateBorderedSprite(
-                new Color(0.25f, 0.55f, 0.95f, 1f),
-                new Color(0.1f, 0.25f, 0.5f, 1f),
-                16, 2);
-            sr.sortingOrder = 2;
+            go.AddComponent<SpriteRenderer>();
             visuals[cell] = go;
         }
 
+        var sr = go.GetComponent<SpriteRenderer>();
+        sr.sprite = SpriteFactory.CreateBorderedSprite(fill, border, 16, 2);
+        sr.sortingOrder = hasDoll ? 3 : 2;
+
         go.transform.position = GridManager.Instance.CellToWorld(cell) + new Vector3(0.32f, -0.32f, 0f);
-        go.transform.localScale = Vector3.one * 0.28f;
+        go.transform.localScale = Vector3.one * (hasDoll ? 0.34f : 0.28f);
+
+        var viewer = VisibilityService.GetFogViewer();
+        go.SetActive(viewer == null || VisibilityService.CanSeeCell(viewer, cell));
+    }
+
+    public void RefreshAllVisibility(UnitActor viewer)
+    {
+        foreach (var kv in visuals)
+        {
+            if (kv.Value == null)
+                continue;
+            bool show = viewer == null || VisibilityService.CanSeeCell(viewer, kv.Key);
+            kv.Value.SetActive(show);
+        }
     }
 
     /// <summary>悬停用：该格掉落物摘要，无则 null。</summary>

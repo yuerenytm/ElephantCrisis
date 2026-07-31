@@ -18,15 +18,23 @@ public class GameUI : MonoBehaviour
     private Button endTurnBtn;
     private Button restartBtn;
     private Button pickupBtn;
+    private Button skillBtn;
+    private Button leaderBtn;
+    private Button adminGrantBtn;
     private Button menuBtn;
 
     private Text rightTitle;
     private Text hoverText;
     private GameObject hoverPanel;
     private Transform itemListRoot;
+    private ScrollRect itemScroll;
+    private const float ItemRowHeight = 54f;
     private GameObject reinforcePanel;
     private GameObject ammoPanel;
     private GameObject delayPanel;
+    private GameObject adminGrantPanel;
+    private Transform adminGrantListRoot;
+    private readonly List<GameObject> adminGrantRows = new List<GameObject>();
     private Transform statusIconRoot;
     private readonly List<GameObject> statusIconRows = new List<GameObject>();
     private readonly List<GameObject> itemRows = new List<GameObject>();
@@ -107,16 +115,46 @@ public class GameUI : MonoBehaviour
         hoverText = null;
         hoverPanel = null;
         itemListRoot = null;
+        itemScroll = null;
         reinforcePanel = null;
         ammoPanel = null;
         delayPanel = null;
+        adminGrantPanel = null;
+        adminGrantListRoot = null;
+        adminGrantRows.Clear();
         statusIconRoot = null;
         statusIconRows.Clear();
         endTurnBtn = null;
         restartBtn = null;
         pickupBtn = null;
+        skillBtn = null;
+        leaderBtn = null;
+        adminGrantBtn = null;
         menuBtn = null;
         built = false;
+    }
+
+    private void TryClickSkill()
+    {
+        var turn = TurnManager.Instance;
+        var unit = turn?.CurrentUnit;
+        if (unit == null || unit.IsDying || unit.IsDead)
+            return;
+        switch (unit.Role)
+        {
+            case RoleType.Elephant:
+                turn.LogFor(unit, "威慑为被动：降低范围内其他角色移动力");
+                break;
+            case RoleType.Human:
+                SkillService.TryBeginHumanReinforce(unit);
+                break;
+            case RoleType.Monkey:
+                SkillService.TryBeginMonkeySteal(unit);
+                break;
+            case RoleType.Cat:
+                SkillService.TryCatStealth(unit);
+                break;
+        }
     }
 
     public void Build()
@@ -163,10 +201,10 @@ public class GameUI : MonoBehaviour
         hoverText = CreateText(hoverPanel.transform, "HoverText", new Vector2(0.03f, 0.05f), new Vector2(0.97f, 0.95f), 15, TextAnchor.MiddleLeft);
         hoverPanel.SetActive(false);
 
-        // 左侧：拾取 / 状态
-        var left = CreatePanel(canvasRoot.transform, "LeftPanel", new Vector2(0.01f, 0.42f), new Vector2(0.18f, 0.88f));
-        float y = 0.88f;
-        float step = 0.28f;
+        // 左侧：拾取 / 技能 / 领袖宣言 / 管理员领卡 / 状态
+        var left = CreatePanel(canvasRoot.transform, "LeftPanel", new Vector2(0.01f, 0.32f), new Vector2(0.18f, 0.94f));
+        float y = 0.96f;
+        float step = 0.125f;
         pickupBtn = CreateButton(left, "拾取", ref y, step, () =>
         {
             var turn = TurnManager.Instance;
@@ -183,14 +221,28 @@ public class GameUI : MonoBehaviour
             turn.LogFor(turn.CurrentUnit, "选择要拾取的物品（右侧列表，右键取消）");
             RequestRefresh();
         });
+        skillBtn = CreateButton(left, "技能", ref y, step, () =>
+        {
+            TryClickSkill();
+            RequestRefresh();
+        });
+        leaderBtn = CreateButton(left, "领袖宣言", ref y, step, () =>
+        {
+            LeaderDeclarationService.TryDeclare(TurnManager.Instance?.CurrentUnit);
+            RequestRefresh();
+        });
+        adminGrantBtn = CreateButton(left, "领取卡牌", ref y, step, () =>
+        {
+            ToggleAdminGrantPanel();
+        });
 
-        var statusTitle = CreateText(left, "StatusTitle", new Vector2(0.08f, 0.02f), new Vector2(0.92f, 0.28f), 14, TextAnchor.MiddleCenter);
+        var statusTitle = CreateText(left, "StatusTitle", new Vector2(0.08f, 0.02f), new Vector2(0.92f, 0.14f), 14, TextAnchor.MiddleCenter);
         statusTitle.text = "当前状态";
         var statusGo = new GameObject("StatusIcons");
         statusGo.transform.SetParent(left, false);
         var srt = statusGo.AddComponent<RectTransform>();
-        srt.anchorMin = new Vector2(0.06f, 0.32f);
-        srt.anchorMax = new Vector2(0.94f, 0.58f);
+        srt.anchorMin = new Vector2(0.06f, 0.16f);
+        srt.anchorMax = new Vector2(0.94f, 0.36f);
         srt.offsetMin = Vector2.zero;
         srt.offsetMax = Vector2.zero;
         statusIconRoot = statusGo.transform;
@@ -199,40 +251,56 @@ public class GameUI : MonoBehaviour
         rightTitle = CreateText(right, "RightTitle", new Vector2(0.05f, 0.92f), new Vector2(0.95f, 0.99f), 18, TextAnchor.MiddleCenter);
         rightTitle.text = "背包";
 
-        var listGo = new GameObject("ItemList");
-        listGo.transform.SetParent(right, false);
-        var listRt = listGo.AddComponent<RectTransform>();
-        listRt.anchorMin = new Vector2(0.03f, 0.28f);
-        listRt.anchorMax = new Vector2(0.97f, 0.91f);
-        listRt.offsetMin = Vector2.zero;
-        listRt.offsetMax = Vector2.zero;
-        itemListRoot = listGo.transform;
+        CreateItemScrollArea(right);
 
         reinforcePanel = new GameObject("ReinforcePanel");
         reinforcePanel.transform.SetParent(right, false);
         var rpRt = reinforcePanel.AddComponent<RectTransform>();
-        rpRt.anchorMin = new Vector2(0.05f, 0.04f);
-        rpRt.anchorMax = new Vector2(0.95f, 0.26f);
+        rpRt.anchorMin = new Vector2(0.05f, 0.02f);
+        rpRt.anchorMax = new Vector2(0.95f, 0.30f);
         rpRt.offsetMin = Vector2.zero;
         rpRt.offsetMax = Vector2.zero;
         var rpImg = reinforcePanel.AddComponent<Image>();
         rpImg.color = new Color(0.15f, 0.2f, 0.18f, 0.95f);
 
-        float ry = 0.95f;
-        float rstep = 0.3f;
+        float ry = 0.98f;
+        float rstep = 0.24f;
         CreateButton(reinforcePanel.transform, "强化·攻击", ref ry, rstep, () =>
         {
-            ItemUseService.TryConfirmReinforce(TurnManager.Instance?.CurrentUnit, StatBoost.Attack);
+            var turn = TurnManager.Instance;
+            var u = turn?.CurrentUnit;
+            if (turn != null && turn.Phase == TurnPhase.SelectingSkillReinforce)
+                SkillService.TryConfirmHumanReinforce(u, StatBoost.Attack);
+            else
+                ItemUseService.TryConfirmReinforce(u, StatBoost.Attack);
             RequestRefresh();
         });
         CreateButton(reinforcePanel.transform, "强化·防御", ref ry, rstep, () =>
         {
-            ItemUseService.TryConfirmReinforce(TurnManager.Instance?.CurrentUnit, StatBoost.Defense);
+            var turn = TurnManager.Instance;
+            var u = turn?.CurrentUnit;
+            if (turn != null && turn.Phase == TurnPhase.SelectingSkillReinforce)
+                SkillService.TryConfirmHumanReinforce(u, StatBoost.Defense);
+            else
+                ItemUseService.TryConfirmReinforce(u, StatBoost.Defense);
             RequestRefresh();
         });
         CreateButton(reinforcePanel.transform, "强化·移动", ref ry, rstep, () =>
         {
-            ItemUseService.TryConfirmReinforce(TurnManager.Instance?.CurrentUnit, StatBoost.Move);
+            var turn = TurnManager.Instance;
+            var u = turn?.CurrentUnit;
+            if (turn != null && turn.Phase == TurnPhase.SelectingSkillReinforce)
+                SkillService.TryConfirmHumanReinforce(u, StatBoost.Move);
+            else
+                ItemUseService.TryConfirmReinforce(u, StatBoost.Move);
+            RequestRefresh();
+        });
+        CreateButton(reinforcePanel.transform, "强化·摸牌", ref ry, rstep, () =>
+        {
+            var turn = TurnManager.Instance;
+            var u = turn?.CurrentUnit;
+            if (turn != null && turn.Phase == TurnPhase.SelectingSkillReinforce)
+                SkillService.TryConfirmHumanReinforce(u, StatBoost.Draw);
             RequestRefresh();
         });
         reinforcePanel.SetActive(false);
@@ -274,6 +342,8 @@ public class GameUI : MonoBehaviour
                 ItemUseService.TryConfirmTimedBombDelay(TurnManager.Instance?.CurrentUnit, rounds));
         }
         delayPanel.SetActive(false);
+
+        BuildAdminGrantPanel(right);
 
         // 必须在背包面板之后创建，并置顶，否则会被 RightPanel 挡住点击
         endTurnBtn = CreateEndTurnButton(canvasRoot.transform);
@@ -373,9 +443,12 @@ public class GameUI : MonoBehaviour
         string deckInfo = DeckManager.Instance != null
             ? $"库{DeckManager.Instance.DrawCount}/弃{DeckManager.Instance.DiscardCount}"
             : "";
-        titleText.text = MatchConfig.IsAiBattle
-            ? $"象群危机 AI  |  你={RoleInfo.GetDisplayName(MatchConfig.HumanRole)}  |  第{turn.RoundNumber}轮  |  {deckInfo}"
-            : $"象群危机 Demo  |  第{turn.RoundNumber}轮  |  {deckInfo}";
+        if (MatchConfig.IsAdminMode)
+            titleText.text = $"象群危机 管理员  |  你={RoleInfo.GetDisplayName(MatchConfig.HumanRole)}  |  第{turn.RoundNumber}轮  |  {deckInfo}";
+        else if (MatchConfig.IsAiBattle)
+            titleText.text = $"象群危机 AI  |  你={RoleInfo.GetDisplayName(MatchConfig.HumanRole)}  |  第{turn.RoundNumber}轮  |  {deckInfo}";
+        else
+            titleText.text = $"象群危机 Demo  |  第{turn.RoundNumber}轮  |  {deckInfo}";
 
         if (game != null && game.IsGameOver)
         {
@@ -387,15 +460,19 @@ public class GameUI : MonoBehaviour
             var u = turn.CurrentUnit;
             bool humanTurn = MatchConfig.IsHumanControlled(u);
             string controller = MatchConfig.IsAiBattle
-                ? (humanTurn ? "（你）" : "（AI）")
+                ? (humanTurn ? (MatchConfig.IsAdminMode ? "（你·管理）" : "（你）") : "（AI）")
                 : "";
             string phaseHint = turn.Phase switch
             {
                 TurnPhase.SelectingBombTarget => "瞄准炸弹（悬停预览，右键取消）",
                 TurnPhase.SelectingBananaTarget => "投掷香蕉皮（右键取消）",
+                TurnPhase.SelectingMineTarget => "放置地雷（右键取消）",
                 TurnPhase.SelectingDiscardTarget => "瞄准弃置（右键取消）",
                 TurnPhase.SelectingShootTarget => "瞄准射击（右键取消）",
                 TurnPhase.SelectingReinforce => "选择强化（右键取消）",
+                TurnPhase.SelectingSkillReinforce => "技能强化（右键取消）",
+                TurnPhase.SelectingMonkeyStealTarget => "选择抢夺目标（右键取消）",
+                TurnPhase.SelectingMonkeyMarkItem => "选择要夺取的物品",
                 TurnPhase.SelectingAmmo => "选择弹药（右键取消）",
                 TurnPhase.SelectingTimedBombDelay => "选择延时（右键取消）",
                 TurnPhase.SelectingFlameDirection => "选择喷射方向（右键取消）",
@@ -419,9 +496,13 @@ public class GameUI : MonoBehaviour
         bool playing = turn.Phase != TurnPhase.GameOver && turn.CurrentUnit != null && !turn.CurrentUnit.IsDead;
         bool aiming = turn.Phase == TurnPhase.SelectingBombTarget
             || turn.Phase == TurnPhase.SelectingBananaTarget
+            || turn.Phase == TurnPhase.SelectingMineTarget
             || turn.Phase == TurnPhase.SelectingDiscardTarget
             || turn.Phase == TurnPhase.SelectingShootTarget
             || turn.Phase == TurnPhase.SelectingReinforce
+            || turn.Phase == TurnPhase.SelectingSkillReinforce
+            || turn.Phase == TurnPhase.SelectingMonkeyStealTarget
+            || turn.Phase == TurnPhase.SelectingMonkeyMarkItem
             || turn.Phase == TurnPhase.SelectingAmmo
             || turn.Phase == TurnPhase.SelectingTimedBombDelay
             || turn.Phase == TurnPhase.SelectingFlameDirection
@@ -434,27 +515,93 @@ public class GameUI : MonoBehaviour
         if (restartBtn != null)
             restartBtn.interactable = true;
         pickupBtn.interactable = canAct && !aiming && !trimming && turn.CurrentUnit != null && !turn.CurrentUnit.IsDying;
+        if (skillBtn != null)
+        {
+            // 普通 AI 对战：他人回合隐藏；管理员模式可查看 AI 技能信息
+            bool showSkillPanel = !MatchConfig.IsAiBattle || humanTurnActive || MatchConfig.IsAdminMode;
+            skillBtn.gameObject.SetActive(showSkillPanel);
+            if (showSkillPanel)
+            {
+                var cu = turn.CurrentUnit;
+                bool skillOk = canAct && !aiming && !trimming && cu != null && !cu.IsDying
+                    && !SkillInfo.IsPassive(cu.Role) && cu.SkillCooldownLeft <= 0;
+                skillBtn.interactable = skillOk || (canAct && !aiming && !trimming && cu != null && SkillInfo.IsPassive(cu.Role));
+                var label = skillBtn.GetComponentInChildren<Text>();
+                if (label != null && cu != null)
+                {
+                    string cd = cu.SkillCooldownLeft > 0 ? $"CD{cu.SkillCooldownLeft}" : $"Lv{cu.SkillLevel}";
+                    string who = humanTurnActive ? "" : "·AI ";
+                    label.text = $"{who}{SkillInfo.GetSkillName(cu.Role)}\n{cd}";
+                }
+            }
+        }
+        if (leaderBtn != null)
+        {
+            bool showLeader = !MatchConfig.IsAiBattle || humanTurnActive || MatchConfig.IsAdminMode;
+            leaderBtn.gameObject.SetActive(showLeader);
+            if (showLeader)
+            {
+                var cu = turn.CurrentUnit;
+                bool canLeader = canAct && !aiming && !trimming && cu != null
+                    && LeaderDeclarationService.CanDeclare(cu, out _, out _, out _);
+                leaderBtn.interactable = canLeader;
+                var label = leaderBtn.GetComponentInChildren<Text>();
+                if (label != null && cu != null)
+                {
+                    label.text = cu.HasUsedLeaderDeclaration
+                        ? "领袖宣言\n已用"
+                        : "领袖宣言";
+                }
+            }
+        }
+        if (adminGrantBtn != null)
+        {
+            bool showGrant = MatchConfig.IsAdminMode;
+            adminGrantBtn.gameObject.SetActive(showGrant);
+            if (showGrant)
+            {
+                bool canGrant = AdminGrantService.CanOpenPanel(turn.CurrentUnit, out _);
+                adminGrantBtn.interactable = canGrant && !aiming && !trimming;
+                var label = adminGrantBtn.GetComponentInChildren<Text>();
+                if (label != null)
+                    label.text = "领取卡牌";
+            }
+        }
         if (menuBtn != null)
             menuBtn.interactable = true;
 
-        reinforcePanel.SetActive(turn.Phase == TurnPhase.SelectingReinforce && canAct);
+        reinforcePanel.SetActive(
+            (turn.Phase == TurnPhase.SelectingReinforce || turn.Phase == TurnPhase.SelectingSkillReinforce) && canAct);
         if (ammoPanel != null)
             ammoPanel.SetActive(turn.Phase == TurnPhase.SelectingAmmo && canAct);
         if (delayPanel != null)
             delayPanel.SetActive(turn.Phase == TurnPhase.SelectingTimedBombDelay && canAct);
+        if (adminGrantPanel != null && (!MatchConfig.IsAdminMode || !canAct || aiming))
+            adminGrantPanel.SetActive(false);
 
-        // 状态图标：仅自己的回合显示详情；AI 回合不展示其状态以免泄密
-        RebuildStatusIcons(humanTurnActive ? turn.CurrentUnit : null);
+        // 状态：管理员可看 AI 状态；普通 AI 对战仅自己的回合
+        bool showStatus = humanTurnActive || MatchConfig.IsAdminMode || !MatchConfig.IsAiBattle;
+        RebuildStatusIcons(showStatus ? turn.CurrentUnit : null);
 
         if (turn.Phase == TurnPhase.SelectingPickup && canAct)
         {
             rightTitle.text = "附近掉落（半径0–1）";
             RebuildPickupList();
         }
-        else if (MatchConfig.IsAiBattle && !humanTurnActive)
+        else if (turn.Phase == TurnPhase.SelectingMonkeyMarkItem && canAct)
+        {
+            rightTitle.text = "抢夺物品";
+            RebuildMonkeyMarkList();
+        }
+        else if (MatchConfig.IsAiBattle && !humanTurnActive && !MatchConfig.IsAdminMode)
         {
             rightTitle.text = "背包";
             RebuildHiddenInventory(turn.CurrentUnit);
+        }
+        else if (MatchConfig.IsAdminMode && !humanTurnActive)
+        {
+            rightTitle.text = $"AI背包·{RoleInfo.GetDisplayName(turn.CurrentUnit.Role)}";
+            RebuildItemList(false);
         }
         else
         {
@@ -464,6 +611,7 @@ public class GameUI : MonoBehaviour
 
         RefreshHoverPanel();
         PlayerInputController.Instance?.RefreshHints();
+        VisibilityService.RefreshWorld();
     }
 
     private void RebuildStatusIcons(UnitActor unit)
@@ -479,7 +627,9 @@ public class GameUI : MonoBehaviour
         if (unit == null || unit.IsDead || unit.Statuses == null || unit.Statuses.Count == 0)
         {
             var empty = CreateText(statusIconRoot, "None", new Vector2(0f, 0.2f), new Vector2(1f, 0.8f), 12, TextAnchor.MiddleCenter);
-            empty.text = MatchConfig.IsAiBattle && !MatchConfig.IsHumanTurn() ? "（不可见）" : "（无）";
+            empty.text = MatchConfig.IsAiBattle && !MatchConfig.IsAdminMode && !MatchConfig.IsHumanTurn()
+                ? "（不可见）"
+                : "（无）";
             empty.color = new Color(0.7f, 0.75f, 0.7f);
             statusIconRows.Add(empty.gameObject);
             return;
@@ -518,7 +668,207 @@ public class GameUI : MonoBehaviour
         }
     }
 
-    private void RebuildPickupList()
+    private void BuildAdminGrantPanel(Transform right)
+    {
+        adminGrantPanel = new GameObject("AdminGrantPanel");
+        adminGrantPanel.transform.SetParent(right, false);
+        var rt = adminGrantPanel.AddComponent<RectTransform>();
+        rt.anchorMin = new Vector2(0.03f, 0.02f);
+        rt.anchorMax = new Vector2(0.97f, 0.91f);
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+        adminGrantPanel.AddComponent<Image>().color = new Color(0.12f, 0.08f, 0.14f, 0.97f);
+
+        var title = CreateText(adminGrantPanel.transform, "GrantTitle", new Vector2(0.05f, 0.92f), new Vector2(0.7f, 0.99f), 16, TextAnchor.MiddleLeft);
+        title.text = "从牌库领取（不限次数）";
+        title.color = new Color(1f, 0.85f, 0.95f);
+
+        float closeY = 0.99f;
+        CreateButton(adminGrantPanel.transform, "关闭", ref closeY, 0.08f, () =>
+        {
+            adminGrantPanel.SetActive(false);
+        });
+
+        var scrollGo = new GameObject("GrantScroll");
+        scrollGo.transform.SetParent(adminGrantPanel.transform, false);
+        var scrollRt = scrollGo.AddComponent<RectTransform>();
+        scrollRt.anchorMin = new Vector2(0.04f, 0.04f);
+        scrollRt.anchorMax = new Vector2(0.96f, 0.9f);
+        scrollRt.offsetMin = Vector2.zero;
+        scrollRt.offsetMax = Vector2.zero;
+        var scroll = scrollGo.AddComponent<ScrollRect>();
+        scroll.horizontal = false;
+        scroll.vertical = true;
+        scroll.movementType = ScrollRect.MovementType.Clamped;
+        scroll.scrollSensitivity = 28f;
+
+        var viewport = new GameObject("Viewport");
+        viewport.transform.SetParent(scrollGo.transform, false);
+        var vpRt = viewport.AddComponent<RectTransform>();
+        vpRt.anchorMin = Vector2.zero;
+        vpRt.anchorMax = Vector2.one;
+        vpRt.offsetMin = Vector2.zero;
+        vpRt.offsetMax = Vector2.zero;
+        viewport.AddComponent<Image>().color = new Color(0, 0, 0, 0.02f);
+        viewport.AddComponent<RectMask2D>();
+
+        var content = new GameObject("Content");
+        content.transform.SetParent(viewport.transform, false);
+        var contentRt = content.AddComponent<RectTransform>();
+        contentRt.anchorMin = new Vector2(0f, 1f);
+        contentRt.anchorMax = new Vector2(1f, 1f);
+        contentRt.pivot = new Vector2(0.5f, 1f);
+        contentRt.sizeDelta = Vector2.zero;
+        var layout = content.AddComponent<VerticalLayoutGroup>();
+        layout.spacing = 3f;
+        layout.padding = new RectOffset(2, 2, 2, 2);
+        layout.childControlHeight = true;
+        layout.childControlWidth = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+        content.AddComponent<ContentSizeFitter>().verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        scroll.viewport = vpRt;
+        scroll.content = contentRt;
+        adminGrantListRoot = content.transform;
+        adminGrantPanel.SetActive(false);
+    }
+
+    private void ToggleAdminGrantPanel()
+    {
+        if (!MatchConfig.IsAdminMode || adminGrantPanel == null)
+            return;
+        if (adminGrantPanel.activeSelf)
+        {
+            adminGrantPanel.SetActive(false);
+            return;
+        }
+        if (!AdminGrantService.CanOpenPanel(TurnManager.Instance?.CurrentUnit, out string reason))
+        {
+            TurnManager.Instance?.Log(reason);
+            return;
+        }
+        RebuildAdminGrantList();
+        adminGrantPanel.SetActive(true);
+        adminGrantPanel.transform.SetAsLastSibling();
+    }
+
+    private void RebuildAdminGrantList()
+    {
+        foreach (var row in adminGrantRows)
+        {
+            if (row != null)
+                Destroy(row);
+        }
+        adminGrantRows.Clear();
+        if (adminGrantListRoot == null)
+            return;
+
+        var available = AdminGrantService.ListAvailableFromDeck();
+        if (available.Count == 0)
+        {
+            var empty = new GameObject("Empty");
+            empty.transform.SetParent(adminGrantListRoot, false);
+            empty.AddComponent<RectTransform>();
+            var le = empty.AddComponent<LayoutElement>();
+            le.minHeight = 48f;
+            le.preferredHeight = 48f;
+            var tip = CreateText(empty.transform, "Tip", new Vector2(0.05f, 0.1f), new Vector2(0.95f, 0.9f), 14, TextAnchor.MiddleCenter);
+            tip.text = "牌库与弃牌堆皆空";
+            tip.color = new Color(0.8f, 0.7f, 0.75f);
+            adminGrantRows.Add(empty);
+            return;
+        }
+
+        for (int i = 0; i < available.Count; i++)
+        {
+            var kind = available[i].Kind;
+            int count = available[i].Count;
+            var row = new GameObject($"Grant_{kind}");
+            row.transform.SetParent(adminGrantListRoot, false);
+            row.AddComponent<RectTransform>();
+            var le = row.AddComponent<LayoutElement>();
+            le.minHeight = 40f;
+            le.preferredHeight = 40f;
+
+            string label = $"×{count}  {ItemInfo.GetDisplayName(kind)}  ·  {ItemInfo.GetShortDesc(kind)}";
+            var btn = CreateSmallButton(row.transform, label, new Vector2(0.02f, 0.08f), new Vector2(0.98f, 0.92f), () =>
+            {
+                if (AdminGrantService.TryGrant(TurnManager.Instance?.CurrentUnit, kind))
+                {
+                    RebuildAdminGrantList();
+                    RequestRefresh();
+                }
+            });
+            var img = btn.targetGraphic as Image;
+            if (img != null)
+            {
+                img.color = ItemInfo.IsDoll(kind)
+                    ? ItemInfo.GetDollGoldUiBg()
+                    : new Color(0.28f, 0.2f, 0.32f, 0.95f);
+            }
+            adminGrantRows.Add(row);
+        }
+    }
+
+    private void CreateItemScrollArea(Transform right)
+    {
+        var scrollGo = new GameObject("ItemScroll");
+        scrollGo.transform.SetParent(right, false);
+        var scrollRt = scrollGo.AddComponent<RectTransform>();
+        scrollRt.anchorMin = new Vector2(0.03f, 0.28f);
+        scrollRt.anchorMax = new Vector2(0.97f, 0.91f);
+        scrollRt.offsetMin = Vector2.zero;
+        scrollRt.offsetMax = Vector2.zero;
+
+        itemScroll = scrollGo.AddComponent<ScrollRect>();
+        itemScroll.horizontal = false;
+        itemScroll.vertical = true;
+        itemScroll.movementType = ScrollRect.MovementType.Clamped;
+        itemScroll.scrollSensitivity = 28f;
+        itemScroll.inertia = true;
+        itemScroll.decelerationRate = 0.135f;
+
+        var viewportGo = new GameObject("Viewport");
+        viewportGo.transform.SetParent(scrollGo.transform, false);
+        var viewportRt = viewportGo.AddComponent<RectTransform>();
+        viewportRt.anchorMin = Vector2.zero;
+        viewportRt.anchorMax = Vector2.one;
+        viewportRt.offsetMin = Vector2.zero;
+        viewportRt.offsetMax = Vector2.zero;
+        var vpImg = viewportGo.AddComponent<Image>();
+        vpImg.color = new Color(0f, 0f, 0f, 0.02f);
+        vpImg.raycastTarget = true;
+        viewportGo.AddComponent<RectMask2D>();
+
+        var contentGo = new GameObject("Content");
+        contentGo.transform.SetParent(viewportGo.transform, false);
+        var contentRt = contentGo.AddComponent<RectTransform>();
+        contentRt.anchorMin = new Vector2(0f, 1f);
+        contentRt.anchorMax = new Vector2(1f, 1f);
+        contentRt.pivot = new Vector2(0.5f, 1f);
+        contentRt.anchoredPosition = Vector2.zero;
+        contentRt.sizeDelta = new Vector2(0f, 0f);
+
+        var layout = contentGo.AddComponent<VerticalLayoutGroup>();
+        layout.padding = new RectOffset(2, 2, 2, 2);
+        layout.spacing = 4f;
+        layout.childAlignment = TextAnchor.UpperCenter;
+        layout.childControlWidth = true;
+        layout.childControlHeight = true;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+
+        var fitter = contentGo.AddComponent<ContentSizeFitter>();
+        fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        itemScroll.viewport = viewportRt;
+        itemScroll.content = contentRt;
+        itemListRoot = contentGo.transform;
+    }
+
+    private void ClearItemRows()
     {
         foreach (var row in itemRows)
         {
@@ -526,6 +876,64 @@ public class GameUI : MonoBehaviour
                 Destroy(row);
         }
         itemRows.Clear();
+        if (itemScroll != null)
+            itemScroll.verticalNormalizedPosition = 1f;
+    }
+
+    private GameObject CreateListRow(string name, float height)
+    {
+        var row = new GameObject(name);
+        row.transform.SetParent(itemListRoot, false);
+        row.AddComponent<RectTransform>();
+        var le = row.AddComponent<LayoutElement>();
+        le.minHeight = height;
+        le.preferredHeight = height;
+        le.flexibleWidth = 1f;
+        return row;
+    }
+
+    private void RebuildMonkeyMarkList()
+    {
+        ClearItemRows();
+
+        var turn = TurnManager.Instance;
+        var target = turn?.PendingSkillTargetUnit;
+        if (target == null || target.Inventory == null)
+            return;
+
+        var items = target.Inventory.Items;
+        for (int i = 0; i < items.Count; i++)
+        {
+            int idx = i;
+            var it = items[i];
+            var row = CreateListRow($"Steal_{i}", ItemRowHeight);
+            string label = ItemInfo.IsDoll(it.Kind)
+                ? $"{ItemInfo.GetDisplayName(it.Kind)}（不可）"
+                : $"夺取 {ItemInfo.GetDisplayName(it.Kind)}";
+            var btn = CreateSmallButton(row.transform, label,
+                new Vector2(0.02f, 0.08f), new Vector2(0.98f, 0.92f),
+                () =>
+                {
+                    SkillService.TryMonkeyTakeItem(TurnManager.Instance?.CurrentUnit, idx);
+                    RequestRefresh();
+                });
+            btn.interactable = !ItemInfo.IsDoll(it.Kind);
+            if (ItemInfo.IsDoll(it.Kind))
+            {
+                var img = btn.targetGraphic as Image;
+                if (img != null)
+                    img.color = ItemInfo.GetDollGoldUiBg();
+                var txt = btn.GetComponentInChildren<Text>();
+                if (txt != null)
+                    txt.color = ItemInfo.GetDollGoldText();
+            }
+            itemRows.Add(row);
+        }
+    }
+
+    private void RebuildPickupList()
+    {
+        ClearItemRows();
 
         var turn = TurnManager.Instance;
         var unit = turn?.CurrentUnit;
@@ -535,31 +943,26 @@ public class GameUI : MonoBehaviour
         var loot = GroundItemManager.Instance.GetLootInRange(unit.Cell, 1);
         if (loot.Count == 0)
         {
-            var empty = CreateText(itemListRoot, "Empty", new Vector2(0.05f, 0.8f), new Vector2(0.95f, 0.95f), 16, TextAnchor.MiddleCenter);
+            var emptyRow = CreateListRow("Empty", ItemRowHeight * 1.5f);
+            var empty = CreateText(emptyRow.transform, "Empty", new Vector2(0.05f, 0.1f), new Vector2(0.95f, 0.9f), 16, TextAnchor.MiddleCenter);
             empty.text = "附近没有掉落物\n点取消退出";
-            itemRows.Add(empty.gameObject);
+            itemRows.Add(emptyRow);
             return;
         }
 
-        float rowH = Mathf.Min(0.1f, 0.9f / Mathf.Max(loot.Count, 1));
         for (int i = 0; i < loot.Count; i++)
         {
-            float top = 1f - i * rowH;
-            float bot = top - rowH + 0.008f;
             var entry = loot[i];
             var cell = entry.Cell;
             int gIndex = entry.Index;
             var kind = entry.Kind;
 
-            var row = new GameObject($"Loot_{i}");
-            row.transform.SetParent(itemListRoot, false);
-            var rt = row.AddComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, bot);
-            rt.anchorMax = new Vector2(1f, top);
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
+            var row = CreateListRow($"Loot_{i}", ItemRowHeight);
             var bg = row.AddComponent<Image>();
-            bg.color = new Color(0.18f, 0.16f, 0.1f, 0.92f);
+            bool isDoll = ItemInfo.IsDoll(kind);
+            bg.color = isDoll
+                ? ItemInfo.GetDollGoldUiBg()
+                : new Color(0.18f, 0.16f, 0.1f, 0.92f);
 
             var label = CreateText(row.transform, "Name", new Vector2(0.02f, 0.05f), new Vector2(0.62f, 0.95f), 13, TextAnchor.MiddleLeft);
             int dist = GridManager.Instance.GetManhattanDistance(unit.Cell, cell);
@@ -567,11 +970,12 @@ public class GameUI : MonoBehaviour
                 ? $"弓箭×{entry.Charges}"
                 : ItemInfo.GetDisplayName(kind);
             label.text = $"{lootName}\n<size=11>({cell.x},{cell.y}) 距{dist}</size>";
+            if (isDoll)
+                label.color = ItemInfo.GetDollGoldText();
 
             var pickBtn = CreateSmallButton(row.transform, "拾取", new Vector2(0.64f, 0.15f), new Vector2(0.98f, 0.85f), () =>
             {
                 ActionService.TryPickupOne(TurnManager.Instance?.CurrentUnit, cell, gIndex);
-                // 刷新延后到 LateUpdate，避免销毁当前按钮
             });
             pickBtn.interactable = true;
 
@@ -581,64 +985,69 @@ public class GameUI : MonoBehaviour
 
     private void RebuildHiddenInventory(UnitActor unit)
     {
-        foreach (var row in itemRows)
-        {
-            if (row != null)
-                Destroy(row);
-        }
-        itemRows.Clear();
+        ClearItemRows();
         if (itemListRoot == null)
             return;
 
         string who = unit != null ? RoleInfo.GetDisplayName(unit.Role) : "对手";
-        var tip = CreateText(itemListRoot, "Hidden", new Vector2(0.08f, 0.35f), new Vector2(0.92f, 0.65f), 16, TextAnchor.MiddleCenter);
+        var tipRow = CreateListRow("Hidden", ItemRowHeight * 2f);
+        var tip = CreateText(tipRow.transform, "Hidden", new Vector2(0.08f, 0.1f), new Vector2(0.92f, 0.9f), 16, TextAnchor.MiddleCenter);
         tip.text = $"{who}（AI）行动中\n背包内容不可见";
         tip.color = new Color(0.65f, 0.7f, 0.66f);
-        itemRows.Add(tip.gameObject);
+        itemRows.Add(tipRow);
     }
 
     private void RebuildItemList(bool allowActions)
     {
-        foreach (var row in itemRows)
-        {
-            if (row != null)
-                Destroy(row);
-        }
-        itemRows.Clear();
+        ClearItemRows();
 
         var turn = TurnManager.Instance;
         if (turn?.CurrentUnit == null || turn.Phase == TurnPhase.GameOver)
             return;
 
         var unit = turn.CurrentUnit;
-        var items = unit.Inventory.Items;
-        if (items.Count == 0)
+        if (unit.IsDying)
         {
-            var empty = CreateText(itemListRoot, "Empty", new Vector2(0.05f, 0.8f), new Vector2(0.95f, 0.95f), 16, TextAnchor.MiddleCenter);
-            empty.text = "（空）";
-            itemRows.Add(empty.gameObject);
+            var tipRow = CreateListRow("DyingTip", ItemRowHeight * 2.2f);
+            var tip = CreateText(tipRow.transform, "DyingTip", new Vector2(0.05f, 0.05f), new Vector2(0.95f, 0.95f), 14, TextAnchor.MiddleCenter);
+            tip.text = "濒死：物品已掉落\n不可拾取 / 不可用背包卡\n可移动、近战；脚下有血瓶可自救";
+            tip.color = new Color(1f, 0.75f, 0.7f);
+            itemRows.Add(tipRow);
+
+            bool hasPotion = ActionService.HasGroundPotionAt(unit);
+            var btnRow = CreateListRow("GroundPotion", ItemRowHeight);
+            var useBtn = CreateSmallButton(btnRow.transform, "使用脚下血瓶", new Vector2(0.15f, 0.12f), new Vector2(0.85f, 0.88f), () =>
+            {
+                ActionService.TryUseGroundPotion(TurnManager.Instance?.CurrentUnit);
+                GameUI.Instance?.RequestRefresh();
+            });
+            useBtn.interactable = allowActions && hasPotion && turn.Phase == TurnPhase.WaitingAction;
+            itemRows.Add(btnRow);
             return;
         }
 
-        // 自上而下排列，最多显示约 10 条
-        float rowH = Mathf.Min(0.09f, 0.9f / Mathf.Max(items.Count, 1));
+        var items = unit.Inventory.Items;
+        if (items.Count == 0)
+        {
+            var emptyRow = CreateListRow("Empty", ItemRowHeight);
+            var empty = CreateText(emptyRow.transform, "Empty", new Vector2(0.05f, 0.1f), new Vector2(0.95f, 0.9f), 16, TextAnchor.MiddleCenter);
+            empty.text = "（空）";
+            itemRows.Add(emptyRow);
+            return;
+        }
+
         for (int i = 0; i < items.Count; i++)
         {
-            float top = 1f - i * rowH;
-            float bot = top - rowH + 0.008f;
             int index = i;
             var entry = items[i];
             var kind = entry.Kind;
 
-            var row = new GameObject($"Item_{i}");
-            row.transform.SetParent(itemListRoot, false);
-            var rt = row.AddComponent<RectTransform>();
-            rt.anchorMin = new Vector2(0f, bot);
-            rt.anchorMax = new Vector2(1f, top);
-            rt.offsetMin = Vector2.zero;
-            rt.offsetMax = Vector2.zero;
+            var row = CreateListRow($"Item_{i}", ItemRowHeight);
             var bg = row.AddComponent<Image>();
-            bg.color = new Color(0.12f, 0.16f, 0.14f, 0.9f);
+            bool isDoll = ItemInfo.IsDoll(kind);
+            bg.color = isDoll
+                ? ItemInfo.GetDollGoldUiBg()
+                : new Color(0.12f, 0.16f, 0.14f, 0.9f);
 
             var label = CreateText(row.transform, "Name", new Vector2(0.02f, 0.05f), new Vector2(0.48f, 0.95f), 13, TextAnchor.MiddleLeft);
             string name = ItemInfo.GetDisplayName(kind);
@@ -651,16 +1060,45 @@ public class GameUI : MonoBehaviour
             else if (ItemInfo.GetMaxCharges(kind) > 0)
             {
                 desc = $"{desc} · 剩{entry.Charges}";
-                if (entry.Equipped)
-                    name = $"{name}（穿戴）";
             }
+            if (entry.Equipped)
+                name = $"{name}（装备）";
             label.text = $"{name}\n<size=11>{desc}</size>";
+            if (isDoll)
+                label.color = ItemInfo.GetDollGoldText();
 
-            bool canUse = ItemInfo.GetUseKind(kind) != ItemUseKind.None;
-            bool isEquip = ItemInfo.GetUseKind(kind) == ItemUseKind.EquipToggle;
-            string useLabel = isEquip ? (entry.Equipped ? "卸下" : "穿戴") : "使用";
+            bool isEquip = ItemInfo.IsEquipable(kind);
+            string useLabel = "使用";
+            if (kind == ItemKind.SkillUpgrade)
+            {
+                int n = unit.Inventory.CountOf(ItemKind.SkillUpgrade);
+                useLabel = n >= 3 ? "升级(3)" : $"缺{3 - n}";
+            }
+            else if (isEquip)
+            {
+                if (!entry.Equipped)
+                    useLabel = "装备";
+                else if (kind == ItemKind.Bow)
+                    useLabel = "射击";
+                else if (kind == ItemKind.Crossbow)
+                    useLabel = unit.CrossbowCharged
+                        ? (unit.CrossbowChargedThisAction ? "已蓄力" : "射击")
+                        : "蓄力";
+                else if (kind == ItemKind.Flamethrower)
+                    useLabel = "喷射";
+                else
+                    useLabel = "卸下";
+            }
             if (entry.Equipped)
                 bg.color = new Color(0.14f, 0.28f, 0.2f, 0.95f);
+            else if (isDoll)
+                bg.color = ItemInfo.GetDollGoldUiBg();
+
+            bool canUseItems = allowActions && turn.Phase == TurnPhase.WaitingAction;
+            bool canDiscardItems = allowActions &&
+                (turn.Phase == TurnPhase.WaitingAction || turn.Phase == TurnPhase.MandatoryDiscard);
+            bool crossbowLocked = isEquip && entry.Equipped && kind == ItemKind.Crossbow
+                && unit.CrossbowCharged && unit.CrossbowChargedThisAction;
 
             var useBtn = CreateSmallButton(row.transform, useLabel, new Vector2(0.5f, 0.15f), new Vector2(0.74f, 0.85f), () =>
             {
@@ -670,10 +1108,7 @@ public class GameUI : MonoBehaviour
             {
                 PlayerInputController.Instance?.StartDiscardMode(index);
             });
-            bool canUseItems = allowActions && turn.Phase == TurnPhase.WaitingAction;
-            bool canDiscardItems = allowActions &&
-                (turn.Phase == TurnPhase.WaitingAction || turn.Phase == TurnPhase.MandatoryDiscard);
-            useBtn.interactable = canUseItems && canUse;
+            useBtn.interactable = canUseItems && !crossbowLocked;
             dropBtn.interactable = canDiscardItems;
 
             itemRows.Add(row);
@@ -820,7 +1255,7 @@ public class GameUI : MonoBehaviour
         text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         if (text.font == null)
             text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        text.text = "结束回合";
+        text.text = "结束行动";
         text.alignment = TextAnchor.MiddleCenter;
         text.fontSize = 15;
         text.fontStyle = FontStyle.Bold;

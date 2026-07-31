@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>场上危险物：投掷香蕉皮 / 定时炸弹（仅放置者可见）、地雷（全员可见）。</summary>
+/// <summary>场上危险物：投掷香蕉皮 / 定时炸弹（仅放置者可见）、武装地雷（全员可见）。弃置的地雷是掉落物，不在此管理。</summary>
 public class HazardManager : MonoBehaviour
 {
     public static HazardManager Instance;
@@ -108,21 +108,42 @@ public class HazardManager : MonoBehaviour
         return go;
     }
 
-    /// <summary>香蕉皮与定时炸弹仅对放置者可见。</summary>
+    /// <summary>香蕉皮与定时炸弹仅对放置者可见，且须在迷雾视野内；地雷全员可见但受迷雾限制。管理员模式全可见。</summary>
     public void RefreshHazardVisibility()
     {
-        var viewer = TurnManager.Instance?.CurrentUnit;
+        if (MatchConfig.IsAdminMode)
+        {
+            foreach (var b in bananas)
+                if (b.Visual != null) b.Visual.SetActive(true);
+            foreach (var bomb in timedBombs)
+                if (bomb.Visual != null) bomb.Visual.SetActive(true);
+            foreach (var m in mines)
+                if (m.Visual != null) m.Visual.SetActive(true);
+            return;
+        }
+
+        var fogViewer = VisibilityService.GetFogViewer();
+        // 热座：当前行动者；AI 对战：始终按玩家角色视野（荣誉：只看见自己的陷阱）
+        var ownerViewer = MatchConfig.IsAiBattle ? fogViewer : TurnManager.Instance?.CurrentUnit;
         foreach (var b in bananas)
         {
             if (b.Visual == null) continue;
-            bool show = viewer != null && viewer.Role == b.Thrower;
-            b.Visual.SetActive(show);
+            bool ownerSee = ownerViewer != null && ownerViewer.Role == b.Thrower;
+            bool inFog = fogViewer == null || VisibilityService.CanSeeCell(fogViewer, b.Cell);
+            b.Visual.SetActive(ownerSee && inFog);
         }
         foreach (var bomb in timedBombs)
         {
             if (bomb.Visual == null) continue;
-            bool show = viewer != null && viewer.Role == bomb.Owner;
-            bomb.Visual.SetActive(show);
+            bool ownerSee = ownerViewer != null && ownerViewer.Role == bomb.Owner;
+            bool inFog = fogViewer == null || VisibilityService.CanSeeCell(fogViewer, bomb.Cell);
+            bomb.Visual.SetActive(ownerSee && inFog);
+        }
+        foreach (var m in mines)
+        {
+            if (m.Visual == null) continue;
+            bool inFog = fogViewer == null || VisibilityService.CanSeeCell(fogViewer, m.Cell);
+            m.Visual.SetActive(inFog);
         }
     }
 
@@ -161,13 +182,13 @@ public class HazardManager : MonoBehaviour
             if (bomb.Cell != cell) continue;
             if (viewer == null || bomb.Owner != viewer.Role)
                 continue;
-            lines.Add($"定时炸弹（你放置）：{bomb.RoundsLeft} 完整回合后爆炸（半径4）");
+            lines.Add($"定时炸弹（你放置）：{bomb.RoundsLeft} 回合后爆炸（半径4）");
         }
 
         foreach (var mine in mines)
         {
             if (mine.Cell != cell) continue;
-            lines.Add("地雷：踩上受到 15 点真伤");
+            lines.Add("武装地雷：踩上受到 15 点法伤");
         }
 
         foreach (var b in bananas)
@@ -190,7 +211,21 @@ public class HazardManager : MonoBehaviour
         return CanSeeBananaAt(cell, viewer) || CanSeeTimedBombAt(cell, viewer);
     }
 
-    public void ResolveBananaAtTurnStart(UnitActor unit)
+    /// <summary>
+    /// 移动踩踏语义：仅在移动落地后结算。行动开始时已站在陷阱上不触发。
+    /// </summary>
+    public void ResolveTrapsAfterMove(UnitActor unit)
+    {
+        if (unit == null || unit.IsDead)
+            return;
+        ResolveMineOnStep(unit);
+        if (unit.IsDead)
+            return;
+        ResolveBananaOnStep(unit);
+    }
+
+    /// <summary>踩踏香蕉皮：投掷者自己踩不触发；濒死无法获得跌倒则不消耗。</summary>
+    public void ResolveBananaOnStep(UnitActor unit)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
             return;
@@ -199,10 +234,14 @@ public class HazardManager : MonoBehaviour
         {
             if (bananas[i].Cell != unit.Cell)
                 continue;
+            // 投掷者踩自己的皮不触发
+            if (bananas[i].Thrower == unit.Role)
+                continue;
 
             TurnManager.Instance?.Log(
-                $"⚠ {RoleInfo.GetDisplayName(unit.Role)} 踩到了香蕉皮！（回合开始）");
-            unit.ApplyStatus(StatusType.Trip, 3);
+                $"⚠ {RoleInfo.GetDisplayName(unit.Role)} 踩到了香蕉皮！");
+            // 施加者=踩到者自己，持续按本人行动开始倒数
+            unit.ApplyStatus(StatusType.Trip, 3, unit);
             DeckManager.Instance?.AddToDiscard(ItemKind.BananaPeel);
             if (bananas[i].Visual != null)
                 Destroy(bananas[i].Visual);
@@ -210,7 +249,7 @@ public class HazardManager : MonoBehaviour
         }
     }
 
-    public void ResolveMineAt(UnitActor unit)
+    public void ResolveMineOnStep(UnitActor unit)
     {
         if (unit == null || unit.IsDead)
             return;
@@ -220,9 +259,9 @@ public class HazardManager : MonoBehaviour
             if (mines[i].Cell != unit.Cell)
                 continue;
 
-            int dealt = unit.TakeDamage(15, trueDamage: true);
+            int dealt = unit.TakeDamage(15, magicDamage: true);
             TurnManager.Instance?.Log(
-                $"⚠ {RoleInfo.GetDisplayName(unit.Role)} 踩到地雷，受到 {dealt} 点真伤");
+                $"⚠ {RoleInfo.GetDisplayName(unit.Role)} 踩到地雷，受到 {dealt} 点法伤");
             DeckManager.Instance?.AddToDiscard(ItemKind.Mine);
             if (mines[i].Visual != null)
                 Destroy(mines[i].Visual);
@@ -233,7 +272,7 @@ public class HazardManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 完整一轮结束时结算（猫行动结束、下一轮对象开始前）：倒计时−1，到 0 则爆炸。
+    /// 每回合结束时结算：倒计时−1，到 0 则爆炸。
     /// </summary>
     public void TickTimedBombsOnFullRound()
     {
@@ -273,7 +312,7 @@ public class HazardManager : MonoBehaviour
             if (grid.GetManhattanDistance(bomb.Cell, other.Cell) <= 4)
             {
                 hits++;
-                if (other.TakeDamage(15, trueDamage: false) > 0)
+                if (other.TakeDamage(15, magicDamage: false) > 0)
                     damaged++;
             }
         }

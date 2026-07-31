@@ -38,16 +38,16 @@ public static class RoleInfo
         {
             // 血/攻/防/背包相对初版已放大；象偏肉盾：高血高防、攻击不突出
             case RoleType.Elephant:
-                move = 3; hp = 120; atk = 9; def = 10; bag = 15;
+                move = 3; hp = 100; atk = 9; def = 10; bag = 15;
                 break;
             case RoleType.Human:
-                move = 5; hp = 90; atk = 9; def = 8; bag = 24;
+                move = 5; hp = 90; atk = 10; def = 8; bag = 24;
                 break;
             case RoleType.Monkey:
-                move = 6; hp = 90; atk = 6; def = 6; bag = 18;
+                move = 6; hp = 90; atk = 8; def = 6; bag = 18;
                 break;
             case RoleType.Cat:
-                move = 8; hp = 60; atk = 9; def = 4; bag = 12;
+                move = 8; hp = 60; atk = 6; def = 4; bag = 15;
                 break;
             default:
                 move = 4; hp = 90; atk = 9; def = 8; bag = 15;

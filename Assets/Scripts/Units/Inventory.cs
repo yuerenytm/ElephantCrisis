@@ -6,21 +6,8 @@ public class Inventory
     public float Capacity { get; private set; }
     public List<InventoryItem> Items { get; private set; } = new List<InventoryItem>();
 
-    /// <summary>已消耗、尚未折成弃牌的弹药支数（每种弹药各自累计，每满 3 支弃一张牌）。</summary>
+    /// <summary>已消耗弹药的债务字段已废弃（一张一支，消耗即弃牌）。</summary>
     private readonly Dictionary<ItemKind, int> ammoSpendDebt = new Dictionary<ItemKind, int>();
-
-    private int GetAmmoDebt(ItemKind ammo)
-    {
-        return ammoSpendDebt.TryGetValue(ammo, out int d) ? d : 0;
-    }
-
-    private void SetAmmoDebt(ItemKind ammo, int value)
-    {
-        if (value <= 0)
-            ammoSpendDebt.Remove(ammo);
-        else
-            ammoSpendDebt[ammo] = value;
-    }
 
     private void ClearAmmoDebt(ItemKind ammo) => ammoSpendDebt.Remove(ammo);
 
@@ -49,7 +36,7 @@ public class Inventory
 
     public bool HasSpace => UsedWeight < Capacity - 0.001f;
 
-    /// <summary>当前负重是否超过容量（行动中允许超重，结束回合前必须清掉）。</summary>
+    /// <summary>当前负重是否超过容量（行动中允许超重，结束行动前必须清掉）。</summary>
     public bool IsOverCapacity => UsedWeight > Capacity + 0.001f;
 
     public bool CanAdd(ItemKind kind) => CanAdd(InventoryItem.CreateFresh(kind));
@@ -202,43 +189,42 @@ public class Inventory
         return sum;
     }
 
-    public bool IsEquipable(ItemKind kind) => ItemInfo.IsArmor(kind) || kind == ItemKind.EnergyShield;
+    public bool IsEquipable(ItemKind kind) => ItemInfo.IsEquipable(kind);
 
-    /// <summary>穿戴；同类（甲/盾）已有穿戴则先卸下旧的。</summary>
+    /// <summary>装备；同槽位已有装备则先卸下。</summary>
     public bool TryEquip(int index, out string log)
     {
         log = null;
         if (index < 0 || index >= Items.Count)
             return false;
         var item = Items[index];
-        if (!IsEquipable(item.Kind))
+        var slot = ItemInfo.GetEquipSlot(item.Kind);
+        if (slot == ItemInfo.EquipSlot.None)
             return false;
         if (item.Equipped)
         {
-            log = "已在穿戴中";
+            log = "已在装备中";
             return false;
         }
 
-        bool isArmor = ItemInfo.IsArmor(item.Kind);
         for (int i = 0; i < Items.Count; i++)
         {
             if (i == index || !Items[i].Equipped)
                 continue;
-            bool otherArmor = ItemInfo.IsArmor(Items[i].Kind);
-            bool otherShield = Items[i].Kind == ItemKind.EnergyShield;
-            if ((isArmor && otherArmor) || (!isArmor && otherShield))
-            {
-                var prev = Items[i];
-                prev.Equipped = false;
-                Items[i] = prev;
-                log = $"卸下【{ItemInfo.GetDisplayName(prev.Kind)}】并穿戴【{ItemInfo.GetDisplayName(item.Kind)}】";
-            }
+            if (ItemInfo.GetEquipSlot(Items[i].Kind) != slot)
+                continue;
+            var prev = Items[i];
+            prev.Equipped = false;
+            Items[i] = prev;
+            if (prev.Kind == ItemKind.Crossbow)
+                TurnManager.Instance?.CurrentUnit?.ConsumeCrossbowCharge();
+            log = $"卸下【{ItemInfo.GetDisplayName(prev.Kind)}】并装备【{ItemInfo.GetDisplayName(item.Kind)}】";
         }
 
         item.Equipped = true;
         Items[index] = item;
         if (log == null)
-            log = $"穿戴【{ItemInfo.GetDisplayName(item.Kind)}】";
+            log = $"装备【{ItemInfo.GetDisplayName(item.Kind)}】";
         return true;
     }
 
@@ -250,7 +236,7 @@ public class Inventory
         var item = Items[index];
         if (!item.Equipped)
         {
-            log = "未在穿戴";
+            log = "未在装备";
             return false;
         }
         item.Equipped = false;
@@ -259,7 +245,7 @@ public class Inventory
         return true;
     }
 
-    /// <summary>消耗指定弹药；每累计用尽 3 支，往 discardedCards 放入一张对应弹药牌。</summary>
+    /// <summary>消耗指定弹药；每消耗 1 支弃 1 张对应弹药牌。</summary>
     public bool TryConsumeAmmo(ItemKind ammo, int count, List<ItemKind> discardedCards)
     {
         if (!ItemInfo.IsStackableAmmo(ammo) || count <= 0)
@@ -274,26 +260,14 @@ public class Inventory
 
             var stack = Items[i];
             stack.Charges -= count;
-
-            int debt = GetAmmoDebt(ammo) + count;
-            while (debt >= 3)
-            {
-                debt -= 3;
+            for (int c = 0; c < count; c++)
                 discardedCards?.Add(ammo);
-            }
-            SetAmmoDebt(ammo, debt);
 
             if (stack.Charges <= 0)
-            {
                 Items.RemoveAt(i);
-                if (GetAmmoDebt(ammo) > 0)
-                {
-                    discardedCards?.Add(ammo);
-                    ClearAmmoDebt(ammo);
-                }
-            }
             else
                 Items[i] = stack;
+            ClearAmmoDebt(ammo);
             return true;
         }
         return false;

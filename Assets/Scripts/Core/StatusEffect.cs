@@ -3,20 +3,35 @@ using UnityEngine;
 
 public enum StatusType
 {
-    Trip,     // 跌倒：防-3 移-1，持续完整回合
+    Trip,     // 跌倒：防-3 移-1
     Poison,   // 中毒：攻/防-3 移-1
-    Burning   // 着火：回合开始 15 物伤
+    Burning,  // 着火：行动开始 10 法伤，持续按自身行动开始倒数
+    Hidden,   // 隐匿：直至破隐或攻击解除
+    Leader    // 领袖：攻防+9 移+3；行动开始 6 真伤
 }
 
 public struct StatusEffect
 {
     public StatusType Type;
     public int RoundsLeft;
+    /// <summary>由角色施加时为 true；持续在施加者行动开始时倒数。</summary>
+    public bool HasSource;
+    public RoleType SourceRole;
 
     public StatusEffect(StatusType type, int rounds)
     {
         Type = type;
         RoundsLeft = rounds;
+        HasSource = false;
+        SourceRole = default;
+    }
+
+    public StatusEffect(StatusType type, int rounds, RoleType source)
+    {
+        Type = type;
+        RoundsLeft = rounds;
+        HasSource = true;
+        SourceRole = source;
     }
 }
 
@@ -29,6 +44,8 @@ public static class StatusInfo
             case StatusType.Trip: return "跌倒";
             case StatusType.Poison: return "中毒";
             case StatusType.Burning: return "着火";
+            case StatusType.Hidden: return "隐匿";
+            case StatusType.Leader: return "领袖";
             default: return type.ToString();
         }
     }
@@ -39,7 +56,9 @@ public static class StatusInfo
         {
             case StatusType.Trip: return "防-3 移-1";
             case StatusType.Poison: return "攻防-3 移-1";
-            case StatusType.Burning: return "回合开始15物伤";
+            case StatusType.Burning: return "行动开始10法伤";
+            case StatusType.Hidden: return "非邻接不可被攻";
+            case StatusType.Leader: return "攻防+9 移+3；行动开始6真伤";
             default: return "";
         }
     }
@@ -59,6 +78,8 @@ public static class StatusIconFactory
             StatusType.Trip => CreateBananaIcon(),
             StatusType.Poison => CreatePoisonIcon(),
             StatusType.Burning => CreateFireIcon(),
+            StatusType.Hidden => CreateHiddenIcon(),
+            StatusType.Leader => CreateLeaderIcon(),
             _ => SpriteFactory.CreateColorSprite(Color.white, 32)
         };
         cache[type] = s;
@@ -152,6 +173,63 @@ public static class StatusIconFactory
                     if (x < 0 || y < 0 || x >= size || y >= size) continue;
                     tex.SetPixel(x, y, ox * ox + oy * oy <= 4 ? yellow : edge);
                 }
+        }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+    }
+
+    private static Sprite CreateHiddenIcon()
+    {
+        const int size = 32;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Point;
+        var clear = new Color(0, 0, 0, 0);
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+                tex.SetPixel(x, y, clear);
+
+        var purple = new Color(0.45f, 0.35f, 0.7f, 0.9f);
+        for (int y = 8; y < 24; y++)
+            for (int x = 8; x < 24; x++)
+            {
+                int dx = x - 16, dy = y - 16;
+                if (dx * dx + dy * dy <= 64)
+                    tex.SetPixel(x, y, purple);
+            }
+        tex.SetPixel(12, 16, Color.white);
+        tex.SetPixel(20, 16, Color.white);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+    }
+
+    private static Sprite CreateLeaderIcon()
+    {
+        const int size = 32;
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Point;
+        var clear = new Color(0, 0, 0, 0);
+        for (int y = 0; y < size; y++)
+            for (int x = 0; x < size; x++)
+                tex.SetPixel(x, y, clear);
+
+        var gold = new Color(1f, 0.84f, 0.2f);
+        var dark = new Color(0.55f, 0.38f, 0.05f);
+        // 简易王冠：底带 + 三尖
+        for (int y = 10; y <= 14; y++)
+            for (int x = 6; x <= 25; x++)
+                tex.SetPixel(x, y, gold);
+        for (int tip = 0; tip < 3; tip++)
+        {
+            int cx = 10 + tip * 6;
+            for (int y = 15; y <= 24; y++)
+            {
+                int half = Mathf.Max(0, 24 - y);
+                for (int x = cx - half; x <= cx + half; x++)
+                {
+                    if (x < 0 || x >= size) continue;
+                    tex.SetPixel(x, y, y == 24 ? dark : gold);
+                }
+            }
         }
         tex.Apply();
         return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);

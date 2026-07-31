@@ -110,9 +110,13 @@ public class PlayerInputController : MonoBehaviour
         var phase = TurnManager.Instance?.Phase;
         return phase == TurnPhase.SelectingBombTarget
             || phase == TurnPhase.SelectingBananaTarget
+            || phase == TurnPhase.SelectingMineTarget
             || phase == TurnPhase.SelectingDiscardTarget
             || phase == TurnPhase.SelectingShootTarget
             || phase == TurnPhase.SelectingReinforce
+            || phase == TurnPhase.SelectingSkillReinforce
+            || phase == TurnPhase.SelectingMonkeyStealTarget
+            || phase == TurnPhase.SelectingMonkeyMarkItem
             || phase == TurnPhase.SelectingAmmo
             || phase == TurnPhase.SelectingTimedBombDelay
             || phase == TurnPhase.SelectingFlameDirection
@@ -146,24 +150,28 @@ public class PlayerInputController : MonoBehaviour
 
         var occ = GridManager.Instance.GetOccupant(cell);
         var unit = occ != null ? occ.GetComponent<UnitActor>() : null;
-        if (unit != null && !unit.IsDead && unit.gameObject.activeInHierarchy)
+        var fogViewer = VisibilityService.GetFogViewer();
+        if (unit != null && !unit.IsDead && VisibilityService.CanSeeUnit(fogViewer, unit))
         {
             GameUI.Instance.SetHoverUnit(unit);
             return;
         }
 
-        var viewer = TurnManager.Instance?.CurrentUnit;
-        var loot = GroundItemManager.Instance?.DescribeLoot(cell);
-        var hazard = HazardManager.Instance?.DescribeHazards(cell, viewer);
-        if (loot == null && hazard == null)
+        if (fogViewer != null && !VisibilityService.CanSeeCell(fogViewer, cell))
         {
             GameUI.Instance.ClearHover();
             return;
         }
 
-        string info = loot ?? "";
+        var viewer = TurnManager.Instance?.CurrentUnit;
+        var tile = GridManager.Instance.GetTileType(cell);
+        string info = TerrainInfo.GetDescription(tile);
+        var loot = GroundItemManager.Instance?.DescribeLoot(cell);
+        var hazard = HazardManager.Instance?.DescribeHazards(cell, viewer);
+        if (loot != null)
+            info += "\n" + loot;
         if (hazard != null)
-            info = string.IsNullOrEmpty(info) ? hazard : info + "\n" + hazard;
+            info += "\n" + hazard;
         GameUI.Instance.SetHoverCell(cell, info);
     }
 
@@ -204,6 +212,12 @@ public class PlayerInputController : MonoBehaviour
                 RefreshHints();
                 return;
 
+            case TurnPhase.SelectingMineTarget:
+                if (!ActionService.TryPlaceMine(unit, cell))
+                    turn.LogFor(unit, "地雷放置失败（需在攻击距离内）");
+                RefreshHints();
+                return;
+
             case TurnPhase.SelectingFlameDirection:
                 if (!ActionService.TryFlamethrower(unit, cell))
                     turn.LogFor(unit, "请点击自身相邻的四向之一以确定喷射方向");
@@ -226,10 +240,27 @@ public class PlayerInputController : MonoBehaviour
             }
 
             case TurnPhase.SelectingReinforce:
+            case TurnPhase.SelectingSkillReinforce:
+            case TurnPhase.SelectingMonkeyMarkItem:
             case TurnPhase.SelectingAmmo:
             case TurnPhase.SelectingTimedBombDelay:
                 turn.LogFor(unit, "请在右侧面板完成选择（右键取消）");
                 return;
+
+            case TurnPhase.SelectingMonkeyStealTarget:
+            {
+                var occ = GridManager.Instance.GetOccupant(cell);
+                var target = occ != null ? occ.GetComponent<UnitActor>() : null;
+                if (target == null || target == unit || target.IsDead)
+                {
+                    turn.LogFor(unit, "请点击半径内的其他角色");
+                    return;
+                }
+                if (!SkillService.TryMonkeySelectTarget(unit, target))
+                    turn.LogFor(unit, "无法抢夺该目标");
+                RefreshHints();
+                return;
+            }
 
             case TurnPhase.SelectingPickup:
                 turn.LogFor(unit, "请在右侧列表选择要拾取的物品（右键取消）");
@@ -256,7 +287,7 @@ public class PlayerInputController : MonoBehaviour
         if (!turn.HasMoved)
         {
             if (!ActionService.TryMove(unit, cell))
-                turn.LogFor(unit, "无法移动（已移动过、超距或格子被占）");
+                turn.LogFor(unit, "无法移动（已移动过、超距、能见度外或格子被占）");
             RefreshHints();
         }
     }
@@ -291,6 +322,17 @@ public class PlayerInputController : MonoBehaviour
         turn.LogFor(unit, $"选择香蕉皮落点（攻击距离 {unit.AttackRange}，投掷后仅你可见，右键取消）");
     }
 
+    public void StartMineMode(int itemIndex)
+    {
+        var turn = TurnManager.Instance;
+        var unit = turn?.CurrentUnit;
+        if (unit == null || unit.IsDying)
+            return;
+        turn.EnterMineTargeting(itemIndex);
+        MapVisual.Instance?.ShowBananaHints(unit);
+        turn.LogFor(unit, $"选择地雷落点（攻击距离 {unit.AttackRange}，放置后全员可见，右键取消）");
+    }
+
     public void StartFlameMode(int itemIndex)
     {
         var turn = TurnManager.Instance;
@@ -310,7 +352,7 @@ public class PlayerInputController : MonoBehaviour
             return;
 
         var weapon = unit.Inventory.Items[weaponIndex].Kind;
-        if (!ItemInfo.IsWeapon(weapon))
+        if (!ItemInfo.IsRangedWeapon(weapon))
             return;
 
         int need = ItemInfo.GetArrowCost(weapon);
@@ -338,7 +380,7 @@ public class PlayerInputController : MonoBehaviour
         if (unit == null || weaponIndex < 0 || weaponIndex >= unit.Inventory.Count)
             return;
         var weapon = unit.Inventory.Items[weaponIndex].Kind;
-        if (!ItemInfo.IsWeapon(weapon) || !ItemInfo.IsStackableAmmo(ammo))
+        if (!ItemInfo.IsRangedWeapon(weapon) || !ItemInfo.IsStackableAmmo(ammo))
             return;
 
         int range = unit.GetShootRange(weapon);
@@ -397,6 +439,9 @@ public class PlayerInputController : MonoBehaviour
                 return;
             }
             case TurnPhase.SelectingBananaTarget:
+                MapVisual.Instance?.ShowBananaHints(unit);
+                return;
+            case TurnPhase.SelectingMineTarget:
                 MapVisual.Instance?.ShowBananaHints(unit);
                 return;
             case TurnPhase.SelectingFlameDirection:

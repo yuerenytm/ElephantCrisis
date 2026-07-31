@@ -7,6 +7,7 @@ public enum TurnPhase
     WaitingAction,
     SelectingBombTarget,
     SelectingBananaTarget,
+    SelectingMineTarget,
     SelectingDiscardTarget,
     SelectingShootTarget,
     SelectingReinforce,
@@ -14,6 +15,11 @@ public enum TurnPhase
     SelectingTimedBombDelay,
     SelectingFlameDirection,
     SelectingPickup,
+    SelectingSkillReinforce,
+    SelectingMonkeySkillMode,
+    SelectingMonkeyMarkTarget,
+    SelectingMonkeyMarkItem,
+    SelectingMonkeyStealTarget,
     MandatoryDiscard,
     GameOver
 }
@@ -30,13 +36,14 @@ public class TurnManager : MonoBehaviour
     public TurnPhase Phase { get; private set; } = TurnPhase.WaitingAction;
 
     public bool HasMoved { get; private set; }
-    /// <summary>本行动回合是否已使用过普通近战攻击。</summary>
+    /// <summary>本行动是否已使用过普通近战攻击。</summary>
     public bool HasMeleeAttacked { get; private set; }
     /// <summary>结束回合时因超重进入强制弃置流程。</summary>
     public bool AwaitingCapacityTrim { get; private set; }
 
     public int PendingItemIndex { get; private set; } = -1;
     public ItemKind PendingAmmoKind { get; private set; } = ItemKind.Arrow;
+    public UnitActor PendingSkillTargetUnit { get; set; }
 
     public event Action OnTurnChanged;
     public event Action OnStateChanged;
@@ -67,6 +74,9 @@ public class TurnManager : MonoBehaviour
         HasMoved = false;
         HasMeleeAttacked = false;
         AwaitingCapacityTrim = false;
+        PendingSkillTargetUnit = null;
+        StealMarks.Reset();
+        InventoryItem.ResetIdCounter();
     }
 
     public void Setup(List<UnitActor> allUnits)
@@ -100,26 +110,7 @@ public class TurnManager : MonoBehaviour
 
         if (unit != null && !unit.IsDead)
         {
-            HazardManager.Instance?.ResolveBananaAtTurnStart(unit);
-            if (unit.IsDead)
-            {
-                OnStateChanged?.Invoke();
-                GameManager.Instance?.CheckWinConditions();
-                if (Phase != TurnPhase.GameOver)
-                    EndTurn();
-                return;
-            }
-
-            HazardManager.Instance?.ResolveMineAt(unit);
-            if (unit.IsDead)
-            {
-                OnStateChanged?.Invoke();
-                GameManager.Instance?.CheckWinConditions();
-                if (Phase != TurnPhase.GameOver)
-                    EndTurn();
-                return;
-            }
-
+            // 1) 着火等行动开始状态伤害优先于一切（含熔岩）
             unit.TickBurningOnTurnStart();
             if (unit.IsDead)
             {
@@ -130,10 +121,31 @@ public class TurnManager : MonoBehaviour
                 return;
             }
 
+            // 1b) 领袖行动开始真伤（着火之后）
+            unit.TickLeaderOnTurnStart();
+            if (unit.IsDead)
+            {
+                OnStateChanged?.Invoke();
+                GameManager.Instance?.CheckWinConditions();
+                if (Phase != TurnPhase.GameOver)
+                    EndTurn();
+                return;
+            }
+
+            // 2) 解除以本人为施加者、到期的非 DoT 状态（中毒等；着火由上一步自行倒数）
+            foreach (var u in units)
+            {
+                if (u != null && !u.IsDead)
+                    u.TickStatusesFromApplier(unit.Role);
+            }
+
+            // 3) 熔岩：真伤后对受伤者施加着火（着火本身仍为法伤）
             if (GridManager.Instance.GetTileType(unit.Cell) == TileType.Lava)
             {
-                int dealt = unit.TakeDamage(9, trueDamage: true);
-                Log($"{RoleInfo.GetDisplayName(unit.Role)} 站在熔岩上，受到 {dealt} 点真实伤害");
+                int dealt = unit.TakeDamage(20, trueDamage: true);
+                Log($"{RoleInfo.GetDisplayName(unit.Role)} 站在熔岩上，受到 {dealt} 点真伤");
+                if (dealt > 0 && !unit.IsDead)
+                    unit.ApplyStatus(StatusType.Burning, 1, unit);
                 if (unit.IsDead)
                 {
                     OnStateChanged?.Invoke();
@@ -144,8 +156,13 @@ public class TurnManager : MonoBehaviour
                 }
             }
 
+            // 3b) 冰地：20% 跌倒
+            unit.TickIceTerrainOnTurnStart();
+
+            unit.ResetCrossbowActionFlags();
             DeckManager.Instance?.DrawFor(unit);
-            Log($"—— 第{RoundNumber}轮 · {RoleInfo.GetDisplayName(unit.Role)} 的回合 ——");
+            Log($"—— 第{RoundNumber}轮 · {RoleInfo.GetDisplayName(unit.Role)} 的行动 ——");
+            StealthService.CheckBreakFor(unit);
         }
 
         RefreshSelectionVisuals();
@@ -181,6 +198,13 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    public void EnterMineTargeting(int itemIndex)
+    {
+        Phase = TurnPhase.SelectingMineTarget;
+        PendingItemIndex = itemIndex;
+        NotifyActionDone();
+    }
+
     public void EnterDiscardTargeting(int itemIndex)
     {
         Phase = TurnPhase.SelectingDiscardTarget;
@@ -210,6 +234,40 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    public void EnterSkillReinforce()
+    {
+        Phase = TurnPhase.SelectingSkillReinforce;
+        PendingItemIndex = -1;
+        NotifyActionDone();
+    }
+
+    public void EnterMonkeySkillChoice()
+    {
+        Phase = TurnPhase.SelectingMonkeySkillMode;
+        PendingSkillTargetUnit = null;
+        NotifyActionDone();
+    }
+
+    public void EnterMonkeyMarkTarget()
+    {
+        Phase = TurnPhase.SelectingMonkeyMarkTarget;
+        PendingSkillTargetUnit = null;
+        NotifyActionDone();
+    }
+
+    public void EnterMonkeyMarkItem()
+    {
+        Phase = TurnPhase.SelectingMonkeyMarkItem;
+        NotifyActionDone();
+    }
+
+    public void EnterMonkeyStealTarget()
+    {
+        Phase = TurnPhase.SelectingMonkeyStealTarget;
+        PendingSkillTargetUnit = null;
+        NotifyActionDone();
+    }
+
     public void EnterTimedBombDelay(int itemIndex)
     {
         Phase = TurnPhase.SelectingTimedBombDelay;
@@ -234,6 +292,7 @@ public class TurnManager : MonoBehaviour
     public void CancelTargeting()
     {
         PendingItemIndex = -1;
+        PendingSkillTargetUnit = null;
         if (AwaitingCapacityTrim)
         {
             Phase = TurnPhase.MandatoryDiscard;
@@ -283,7 +342,7 @@ public class TurnManager : MonoBehaviour
         var unit = CurrentUnit;
         if (unit == null || unit.Inventory == null || unit.Inventory.IsOverCapacity)
             return;
-        LogFor(unit, "背包已恢复至容量以内，结束回合");
+        LogFor(unit, "背包已恢复至容量以内，结束行动");
         AwaitingCapacityTrim = false;
         EndTurn();
     }
@@ -315,6 +374,7 @@ public class TurnManager : MonoBehaviour
                 {
                     u?.TickDyingOnFullRound();
                     u?.TickStatusOnFullRound();
+                    u?.TickSkillCooldownOnFullRound();
                 }
 
                 if (RoundNumber % 5 == 0)
@@ -370,7 +430,8 @@ public class TurnManager : MonoBehaviour
     public void LogFor(UnitActor subject, string msg)
     {
         Debug.Log(msg);
-        if (MatchConfig.IsAiBattle && !MatchConfig.IsHumanControlled(subject))
+        // 管理员模式可见全部战报；普通 AI 对战隐藏对手私密行动
+        if (MatchConfig.IsAiBattle && !MatchConfig.IsAdminMode && !MatchConfig.IsHumanControlled(subject))
             return;
         OnLog?.Invoke(msg);
     }
