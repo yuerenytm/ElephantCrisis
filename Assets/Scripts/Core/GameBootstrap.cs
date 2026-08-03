@@ -256,13 +256,14 @@ public class GameBootstrap : MonoBehaviour
             camGo.AddComponent<AudioListener>();
         }
 
-        cam.orthographic = true;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.08f, 0.1f, 0.09f);
+        var boardCam = cam.GetComponent<BoardCameraController>();
+        if (boardCam == null)
+            boardCam = cam.gameObject.AddComponent<BoardCameraController>();
+
         float w = GridManager.Instance.gridWidth * GridManager.Instance.cellSize;
-        float h = GridManager.Instance.gridHeight * GridManager.Instance.cellSize;
-        cam.transform.position = new Vector3(w * 0.42f, h * 0.5f, -10f);
-        cam.orthographicSize = h * 0.58f;
+        float d = GridManager.Instance.gridHeight * GridManager.Instance.cellSize;
+        boardCam.FrameBoard(w, d);
     }
 
     private List<UnitActor> SpawnUnits()

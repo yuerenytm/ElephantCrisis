@@ -121,4 +121,8 @@ public static class TerrainInfo
 
     public static int GetRangeBonus(TileType type)
         => type == TileType.Highland ? 1 : 0;
+
+    /// <summary>世界 Y 抬升（仅高地；单位/掉落跟随 CellToWorld）。</summary>
+    public static float GetElevation(TileType type)
+        => type == TileType.Highland ? GridManager.HighlandElevation : 0f;
 }

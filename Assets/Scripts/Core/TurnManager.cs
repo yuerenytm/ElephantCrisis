@@ -22,7 +22,6 @@ public enum TurnPhase
     SelectingMonkeyMarkTarget,
     SelectingMonkeyMarkItem,
     SelectingMonkeyStealTarget,
-    MandatoryDiscard,
     GameOver
 }
 
@@ -40,9 +39,6 @@ public class TurnManager : MonoBehaviour
     public bool HasMoved { get; private set; }
     /// <summary>本行动是否已使用过普通近战攻击。</summary>
     public bool HasMeleeAttacked { get; private set; }
-    /// <summary>结束回合时因超重进入强制弃置流程。</summary>
-    public bool AwaitingCapacityTrim { get; private set; }
-
     public int PendingItemIndex { get; private set; } = -1;
     public ItemKind PendingAmmoKind { get; private set; } = ItemKind.Arrow;
     public UnitActor PendingSkillTargetUnit { get; set; }
@@ -77,7 +73,6 @@ public class TurnManager : MonoBehaviour
         PendingItemIndex = -1;
         HasMoved = false;
         HasMeleeAttacked = false;
-        AwaitingCapacityTrim = false;
         PendingSkillTargetUnit = null;
         StealMarks.Reset();
         InventoryItem.ResetIdCounter();
@@ -94,7 +89,6 @@ public class TurnManager : MonoBehaviour
         PendingItemIndex = -1;
         HasMoved = false;
         HasMeleeAttacked = false;
-        AwaitingCapacityTrim = false;
         WeatherService.ResetForMatch(1);
         BeginTurnFor(units[0], firstTurn: true);
     }
@@ -104,7 +98,6 @@ public class TurnManager : MonoBehaviour
         CurrentUnit = unit;
         HasMoved = false;
         HasMeleeAttacked = false;
-        AwaitingCapacityTrim = false;
         Phase = TurnPhase.WaitingAction;
         PendingItemIndex = -1;
 
@@ -335,17 +328,11 @@ public class TurnManager : MonoBehaviour
         PendingItemIndex = -1;
         PendingSkillTargetUnit = null;
         PendingHookSteal = false;
-        if (AwaitingCapacityTrim)
-        {
-            Phase = TurnPhase.MandatoryDiscard;
-            NotifyActionDone();
-            return;
-        }
         Phase = TurnPhase.WaitingAction;
         NotifyActionDone();
     }
 
-    /// <summary>玩家/系统请求结束回合：超重时进入强制弃置，清完后才真正换手。</summary>
+    /// <summary>请求结束行动：超重时拒绝并提示，不进入单独弃置阶段。</summary>
     public bool RequestEndTurn()
     {
         if (Phase == TurnPhase.GameOver)
@@ -357,44 +344,31 @@ public class TurnManager : MonoBehaviour
             if (!MatchConfig.IsHumanControlled(unit))
             {
                 ActionService.AutoDiscardToCapacity(unit);
-                AwaitingCapacityTrim = false;
+                if (unit.Inventory.IsOverCapacity)
+                {
+                    LogFor(unit,
+                        $"背包仍超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），无法结束行动");
+                    NotifyActionDone();
+                    return false;
+                }
                 EndTurn();
                 return true;
             }
 
-            AwaitingCapacityTrim = true;
-            Phase = TurnPhase.MandatoryDiscard;
-            PendingItemIndex = -1;
             LogFor(unit,
-                $"背包超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），请弃置物品至容量以内");
+                $"背包超载（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），无法结束行动，请先弃置至容量以内");
             NotifyActionDone();
             return false;
         }
 
-        AwaitingCapacityTrim = false;
         EndTurn();
         return true;
-    }
-
-    /// <summary>强制弃置成功降到容量内后继续结束回合。</summary>
-    public void ContinueEndTurnAfterDiscard()
-    {
-        if (!AwaitingCapacityTrim)
-            return;
-        var unit = CurrentUnit;
-        if (unit == null || unit.Inventory == null || unit.Inventory.IsOverCapacity)
-            return;
-        LogFor(unit, "背包已恢复至容量以内，结束行动");
-        AwaitingCapacityTrim = false;
-        EndTurn();
     }
 
     public void EndTurn()
     {
         if (Phase == TurnPhase.GameOver)
             return;
-
-        AwaitingCapacityTrim = false;
 
         GameManager.Instance?.CheckWinConditions();
         if (Phase == TurnPhase.GameOver)
@@ -450,7 +424,6 @@ public class TurnManager : MonoBehaviour
         Phase = TurnPhase.GameOver;
         CurrentUnit = null;
         PendingItemIndex = -1;
-        AwaitingCapacityTrim = false;
         RefreshSelectionVisuals();
         OnTurnChanged?.Invoke();
         OnStateChanged?.Invoke();

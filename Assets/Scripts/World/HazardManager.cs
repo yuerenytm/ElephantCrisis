@@ -100,11 +100,14 @@ public class HazardManager : MonoBehaviour
     {
         var go = new GameObject(name);
         go.transform.SetParent(transform, false);
-        go.transform.position = GridManager.Instance.CellToWorld(cell) + new Vector3(-0.32f, 0.32f, 0f);
+        var grid = GridManager.Instance;
+        // 西北角偏移（XZ）
+        go.transform.position = grid.CellToWorld(cell) + new Vector3(-0.32f, 0.04f, 0.32f);
         go.transform.localScale = Vector3.one * 0.28f;
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = SpriteFactory.CreateBorderedSprite(HazardRed, HazardRedBorder, 16, 2);
-        sr.sortingOrder = 5;
+        sr.sortingOrder = grid.GetSortOrder(cell, 38);
+        go.AddComponent<CameraBillboard>();
         return go;
     }
 

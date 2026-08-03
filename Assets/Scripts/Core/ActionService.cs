@@ -355,7 +355,7 @@ public static class ActionService
         TurnManager.Instance.LogFor(unit, $"{RoleInfo.GetDisplayName(unit.Role)} 拾取了 {n} 件物品");
         if (unit.Inventory.IsOverCapacity)
             TurnManager.Instance.LogFor(unit,
-                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），结束行动前需弃置");
+                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），超重时无法结束行动");
         unit.RefreshBagCapacity();
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
@@ -414,7 +414,7 @@ public static class ActionService
                 $"{RoleInfo.GetDisplayName(unit.Role)} 拾取了【{ItemInfo.GetDisplayName(kind)}】于 ({cell.x},{cell.y})");
         if (unit.Inventory.IsOverCapacity)
             TurnManager.Instance.LogFor(unit,
-                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），结束行动前需弃置");
+                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），超重时无法结束行动");
         unit.RefreshBagCapacity();
         GameManager.Instance?.CheckWinConditions();
 
@@ -463,19 +463,6 @@ public static class ActionService
     private static void FinishDiscardSideEffects(UnitActor unit)
     {
         unit.RefreshBagCapacity();
-        if (TurnManager.Instance.AwaitingCapacityTrim)
-        {
-            if (unit.Inventory.IsOverCapacity)
-            {
-                TurnManager.Instance.LogFor(unit,
-                    $"仍超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），请继续弃置");
-                TurnManager.Instance.NotifyActionDone();
-            }
-            else
-                TurnManager.Instance.ContinueEndTurnAfterDiscard();
-            return;
-        }
-
         TurnManager.Instance.NotifyActionDone();
     }
 

@@ -36,13 +36,14 @@ public class PlayerInputController : MonoBehaviour
         // AI 回合：仅允许悬停查看，不处理点击/取消瞄准
         bool humanTurn = MatchConfig.IsHumanTurn();
 
-        if (humanTurn && Mouse.current.rightButton.wasPressedThisFrame)
+        // 右键短按：取消瞄准；拖移视角由 BoardCameraController 负责
+        if (humanTurn && Mouse.current.rightButton.wasReleasedThisFrame)
         {
-            if (IsCancellablePhase())
+            bool panned = BoardCameraController.Instance != null && BoardCameraController.Instance.PannedThisGesture;
+            if (!panned && IsCancellablePhase())
             {
                 CancelTargetMode();
                 GameUI.Instance?.Refresh();
-                return;
             }
         }
 
@@ -83,7 +84,7 @@ public class PlayerInputController : MonoBehaviour
             return;
         if (turn.CurrentUnit == null || turn.CurrentUnit.IsDead)
             return;
-        if (turn.Phase != TurnPhase.WaitingAction && turn.Phase != TurnPhase.MandatoryDiscard)
+        if (turn.Phase != TurnPhase.WaitingAction)
             return;
         turn.RequestEndTurn();
         GameUI.Instance?.Refresh();
@@ -180,11 +181,10 @@ public class PlayerInputController : MonoBehaviour
     private bool TryGetCellUnderMouse(out Vector2Int cell)
     {
         cell = default;
+        if (cam == null || GridManager.Instance == null)
+            return false;
         Vector2 screen = Mouse.current.position.ReadValue();
-        Vector3 world = cam.ScreenToWorldPoint(new Vector3(screen.x, screen.y, Mathf.Abs(cam.transform.position.z)));
-        world.z = 0f;
-        cell = GridManager.Instance.WorldToCell(world);
-        return GridManager.Instance.IsValidCell(cell);
+        return GridManager.Instance.TryScreenToCell(cam, screen, out cell);
     }
 
     private void HandleCellClick(Vector2Int cell)
@@ -297,10 +297,6 @@ public class PlayerInputController : MonoBehaviour
 
             case TurnPhase.SelectingPickup:
                 turn.LogFor(unit, "请在右侧列表选择要拾取的物品（右键取消）");
-                return;
-
-            case TurnPhase.MandatoryDiscard:
-                turn.LogFor(unit, "背包超重：请先在右侧背包点「弃置」，将负重降至容量以内");
                 return;
         }
 
@@ -544,9 +540,6 @@ public class PlayerInputController : MonoBehaviour
                 return;
             case TurnPhase.SelectingPickup:
                 MapVisual.Instance?.ShowPickupHints(unit);
-                return;
-            case TurnPhase.MandatoryDiscard:
-                MapVisual.Instance?.ClearHints();
                 return;
         }
 

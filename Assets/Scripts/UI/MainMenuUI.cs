@@ -32,9 +32,13 @@ public class MainMenuUI : MonoBehaviour
     private Text roleSelectTip;
     private Text displayModeLabel;
     private Text resolutionValueLabel;
+    private Text tableStyleLabel;
     private readonly List<Button> resolutionPresetButtons = new List<Button>();
+    private readonly List<Button> tableStyleButtons = new List<Button>();
     private int resolutionIndex = 2;
     private bool built;
+
+    public bool IsVisible => root != null && root.activeSelf;
 
     private void Awake()
     {
@@ -68,6 +72,7 @@ public class MainMenuUI : MonoBehaviour
             mainButtonsRoot.SetActive(true);
         RefreshDisplayModeLabel();
         RefreshResolutionUI();
+        RefreshTableStyleUI();
         SetupMenuCamera();
     }
 
@@ -89,7 +94,7 @@ public class MainMenuUI : MonoBehaviour
         }
         cam.orthographic = true;
         cam.clearFlags = CameraClearFlags.SolidColor;
-        cam.backgroundColor = new Color(0.07f, 0.09f, 0.08f);
+        cam.backgroundColor = UiTheme.BgDeep;
         cam.transform.position = new Vector3(0f, 0f, -10f);
         cam.orthographicSize = 5f;
     }
@@ -107,25 +112,31 @@ public class MainMenuUI : MonoBehaviour
         root.GetComponent<CanvasScaler>().referenceResolution = new Vector2(1920, 1080);
         root.AddComponent<GraphicRaycaster>();
 
-        CreateImage(root.transform, "Bg", Vector2.zero, Vector2.one, new Color(0.06f, 0.1f, 0.08f, 0.92f));
+        var bg = CreateImage(root.transform, "Bg", Vector2.zero, Vector2.one, Color.white);
+        bg.sprite = UiTheme.SoftBgSprite();
+        bg.type = Image.Type.Simple;
+        bg.preserveAspect = false;
 
-        var title = CreateText(root.transform, "Title", new Vector2(0.1f, 0.72f), new Vector2(0.9f, 0.9f), 56, TextAnchor.MiddleCenter);
+        // 品牌：无框，靠留白与字号建立层级
+        var title = CreateText(root.transform, "Title", new Vector2(0.1f, 0.74f), new Vector2(0.9f, 0.9f), 56,
+            TextAnchor.MiddleCenter);
         title.text = "象群危机";
-        title.color = new Color(0.92f, 0.88f, 0.7f);
-
-        var subtitle = CreateText(root.transform, "Sub", new Vector2(0.15f, 0.64f), new Vector2(0.85f, 0.74f), 22, TextAnchor.MiddleCenter);
+        title.color = UiTheme.TextTitle;
+        title.fontStyle = FontStyle.Bold;
+        var subtitle = CreateText(root.transform, "Sub", new Vector2(0.15f, 0.68f), new Vector2(0.85f, 0.76f),
+            UiTheme.FontBody, TextAnchor.MiddleCenter);
         subtitle.text = "四人各自为战 · 回合制格子对决";
-        subtitle.color = new Color(0.7f, 0.75f, 0.68f);
+        subtitle.color = UiTheme.TextMuted;
 
-        // 右上角设置
         float settingsY = 0.97f;
-        CreateMenuButton(root.transform, "设置", ref settingsY, 0.07f, new Color(0.28f, 0.36f, 0.4f, 0.95f), () =>
+        CreateMenuButton(root.transform, "设置", ref settingsY, 0.07f, UiTheme.ButtonTintMuted, () =>
         {
             if (settingsPanel != null)
             {
                 settingsPanel.SetActive(true);
                 RefreshDisplayModeLabel();
                 RefreshResolutionUI();
+                RefreshTableStyleUI();
             }
         }, new Vector2(0.86f, 0.9f), new Vector2(0.98f, 0.97f));
 
@@ -137,21 +148,26 @@ public class MainMenuUI : MonoBehaviour
         mrt.offsetMin = Vector2.zero;
         mrt.offsetMax = Vector2.zero;
 
-        float y = 0.58f;
-        float step = 0.085f;
-        CreateMenuButton(mainButtonsRoot.transform, "热座模式", ref y, step, new Color(0.22f, 0.48f, 0.36f, 0.95f), () =>
+        // 单一菜单板：半透明 + 阴影，按钮统一主绿
+        var menuPlate = UiTheme.CreateFramedPanel(mainButtonsRoot.transform, "MenuPlate",
+            new Vector2(0.32f, 0.12f), new Vector2(0.68f, 0.64f));
+
+        float y = 0.9f;
+        float step = 0.15f;
+        CreateMenuButton(menuPlate, "热座模式", ref y, step, UiTheme.ButtonTintMoss, () =>
         {
             GameBootstrap.Instance?.StartHotseat();
-        });
+        }, wide: true);
 
-        CreateMenuButton(mainButtonsRoot.transform, "AI 对战", ref y, step, new Color(0.4f, 0.32f, 0.18f, 0.95f), OnAiBattleClicked);
+        CreateMenuButton(menuPlate, "AI 对战", ref y, step, UiTheme.ButtonTintMoss, OnAiBattleClicked, wide: true);
 
-        CreateMenuButton(mainButtonsRoot.transform, "管理员模式", ref y, step, new Color(0.55f, 0.28f, 0.45f, 0.95f), OnAdminModeClicked);
+        CreateMenuButton(menuPlate, "管理员模式", ref y, step, UiTheme.ButtonTintMuted, OnAdminModeClicked, wide: true);
 
-        var onlineBtn = CreateMenuButton(mainButtonsRoot.transform, "联机模式（即将推出）", ref y, step, new Color(0.28f, 0.28f, 0.28f, 0.7f), OnOnlineClicked);
+        var onlineBtn = CreateMenuButton(menuPlate, "联机模式（即将推出）", ref y, step, UiTheme.ButtonTintMuted,
+            OnOnlineClicked, wide: true);
         onlineBtn.interactable = false;
 
-        CreateMenuButton(mainButtonsRoot.transform, "结束游戏", ref y, step, new Color(0.45f, 0.22f, 0.2f, 0.95f), QuitGame);
+        CreateMenuButton(menuPlate, "结束游戏", ref y, step, UiTheme.ButtonTintDanger, QuitGame, wide: true);
 
         BuildRoleSelectPanel(root.transform);
         BuildSettingsPanel(root.transform);
@@ -308,47 +324,42 @@ public class MainMenuUI : MonoBehaviour
             {
                 bool selected = windowed && i == resolutionIndex;
                 img.color = selected
-                    ? new Color(0.35f, 0.55f, 0.4f, 0.95f)
-                    : new Color(0.22f, 0.28f, 0.32f, windowed ? 0.95f : 0.45f);
+                    ? UiTheme.ButtonTintMoss
+                    : (windowed ? UiTheme.ButtonTintMuted : new Color(0.5f, 0.5f, 0.5f, 0.45f));
             }
         }
     }
 
     private void BuildSettingsPanel(Transform parent)
     {
-        settingsPanel = new GameObject("SettingsPanel");
-        settingsPanel.transform.SetParent(parent, false);
-        var rt = settingsPanel.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.22f, 0.12f);
-        rt.anchorMax = new Vector2(0.78f, 0.88f);
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-        var img = settingsPanel.AddComponent<Image>();
-        img.color = new Color(0.06f, 0.09f, 0.08f, 0.97f);
-        img.raycastTarget = true;
+        var plate = UiTheme.CreateFramedPanel(parent, "SettingsPanel",
+            new Vector2(0.22f, 0.12f), new Vector2(0.78f, 0.88f), solid: true);
+        settingsPanel = plate.gameObject;
 
-        var title = CreateText(settingsPanel.transform, "SettingsTitle", new Vector2(0.08f, 0.88f), new Vector2(0.92f, 0.97f), 30, TextAnchor.MiddleCenter);
+        var head = UiTheme.CreateHeaderBar(settingsPanel.transform, "Head",
+            new Vector2(0.06f, 0.88f), new Vector2(0.94f, 0.97f));
+        var title = CreateText(head, "SettingsTitle", Vector2.zero, Vector2.one, 28, TextAnchor.MiddleCenter);
         title.text = "设置";
-        title.color = new Color(0.92f, 0.88f, 0.7f);
+        title.color = UiTheme.TextIvory;
+        title.fontStyle = FontStyle.Bold;
 
-        float y = 0.82f;
+        float y = 0.84f;
         float step = 0.11f;
 
         var displayBtn = CreateMenuButton(settingsPanel.transform, "显示模式", ref y, step,
-            new Color(0.28f, 0.4f, 0.38f, 0.95f), ToggleDisplayMode,
+            UiTheme.ButtonTintMoss, ToggleDisplayMode,
             new Vector2(0.1f, y - step + 0.015f), new Vector2(0.9f, y));
         y -= step;
         displayModeLabel = displayBtn.GetComponentInChildren<Text>();
         if (displayModeLabel != null)
-            displayModeLabel.fontSize = 22;
+            displayModeLabel.fontSize = 20;
         RefreshDisplayModeLabel();
 
         resolutionValueLabel = CreateText(settingsPanel.transform, "ResLabel",
-            new Vector2(0.1f, y - 0.06f), new Vector2(0.9f, y), 18, TextAnchor.MiddleCenter);
-        resolutionValueLabel.color = new Color(0.85f, 0.88f, 0.82f);
+            new Vector2(0.1f, y - 0.06f), new Vector2(0.9f, y), 17, TextAnchor.MiddleCenter);
+        resolutionValueLabel.color = UiTheme.TextBody;
         y -= 0.08f;
 
-        // 四个分辨率预设横排
         resolutionPresetButtons.Clear();
         float btnH = 0.09f;
         float gap = 0.02f;
@@ -364,26 +375,60 @@ public class MainMenuUI : MonoBehaviour
             float xMax = xMin + btnW;
             float dummyY = y;
             var btn = CreateMenuButton(settingsPanel.transform, label, ref dummyY, btnH,
-                new Color(0.22f, 0.28f, 0.32f, 0.95f), () => SelectResolution(index),
+                UiTheme.ButtonTintMuted, () => SelectResolution(index),
                 new Vector2(xMin, y - btnH), new Vector2(xMax, y));
             var t = btn.GetComponentInChildren<Text>();
             if (t != null)
-                t.fontSize = 16;
+                t.fontSize = 15;
             resolutionPresetButtons.Add(btn);
         }
         y -= btnH + 0.04f;
 
         var tip = CreateText(settingsPanel.transform, "ResTip",
-            new Vector2(0.1f, y - 0.05f), new Vector2(0.9f, y), 14, TextAnchor.MiddleCenter);
+            new Vector2(0.1f, y - 0.04f), new Vector2(0.9f, y), 13, TextAnchor.MiddleCenter);
         tip.text = "打包后的窗口也可拖边框缩放；编辑器 Play 下分辨率切换可能无效";
-        tip.color = new Color(0.65f, 0.7f, 0.66f);
-        y -= 0.08f;
+        tip.color = UiTheme.TextMuted;
+        y -= 0.06f;
 
         SyncResolutionIndexFromPrefs();
         RefreshResolutionUI();
 
+        // 桌游桌面
+        tableStyleLabel = CreateText(settingsPanel.transform, "TableLabel",
+            new Vector2(0.1f, y - 0.04f), new Vector2(0.9f, y), 16, TextAnchor.MiddleCenter);
+        tableStyleLabel.color = UiTheme.TextBody;
+        y -= 0.05f;
+
+        tableStyleButtons.Clear();
+        float tableBtnH = 0.08f;
+        float tableGap = 0.03f;
+        float tableBtnW = (0.8f - tableGap) * 0.5f;
+        var styles = new[] { TableStyle.Wood, TableStyle.Parchment };
+        for (int i = 0; i < styles.Length; i++)
+        {
+            var style = styles[i];
+            float xMin = 0.1f + i * (tableBtnW + tableGap);
+            float xMax = xMin + tableBtnW;
+            float dummyY = y;
+            var btn = CreateMenuButton(settingsPanel.transform, TableSurface.GetDisplayName(style), ref dummyY, tableBtnH,
+                UiTheme.ButtonTintMuted, () => SelectTableStyle(style),
+                new Vector2(xMin, y - tableBtnH), new Vector2(xMax, y));
+            var t = btn.GetComponentInChildren<Text>();
+            if (t != null)
+                t.fontSize = 16;
+            tableStyleButtons.Add(btn);
+        }
+        y -= tableBtnH + 0.03f;
+        RefreshTableStyleUI();
+
+        var tableTip = CreateText(settingsPanel.transform, "TableTip",
+            new Vector2(0.1f, y - 0.04f), new Vector2(0.9f, y), 13, TextAnchor.MiddleCenter);
+        tableTip.text = "对局中：右键拖移视角 · 按住 R 慢速逆时针旋转 · 滚轮推近 · 跟随当前单位";
+        tableTip.color = UiTheme.TextMuted;
+        y -= 0.06f;
+
         CreateMenuButton(settingsPanel.transform, "游戏规则", ref y, step,
-            new Color(0.28f, 0.4f, 0.48f, 0.95f), () =>
+            UiTheme.ButtonTintSky, () =>
             {
                 settingsPanel.SetActive(false);
                 if (rulesPanel != null)
@@ -393,7 +438,7 @@ public class MainMenuUI : MonoBehaviour
         y -= step;
 
         CreateMenuButton(settingsPanel.transform, "关闭", ref y, step,
-            new Color(0.35f, 0.28f, 0.25f, 0.95f), () =>
+            UiTheme.ButtonTintClay, () =>
             {
                 settingsPanel.SetActive(false);
             },
@@ -402,25 +447,57 @@ public class MainMenuUI : MonoBehaviour
         settingsPanel.SetActive(false);
     }
 
+    private void SelectTableStyle(TableStyle style)
+    {
+        TableSurface.Current = style;
+        RefreshTableStyleUI();
+    }
+
+    private void RefreshTableStyleUI()
+    {
+        var cur = TableSurface.Current;
+        if (tableStyleLabel != null)
+            tableStyleLabel.text = $"桌面：{TableSurface.GetDisplayName(cur)}";
+
+        var styles = new[] { TableStyle.Wood, TableStyle.Parchment };
+        for (int i = 0; i < tableStyleButtons.Count && i < styles.Length; i++)
+        {
+            var btn = tableStyleButtons[i];
+            if (btn == null) continue;
+            var img = btn.targetGraphic as Image;
+            if (img != null)
+                img.color = styles[i] == cur ? UiTheme.ButtonTintMoss : UiTheme.ButtonTintMuted;
+        }
+    }
+
     private void BuildRoleSelectPanel(Transform parent)
     {
-        roleSelectPanel = new GameObject("RoleSelectPanel");
-        roleSelectPanel.transform.SetParent(parent, false);
-        var rt = roleSelectPanel.AddComponent<RectTransform>();
+        var veil = new GameObject("RoleSelectPanel");
+        veil.transform.SetParent(parent, false);
+        var rt = veil.AddComponent<RectTransform>();
         rt.anchorMin = Vector2.zero;
         rt.anchorMax = Vector2.one;
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
-        roleSelectPanel.AddComponent<Image>().color = new Color(0.05f, 0.08f, 0.07f, 0.96f);
+        var veilImg = veil.AddComponent<Image>();
+        veilImg.sprite = UiTheme.SoftBgSprite();
+        veilImg.color = new Color(1f, 1f, 1f, 0.97f);
+        veilImg.raycastTarget = true;
+        roleSelectPanel = veil;
 
-        var title = CreateText(roleSelectPanel.transform, "RoleTitle", new Vector2(0.1f, 0.78f), new Vector2(0.9f, 0.92f), 36, TextAnchor.MiddleCenter);
+        var plate = UiTheme.CreateFramedPanel(veil.transform, "Plate",
+            new Vector2(0.18f, 0.12f), new Vector2(0.82f, 0.88f), solid: true);
+        var head = UiTheme.CreateHeaderBar(plate, "Head", new Vector2(0.06f, 0.88f), new Vector2(0.94f, 0.97f));
+        var title = CreateText(head, "RoleTitle", Vector2.zero, Vector2.one, 30, TextAnchor.MiddleCenter);
         title.text = "选择你的角色";
-        title.color = new Color(0.92f, 0.88f, 0.7f);
+        title.color = UiTheme.TextIvory;
+        title.fontStyle = FontStyle.Bold;
         roleSelectTitle = title;
 
-        var tip = CreateText(roleSelectPanel.transform, "RoleTip", new Vector2(0.1f, 0.68f), new Vector2(0.9f, 0.78f), 16, TextAnchor.MiddleCenter);
+        var tip = CreateText(plate, "RoleTip", new Vector2(0.08f, 0.78f), new Vector2(0.92f, 0.87f), 16,
+            TextAnchor.MiddleCenter);
         tip.text = "四人混战 · 其余三人由 AI 操控";
-        tip.color = new Color(0.7f, 0.75f, 0.68f);
+        tip.color = UiTheme.TextMuted;
         roleSelectTip = tip;
 
         var roles = new[]
@@ -432,14 +509,14 @@ public class MainMenuUI : MonoBehaviour
         };
         var colors = new[]
         {
-            new Color(0.45f, 0.45f, 0.48f, 0.95f),
-            new Color(0.28f, 0.42f, 0.7f, 0.95f),
-            new Color(0.65f, 0.4f, 0.2f, 0.95f),
-            new Color(0.7f, 0.55f, 0.18f, 0.95f)
+            UiTheme.ButtonTintMuted,
+            UiTheme.ButtonTintSky,
+            UiTheme.ButtonTintClay,
+            UiTheme.ButtonTintMoss
         };
 
-        float y = 0.62f;
-        float step = 0.1f;
+        float y = 0.74f;
+        float step = 0.12f;
         for (int i = 0; i < roles.Length; i++)
         {
             var role = roles[i];
@@ -447,49 +524,45 @@ public class MainMenuUI : MonoBehaviour
             RoleInfo.GetBaseStats(role, out int move, out int hp, out int atk, out int def, out int bag);
             string text = $"{label}    移{move} 血{hp} 攻{atk} 防{def} 包{bag}";
             float bottom = y - step + 0.015f;
-            CreateMenuButton(roleSelectPanel.transform, text, ref y, step, colors[i], () =>
+            CreateMenuButton(plate, text, ref y, step, colors[i], () =>
             {
                 if (roleSelectForAdmin)
                     GameBootstrap.Instance?.StartAdminMode(role);
                 else
                     GameBootstrap.Instance?.StartAiBattle(role);
-            }, new Vector2(0.18f, bottom), new Vector2(0.82f, y));
+            }, new Vector2(0.1f, bottom), new Vector2(0.9f, y));
             y -= step;
         }
 
-        CreateMenuButton(roleSelectPanel.transform, "返回", ref y, step, new Color(0.3f, 0.3f, 0.3f, 0.9f), () =>
+        CreateMenuButton(plate, "返回", ref y, step, UiTheme.ButtonTintMuted, () =>
         {
             roleSelectPanel.SetActive(false);
             roleSelectForAdmin = false;
             if (mainButtonsRoot != null)
                 mainButtonsRoot.SetActive(true);
-        });
+        }, wide: true);
 
         roleSelectPanel.SetActive(false);
     }
 
     private void BuildRulesPanel(Transform parent)
     {
-        rulesPanel = new GameObject("RulesPanel");
-        rulesPanel.transform.SetParent(parent, false);
-        var rt = rulesPanel.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.08f, 0.06f);
-        rt.anchorMax = new Vector2(0.92f, 0.94f);
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-        var panelImg = rulesPanel.AddComponent<Image>();
-        panelImg.color = new Color(0.05f, 0.07f, 0.06f, 0.97f);
-        panelImg.raycastTarget = true;
+        var plate = UiTheme.CreateFramedPanel(parent, "RulesPanel",
+            new Vector2(0.08f, 0.06f), new Vector2(0.92f, 0.94f), solid: true);
+        rulesPanel = plate.gameObject;
 
-        var title = CreateText(rulesPanel.transform, "RulesTitle", new Vector2(0.05f, 0.9f), new Vector2(0.8f, 0.98f), 28, TextAnchor.MiddleLeft);
+        var head = UiTheme.CreateHeaderBar(rulesPanel.transform, "Head",
+            new Vector2(0.03f, 0.9f), new Vector2(0.78f, 0.98f));
+        var title = CreateText(head, "RulesTitle", new Vector2(0.04f, 0f), new Vector2(0.96f, 1f), 26,
+            TextAnchor.MiddleLeft);
         title.text = "游戏介绍与规则";
-        title.color = new Color(0.92f, 0.88f, 0.7f);
+        title.color = UiTheme.TextIvory;
+        title.fontStyle = FontStyle.Bold;
 
         var closeY = 0.92f;
-        CreateMenuButton(rulesPanel.transform, "关闭", ref closeY, 0.08f, new Color(0.35f, 0.25f, 0.22f, 0.95f), () =>
+        CreateMenuButton(rulesPanel.transform, "关闭", ref closeY, 0.08f, UiTheme.ButtonTintClay, () =>
         {
             rulesPanel.SetActive(false);
-            // 从设置进入规则时，关闭后仍回到设置面板
             if (settingsPanel != null)
                 settingsPanel.SetActive(true);
         }, new Vector2(0.82f, 0.9f), new Vector2(0.97f, 0.97f));
@@ -546,11 +619,9 @@ public class MainMenuUI : MonoBehaviour
         brt.sizeDelta = new Vector2(-24f, 0f);
 
         var body = bodyGo.AddComponent<Text>();
-        body.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (body.font == null)
-            body.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        body.font = UiTheme.Font();
         body.fontSize = 20;
-        body.color = new Color(0.85f, 0.88f, 0.82f);
+        body.color = UiTheme.TextBody;
         body.alignment = TextAnchor.UpperLeft;
         body.horizontalOverflow = HorizontalWrapMode.Wrap;
         body.verticalOverflow = VerticalWrapMode.Overflow;
@@ -597,7 +668,7 @@ public class MainMenuUI : MonoBehaviour
         hrt.offsetMin = Vector2.zero;
         hrt.offsetMax = Vector2.zero;
         var himg = handle.AddComponent<Image>();
-        himg.color = new Color(0.45f, 0.55f, 0.48f, 0.95f);
+        himg.color = UiTheme.AccentMoss;
         scrollbar.targetGraphic = himg;
         scrollbar.handleRect = hrt;
         scroll.verticalScrollbar = scrollbar;
@@ -642,72 +713,34 @@ public class MainMenuUI : MonoBehaviour
     }
 
     private static Text CreateText(Transform parent, string name, Vector2 min, Vector2 max, int size, TextAnchor align)
-    {
-        var go = new GameObject(name);
-        go.transform.SetParent(parent, false);
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = min;
-        rt.anchorMax = max;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-        var text = go.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (text.font == null)
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        text.fontSize = size;
-        text.color = Color.white;
-        text.alignment = align;
-        text.horizontalOverflow = HorizontalWrapMode.Wrap;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
-        text.raycastTarget = false;
-        text.supportRichText = true;
-        return text;
-    }
+        => UiTheme.CreateText(parent, name, min, max, size, align);
 
-    private static Button CreateMenuButton(Transform parent, string label, ref float topY, float step, Color color,
-        UnityEngine.Events.UnityAction onClick, Vector2? anchorMin = null, Vector2? anchorMax = null)
+    private static Button CreateMenuButton(Transform parent, string label, ref float topY, float step, Color tint,
+        UnityEngine.Events.UnityAction onClick, Vector2? anchorMin = null, Vector2? anchorMax = null,
+        bool wide = false)
     {
-        float bottom = topY - step + 0.015f;
-        var go = new GameObject(label);
-        go.transform.SetParent(parent, false);
-        var rt = go.AddComponent<RectTransform>();
+        float bottom = topY - step + 0.012f;
+        Vector2 min;
+        Vector2 max;
         if (anchorMin.HasValue && anchorMax.HasValue)
         {
-            rt.anchorMin = anchorMin.Value;
-            rt.anchorMax = anchorMax.Value;
+            min = anchorMin.Value;
+            max = anchorMax.Value;
+        }
+        else if (wide)
+        {
+            min = new Vector2(0.08f, bottom);
+            max = new Vector2(0.92f, topY);
+            topY -= step;
         }
         else
         {
-            rt.anchorMin = new Vector2(0.28f, bottom);
-            rt.anchorMax = new Vector2(0.72f, topY);
+            min = new Vector2(0.28f, bottom);
+            max = new Vector2(0.72f, topY);
             topY -= step;
         }
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
 
-        var img = go.AddComponent<Image>();
-        img.color = color;
-        var btn = go.AddComponent<Button>();
-        btn.targetGraphic = img;
-        btn.onClick.AddListener(onClick);
-
-        var textGo = new GameObject("Text");
-        textGo.transform.SetParent(go.transform, false);
-        var trt = textGo.AddComponent<RectTransform>();
-        trt.anchorMin = Vector2.zero;
-        trt.anchorMax = Vector2.one;
-        trt.offsetMin = Vector2.zero;
-        trt.offsetMax = Vector2.zero;
-        var text = textGo.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (text.font == null)
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        text.text = label;
-        text.alignment = TextAnchor.MiddleCenter;
-        text.color = Color.white;
-        text.fontSize = 26;
-        text.raycastTarget = false;
-        return btn;
+        return UiTheme.CreateButton(parent, label, min, max, onClick, tint, UiTheme.FontBody + 2);
     }
 }
 
@@ -787,7 +820,7 @@ public static class PlayerRulesText
 · 移动一次（蓝格为可走范围）
 · 普通近战攻击一次（邻格左键）；弓/弩/炸弹等可多次使用（受弹药与手牌限制）
 · 不限次数地弃置物品；用血瓶、强化剂等非攻击牌
-· 拾取：点「拾取」，在半径 0～1 的掉落物里挑选（背包满了也能捡，但结束行动前要弃到容量以内）
+· 拾取：点「拾取」，在半径 0～1 的掉落物里挑选（背包满了也能捡，但超重时无法结束行动）
 右键可取消瞄准/拾取/强化选择。
 鼠标悬停在角色上，底部会显示属性；悬停在蓝/红角标格子上，可查看掉落物或陷阱信息。
 蓝角标 = 掉落物（含弃置的地雷）；红角标 = 武装地雷 / 你放置的定时炸弹或香蕉皮。
@@ -830,7 +863,7 @@ public static class PlayerRulesText
 · 闪光弹：射程5，爆点半径2致盲1回合
 · 肾上腺素：仅 HP 低于 30% 可用；移+2 攻+3，持续 3 回合（不可叠加）
 · 技能升级卡：牌库 12 张；集齐 3 张可使用，技能等级 +1（上限 3）
-背包有容量；弹药一张一支占 1 点。行动中可以超重（抽牌/拾取仍可进行）；点「结束行动」时若仍超重，必须先弃置到容量以内才会换手。弃置的东西留在地上，别人可以捡；格子被熔岩吞掉后，地上的牌会进弃牌堆。濒死时物品（含装备）掉落并解除装备。
+背包有容量；弹药一张一支占 1 点。行动中可以超重（抽牌/拾取仍可进行）；超重时无法结束行动，需先弃置到容量以内。弃置的东西留在地上，别人可以捡；格子被熔岩吞掉后，地上的牌会进弃牌堆。濒死时物品（含装备）掉落并解除装备。
 · 左侧「技能」：象威慑为被动；人/猴/猫可主动发动（冷却按回合）。本命玩偶与升级卡可提升技能等级。
 · 「领袖宣言」：每局限一次；持有任意三只玩偶且缺的一只在其他玩家身上时可发动：领袖状态 10 回合、抽 5 张、得知缺偶位置。
 · 虚拟时钟：第1回合6:00，每完整回合+2小时。清晨视8 / 白天10 / 黄昏7 / 黑夜5；迷雾随能见度；不可移出视野；濒死/中毒视1。
@@ -847,7 +880,8 @@ public static class PlayerRulesText
 【操作速查】
 · 左键：移动 / 近战攻击 / 确认落点
 · 右键：取消当前选择
-· 右下角圆形「结束行动」或 Enter：结束当前行动（超重时会先要求弃置）
+· 面板抽屉：战报/背包默认收起（边缘标签或 A/L/B）；顶栏「收起面板」；拾取等会自动展开背包
+· 右下角圆形「结束行动」或 Enter：结束当前行动（超重时会提示背包超载并拒绝）
 · 右侧背包：使用 / 弃置
 · 左上角「重新开始 / 主菜单」：再开一局或回标题";
 }

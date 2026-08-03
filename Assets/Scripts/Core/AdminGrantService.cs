@@ -84,7 +84,7 @@ public static class AdminGrantService
         if (unit.Inventory.IsOverCapacity)
         {
             TurnManager.Instance.LogFor(unit,
-                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），结束行动前需弃置");
+                $"背包已超重（{unit.Inventory.UsedWeight:0.##}/{unit.Inventory.Capacity:0.##}），超重时无法结束行动");
         }
         TurnManager.Instance.NotifyActionDone();
         return true;

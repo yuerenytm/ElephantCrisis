@@ -105,6 +105,9 @@ public static class WeatherService
 
     public static bool BlocksBurning => Current == WeatherType.Rain;
 
+    /// <summary>下次自动变更的完整回合号（管理员模式下为 MaxValue）。</summary>
+    public static int NextChangeRound => nextChangeRound;
+
     private static void ScheduleNextChange(int fromRound)
     {
         // 变更后第 6～10 回合（含）内必变一次；第 5 回合仍锁定

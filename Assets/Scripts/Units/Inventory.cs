@@ -36,7 +36,7 @@ public class Inventory
 
     public bool HasSpace => UsedWeight < Capacity - 0.001f;
 
-    /// <summary>当前负重是否超过容量（行动中允许超重，结束行动前必须清掉）。</summary>
+    /// <summary>当前负重是否超过容量（行动中允许超重，超重时无法结束行动）。</summary>
     public bool IsOverCapacity => UsedWeight > Capacity + 0.001f;
 
     public bool CanAdd(ItemKind kind) => CanAdd(InventoryItem.CreateFresh(kind));

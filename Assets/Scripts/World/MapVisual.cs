@@ -4,7 +4,10 @@ public class MapVisual : MonoBehaviour
 {
     public static MapVisual Instance;
 
+    private Transform[,] tileRoots;
     private SpriteRenderer[,] cellRenderers;
+    private SpriteRenderer[,] cliffSouthRenderers;
+    private SpriteRenderer[,] cliffWestRenderers;
     private Transform root;
 
     private static readonly Color MoveHint = new Color(0.25f, 0.55f, 0.95f, 0.55f);
@@ -12,8 +15,8 @@ public class MapVisual : MonoBehaviour
     private static readonly Color BombHint = new Color(0.95f, 0.7f, 0.15f, 0.4f);
     private static readonly Color BlastHint = new Color(1f, 0.2f, 0.05f, 0.55f);
     private static readonly Color BlastCenter = new Color(1f, 0.45f, 0.1f, 0.7f);
-    /// <summary>不透明迷雾：视野外完全遮住地形色。</summary>
-    private static readonly Color FogColor = new Color(0.04f, 0.05f, 0.07f, 1f);
+    /// <summary>不透明迷雾：遮地形，但用雾蓝灰而非纯黑，避免像坏屏。</summary>
+    private static readonly Color FogColor = new Color(0.16f, 0.2f, 0.22f, 1f);
 
     private SpriteRenderer[,] overlayRenderers;
     private SpriteRenderer[,] fogRenderers;
@@ -21,6 +24,15 @@ public class MapVisual : MonoBehaviour
     private int bombThrowRange = 5;
     private int bombBlastRadius = 2;
     private Vector2Int bombThrowerCell;
+    private Sprite cliffSprite;
+    private Transform backdropRoot;
+    private MeshRenderer tableRenderer;
+    private Material tableMaterial;
+    private SpriteRenderer feltRenderer;
+    private SpriteRenderer rimRenderer;
+    private float boardW;
+    private float tableWorldSize;
+    private float boardD;
 
     private void Awake()
     {
@@ -37,15 +49,32 @@ public class MapVisual : MonoBehaviour
     {
         if (root != null)
             Destroy(root.gameObject);
+        if (tableMaterial != null)
+        {
+            Destroy(tableMaterial);
+            tableMaterial = null;
+        }
+        if (backdropRoot != null)
+            Destroy(backdropRoot.gameObject);
 
         root = new GameObject("Tiles").transform;
         root.SetParent(transform, false);
 
+        tileRoots = new Transform[grid.gridWidth, grid.gridHeight];
         cellRenderers = new SpriteRenderer[grid.gridWidth, grid.gridHeight];
+        cliffSouthRenderers = new SpriteRenderer[grid.gridWidth, grid.gridHeight];
+        cliffWestRenderers = new SpriteRenderer[grid.gridWidth, grid.gridHeight];
         overlayRenderers = new SpriteRenderer[grid.gridWidth, grid.gridHeight];
         fogRenderers = new SpriteRenderer[grid.gridWidth, grid.gridHeight];
 
-        var fogSprite = SpriteFactory.CreateColorSprite(Color.white);
+        BuildBackdrop(grid);
+
+        var fogSprite = CreateFogSprite(32);
+        var overlaySprite = SpriteFactory.CreateColorSprite(Color.white);
+        cliffSprite = TerrainSpriteFactory.CreateHighlandCliff();
+        float half = grid.cellSize * 0.5f;
+        // 顶面精灵默认在 XY，绕 X 放平到 XZ
+        var flatRot = Quaternion.Euler(90f, 0f, 0f);
 
         for (int x = 0; x < grid.gridWidth; x++)
         {
@@ -55,24 +84,53 @@ public class MapVisual : MonoBehaviour
                 var go = new GameObject($"Tile_{x}_{y}");
                 go.transform.SetParent(root, false);
                 go.transform.position = grid.CellToWorld(cell);
-                go.transform.localScale = Vector3.one * 0.98f;
-                var sr = go.AddComponent<SpriteRenderer>();
-                sr.sortingOrder = 0;
+                tileRoots[x, y] = go.transform;
+
+                var top = new GameObject("Top");
+                top.transform.SetParent(go.transform, false);
+                top.transform.localRotation = flatRot;
+                top.transform.localScale = Vector3.one * 0.98f;
+                var sr = top.AddComponent<SpriteRenderer>();
                 cellRenderers[x, y] = sr;
+
+                var cliffS = new GameObject("CliffSouth");
+                cliffS.transform.SetParent(go.transform, false);
+                // 南侧面朝向 -Z（相机大致从南偏西看过来）
+                // 崖壁贴图 32×16、PPU=32 → 固有高 0.5，缩放到 HighlandElevation
+                float cliffScaleY = GridManager.HighlandElevation / (16f / 32f);
+                cliffS.transform.localPosition = new Vector3(0f, 0f, -half * 0.98f);
+                cliffS.transform.localRotation = Quaternion.Euler(0f, 180f, 0f);
+                cliffS.transform.localScale = new Vector3(0.98f, cliffScaleY, 1f);
+                var csr = cliffS.AddComponent<SpriteRenderer>();
+                csr.sprite = cliffSprite;
+                cliffSouthRenderers[x, y] = csr;
+
+                var cliffW = new GameObject("CliffWest");
+                cliffW.transform.SetParent(go.transform, false);
+                cliffW.transform.localPosition = new Vector3(-half * 0.98f, 0f, 0f);
+                cliffW.transform.localRotation = Quaternion.Euler(0f, -90f, 0f);
+                cliffW.transform.localScale = new Vector3(0.98f, cliffScaleY, 1f);
+                var cwr = cliffW.AddComponent<SpriteRenderer>();
+                cwr.sprite = cliffSprite;
+                cliffWestRenderers[x, y] = cwr;
 
                 var fog = new GameObject("Fog");
                 fog.transform.SetParent(go.transform, false);
+                fog.transform.localRotation = flatRot;
+                fog.transform.localPosition = new Vector3(0f, 0.01f, 0f);
+                fog.transform.localScale = Vector3.one * 0.99f;
                 var fsr = fog.AddComponent<SpriteRenderer>();
                 fsr.sprite = fogSprite;
-                fsr.sortingOrder = 1;
                 fsr.color = Color.clear;
                 fogRenderers[x, y] = fsr;
 
                 var overlay = new GameObject("Overlay");
                 overlay.transform.SetParent(go.transform, false);
+                overlay.transform.localRotation = flatRot;
+                overlay.transform.localPosition = new Vector3(0f, 0.02f, 0f);
+                overlay.transform.localScale = Vector3.one * 0.99f;
                 var osr = overlay.AddComponent<SpriteRenderer>();
-                osr.sprite = SpriteFactory.CreateColorSprite(Color.white);
-                osr.sortingOrder = 2;
+                osr.sprite = overlaySprite;
                 osr.color = Color.clear;
                 overlayRenderers[x, y] = osr;
             }
@@ -81,20 +139,133 @@ public class MapVisual : MonoBehaviour
         RefreshAllTiles(grid);
     }
 
+    /// <summary>桌游桌面 + 棋盘托盘。桌面用大平面 UV 平铺，铺满相机可视范围。</summary>
+    private void BuildBackdrop(GridManager grid)
+    {
+        backdropRoot = new GameObject("TableBackdrop").transform;
+        backdropRoot.SetParent(transform, false);
+
+        boardW = grid.gridWidth * grid.cellSize;
+        boardD = grid.gridHeight * grid.cellSize;
+        // 覆盖最大缩放下的视野 + 平移边距，避免露出纯色清屏。
+        float boardMax = Mathf.Max(boardW, boardD);
+        tableWorldSize = Mathf.Max(96f, boardMax * 5.5f);
+        var center = new Vector3(boardW * 0.5f, -0.14f, boardD * 0.5f);
+        var flatRot = Quaternion.Euler(90f, 0f, 0f);
+
+        tableRenderer = CreateTablePlane(backdropRoot, "Table", center + Vector3.down * 0.03f,
+            tableWorldSize, TableSurface.Current);
+
+        feltRenderer = CreateFlatSprite(backdropRoot, "BoardFelt", center, flatRot,
+            new Vector3(boardW + 1.6f, boardD + 1.6f, 1f), TableSurface.CreateBoardFeltSprite(), -150);
+
+        rimRenderer = CreateFlatSprite(backdropRoot, "BoardRim", center + Vector3.down * 0.01f, flatRot,
+            new Vector3(boardW + 2.4f, boardD + 2.4f, 1f), TableSurface.CreateBoardRimSprite(), -160);
+    }
+
+    public void ApplyTableStyle(TableStyle style)
+    {
+        if (tableMaterial == null)
+            return;
+        TableSurface.ApplyTableMaterial(tableMaterial, style, tableWorldSize);
+    }
+
+    private MeshRenderer CreateTablePlane(Transform parent, string name, Vector3 pos, float worldSize, TableStyle style)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = pos;
+        go.transform.rotation = Quaternion.identity;
+        go.transform.localScale = Vector3.one;
+
+        var mesh = new Mesh { name = "TablePlane" };
+        float h = worldSize * 0.5f;
+        mesh.vertices = new[]
+        {
+            new Vector3(-h, 0f, -h),
+            new Vector3(h, 0f, -h),
+            new Vector3(-h, 0f, h),
+            new Vector3(h, 0f, h)
+        };
+        mesh.uv = new[]
+        {
+            new Vector2(0f, 0f),
+            new Vector2(1f, 0f),
+            new Vector2(0f, 1f),
+            new Vector2(1f, 1f)
+        };
+        mesh.triangles = new[] { 0, 2, 1, 2, 3, 1 };
+        mesh.RecalculateNormals();
+        mesh.RecalculateBounds();
+
+        go.AddComponent<MeshFilter>().sharedMesh = mesh;
+        tableMaterial = TableSurface.CreateTableMaterial(style, worldSize);
+        var mr = go.AddComponent<MeshRenderer>();
+        mr.sharedMaterial = tableMaterial;
+        mr.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+        mr.receiveShadows = false;
+        return mr;
+    }
+
+    private static SpriteRenderer CreateFlatSprite(Transform parent, string name, Vector3 pos, Quaternion rot,
+        Vector3 scale, Sprite sprite, int sorting)
+    {
+        var go = new GameObject(name);
+        go.transform.SetParent(parent, false);
+        go.transform.position = pos;
+        go.transform.rotation = rot;
+        go.transform.localScale = scale;
+        var sr = go.AddComponent<SpriteRenderer>();
+        sr.sprite = sprite;
+        sr.sortingOrder = sorting;
+        return sr;
+    }
+
+    private static Sprite CreateFogSprite(int size)
+    {
+        var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float n = Mathf.PerlinNoise(x * 0.14f, y * 0.14f);
+                float v = 0.75f + n * 0.25f;
+                tex.SetPixel(x, y, new Color(v, v, v, 1f));
+            }
+        }
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
+    }
+
     public void RefreshAllTiles(GridManager grid)
     {
-        if (cellRenderers == null)
+        if (cellRenderers == null || tileRoots == null)
             return;
 
         for (int x = 0; x < grid.gridWidth; x++)
         {
             for (int y = 0; y < grid.gridHeight; y++)
             {
-                var type = grid.GetTileType(new Vector2Int(x, y));
+                var cell = new Vector2Int(x, y);
+                var type = grid.GetTileType(cell);
                 bool alt = ((x + y) % 2) != 0;
-                var fill = TerrainInfo.GetFillColor(type, alt);
-                var border = TerrainInfo.GetBorderColor(type);
-                cellRenderers[x, y].sprite = SpriteFactory.CreateBorderedSprite(fill, border, 32, 1);
+                bool highland = type == TileType.Highland;
+
+                tileRoots[x, y].position = grid.CellToWorld(cell);
+                cellRenderers[x, y].sprite = TerrainSpriteFactory.CreateTop(type, alt);
+                cellRenderers[x, y].sortingOrder = grid.GetSortOrder(cell, 0);
+
+                cliffSouthRenderers[x, y].gameObject.SetActive(highland);
+                cliffWestRenderers[x, y].gameObject.SetActive(highland);
+                if (highland)
+                {
+                    cliffSouthRenderers[x, y].sortingOrder = grid.GetSortOrder(cell, 1);
+                    cliffWestRenderers[x, y].sortingOrder = grid.GetSortOrder(cell, 1);
+                }
+
+                fogRenderers[x, y].sortingOrder = grid.GetSortOrder(cell, 3);
+                overlayRenderers[x, y].sortingOrder = grid.GetSortOrder(cell, 4);
             }
         }
 

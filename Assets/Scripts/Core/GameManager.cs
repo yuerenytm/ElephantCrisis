@@ -42,6 +42,15 @@ public class GameManager : MonoBehaviour
             int swallowed = GroundItemManager.Instance.SwallowCellsToDiscard(changed);
             HazardManager.Instance?.SwallowCells(changed);
             MapVisual.Instance?.RefreshAllTiles(GridManager.Instance);
+            // 高地被熔岩覆盖后高度归零，单位需贴回新高度
+            if (Units != null)
+            {
+                foreach (var u in Units)
+                {
+                    if (u != null && !u.IsDead)
+                        u.PlaceAt(u.Cell, true);
+                }
+            }
             TurnManager.Instance?.Log($"熔岩收缩！新增 {changed.Count} 格熔岩，吞噬掉落物 {swallowed} 件入弃牌堆");
         }
     }

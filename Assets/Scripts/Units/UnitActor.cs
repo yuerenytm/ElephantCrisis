@@ -547,17 +547,20 @@ public class UnitActor : MonoBehaviour
 
     private void EnsureVisuals()
     {
+        if (GetComponent<CameraBillboard>() == null)
+            gameObject.AddComponent<CameraBillboard>();
+
         outlineRenderer = CreateChildSprite("Outline", 0);
         bodyRenderer = CreateChildSprite("Body", 1);
 
         var labelGo = new GameObject("Label");
         labelGo.transform.SetParent(transform, false);
-        // 角色名叠在棋子中央
-        labelGo.transform.localPosition = new Vector3(0f, 0.02f, 0f);
+        // 2.5D：名字略抬高叠在棋子上半
+        labelGo.transform.localPosition = new Vector3(0f, 0.28f, 0f);
         label = labelGo.AddComponent<TextMesh>();
         label.anchor = TextAnchor.MiddleCenter;
         label.alignment = TextAlignment.Center;
-        label.characterSize = 0.22f;
+        label.characterSize = 0.18f;
         label.fontSize = 64;
         label.color = Color.white;
         label.fontStyle = FontStyle.Bold;
@@ -582,10 +585,30 @@ public class UnitActor : MonoBehaviour
             grid.ClearCell(Cell);
 
         Cell = cell;
-        transform.position = grid.CellToWorld(cell);
+        // 略抬离地面，减少与地块 Z 冲突
+        transform.position = grid.CellToWorld(cell) + Vector3.up * 0.02f;
+        ApplySortOrder();
 
         if (register)
             grid.SetCellOccupied(cell, gameObject);
+    }
+
+    private void ApplySortOrder()
+    {
+        var grid = GridManager.Instance;
+        if (grid == null)
+            return;
+        int baseOrder = grid.GetSortOrder(Cell, 40);
+        if (outlineRenderer != null)
+            outlineRenderer.sortingOrder = baseOrder;
+        if (bodyRenderer != null)
+            bodyRenderer.sortingOrder = baseOrder + 1;
+        if (label != null)
+        {
+            var mr = label.GetComponent<MeshRenderer>();
+            if (mr != null)
+                mr.sortingOrder = baseOrder + 2;
+        }
     }
 
     /// <summary>尝试移动。若撞上不可见的隐匿占格者，会弹回来向邻格并破隐；LastMoveBumped 供日志。</summary>
@@ -968,6 +991,7 @@ public class UnitActor : MonoBehaviour
             label.text = RoleInfo.GetDisplayName(Role);
             label.color = IsDying ? new Color(1f, 0.85f, 0.85f) : Color.white;
         }
+        ApplySortOrder();
         ApplyWorldVisible();
     }
 

@@ -46,6 +46,17 @@ public class GameUI : MonoBehaviour
     private bool refreshDirty;
     private GameObject canvasRoot;
 
+    // 抽屉：收起后只留边缘标签，把地图让出来
+    private RectTransform leftPanelRt;
+    private RectTransform logPanelRt;
+    private RectTransform bagPanelRt;
+    private GameObject tabAction;
+    private GameObject tabLog;
+    private GameObject tabBag;
+    private bool actionDrawerOpen = true;
+    private bool logDrawerOpen;
+    private bool bagDrawerOpen;
+
     private void Awake()
     {
         Instance = this;
@@ -66,10 +77,114 @@ public class GameUI : MonoBehaviour
 
     private void LateUpdate()
     {
+        HandleDrawerHotkeys();
         if (!refreshDirty)
             return;
         refreshDirty = false;
         RefreshNow();
+    }
+
+    private void HandleDrawerHotkeys()
+    {
+        if (!built || canvasRoot == null || !canvasRoot.activeInHierarchy)
+            return;
+        if (MainMenuUI.Instance != null && MainMenuUI.Instance.IsVisible)
+            return;
+        var kb = UnityEngine.InputSystem.Keyboard.current;
+        if (kb == null)
+            return;
+        if (kb.aKey.wasPressedThisFrame)
+            ToggleActionDrawer();
+        else if (kb.lKey.wasPressedThisFrame)
+            ToggleLogDrawer();
+        else if (kb.bKey.wasPressedThisFrame)
+            ToggleBagDrawer();
+    }
+
+    public void ToggleActionDrawer() => SetActionDrawer(!actionDrawerOpen);
+    public void ToggleLogDrawer() => SetLogDrawer(!logDrawerOpen);
+    public void ToggleBagDrawer() => SetBagDrawer(!bagDrawerOpen);
+
+    public void SetActionDrawer(bool open)
+    {
+        actionDrawerOpen = open;
+        ApplyDrawerVisibility();
+    }
+
+    public void SetLogDrawer(bool open)
+    {
+        logDrawerOpen = open;
+        ApplyDrawerVisibility();
+    }
+
+    public void SetBagDrawer(bool open)
+    {
+        bagDrawerOpen = open;
+        ApplyDrawerVisibility();
+    }
+
+    public void SetAllDrawers(bool open)
+    {
+        actionDrawerOpen = open;
+        logDrawerOpen = open;
+        bagDrawerOpen = open;
+        ApplyDrawerVisibility();
+    }
+
+    private void ApplyDrawerVisibility()
+    {
+        if (leftPanelRt != null)
+            leftPanelRt.gameObject.SetActive(actionDrawerOpen);
+        if (logPanelRt != null)
+            logPanelRt.gameObject.SetActive(logDrawerOpen);
+        if (bagPanelRt != null)
+            bagPanelRt.gameObject.SetActive(bagDrawerOpen);
+
+        if (tabAction != null)
+        {
+            tabAction.SetActive(!actionDrawerOpen);
+            if (!actionDrawerOpen)
+                tabAction.transform.SetAsLastSibling();
+        }
+        if (tabLog != null)
+        {
+            tabLog.SetActive(!logDrawerOpen);
+            if (!logDrawerOpen)
+                tabLog.transform.SetAsLastSibling();
+        }
+        if (tabBag != null)
+        {
+            tabBag.SetActive(!bagDrawerOpen);
+            if (!bagDrawerOpen)
+                tabBag.transform.SetAsLastSibling();
+        }
+
+        // 悬停条：战报展开时抬高，避免叠在战报上
+        if (hoverPanel != null)
+        {
+            var rt = hoverPanel.GetComponent<RectTransform>();
+            if (rt != null)
+            {
+                if (logDrawerOpen)
+                {
+                    rt.anchorMin = new Vector2(0.13f, 0.19f);
+                    rt.anchorMax = new Vector2(0.7f, 0.27f);
+                }
+                else
+                {
+                    rt.anchorMin = new Vector2(0.13f, 0.02f);
+                    rt.anchorMax = new Vector2(0.7f, 0.1f);
+                }
+            }
+        }
+    }
+
+    private static GameObject CreateDrawerTab(Transform parent, string label, Vector2 anchorMin, Vector2 anchorMax,
+        UnityEngine.Events.UnityAction onClick)
+    {
+        var btn = UiTheme.CreateButton(parent, label, anchorMin, anchorMax, onClick, UiTheme.ButtonTintMoss, UiTheme.FontTiny);
+        btn.transform.SetAsLastSibling();
+        return btn.gameObject;
     }
 
     /// <summary>延后到帧末刷新，避免在按钮回调里销毁正在点击的 UI。</summary>
@@ -132,6 +247,12 @@ public class GameUI : MonoBehaviour
         leaderBtn = null;
         adminGrantBtn = null;
         menuBtn = null;
+        leftPanelRt = null;
+        logPanelRt = null;
+        bagPanelRt = null;
+        tabAction = null;
+        tabLog = null;
+        tabBag = null;
         built = false;
     }
 
@@ -175,38 +296,65 @@ public class GameUI : MonoBehaviour
         scaler.referenceResolution = new Vector2(1920, 1080);
         canvasRoot.AddComponent<GraphicRaycaster>();
 
-        restartBtn = CreateCornerButton(canvasRoot.transform, "Restart", "重新开始",
-            new Vector2(0.008f, 0.955f), new Vector2(0.11f, 0.992f),
-            () => GameManager.Instance?.Restart());
-        menuBtn = CreateCornerButton(canvasRoot.transform, "Menu", "主菜单",
-            new Vector2(0.115f, 0.955f), new Vector2(0.21f, 0.992f),
-            () => GameManager.Instance?.ReturnToMenu());
+        // 地图优先：顶栏细条 + 左窄行动 + 底日志/背包，中间留给战场
+        // ┌────────────────────────────┐
+        // │ 顶栏                        │
+        // ├────┬───────────────────────┤
+        // │行动│        地图            │
+        // │    │                        │
+        // ├────┴──────────┬────────────┤
+        // │ 战报           │ 背包       │
+        // └───────────────┴────────────┘
 
-        titleText = CreateText(canvasRoot.transform, "Title", new Vector2(0.22f, 0.92f), new Vector2(0.7f, 0.99f), 24, TextAnchor.UpperLeft);
-        statusText = CreateText(canvasRoot.transform, "Status", new Vector2(0.2f, 0.84f), new Vector2(0.7f, 0.92f), 17, TextAnchor.UpperLeft);
-        logText = CreateText(canvasRoot.transform, "Log", new Vector2(0.2f, 0.14f), new Vector2(0.7f, 0.4f), 15, TextAnchor.LowerLeft);
-        winnerText = CreateText(canvasRoot.transform, "Winner", new Vector2(0.25f, 0.45f), new Vector2(0.75f, 0.58f), 36, TextAnchor.MiddleCenter);
-        winnerText.color = new Color(1f, 0.9f, 0.3f);
+        var topBar = UiTheme.CreateFramedPanel(canvasRoot.transform, "TopBar",
+            new Vector2(0.01f, 0.935f), new Vector2(0.99f, 0.99f));
+        restartBtn = CreateCornerButton(topBar, "Restart", "重新开始",
+            new Vector2(0.01f, 0.18f), new Vector2(0.1f, 0.82f),
+            () => GameManager.Instance?.Restart());
+        menuBtn = CreateCornerButton(topBar, "Menu", "主菜单",
+            new Vector2(0.105f, 0.18f), new Vector2(0.19f, 0.82f),
+            () => GameManager.Instance?.ReturnToMenu());
+        CreateCornerButton(topBar, "FoldUI", "收起面板",
+            new Vector2(0.195f, 0.18f), new Vector2(0.3f, 0.82f),
+            () => SetAllDrawers(false));
+        titleText = CreateText(topBar, "Title", new Vector2(0.32f, 0.42f), new Vector2(0.98f, 0.92f),
+            UiTheme.FontBody, TextAnchor.MiddleLeft);
+        titleText.color = UiTheme.TextTitle;
+        titleText.fontStyle = FontStyle.Bold;
+        statusText = CreateText(topBar, "Status", new Vector2(0.32f, 0.08f), new Vector2(0.98f, 0.48f),
+            UiTheme.FontSmall, TextAnchor.MiddleLeft);
+        statusText.color = UiTheme.Highlight;
+
+        winnerText = CreateText(canvasRoot.transform, "Winner", new Vector2(0.2f, 0.4f), new Vector2(0.8f, 0.6f),
+            36, TextAnchor.MiddleCenter);
+        winnerText.color = UiTheme.TextTitle;
+        winnerText.fontStyle = FontStyle.Bold;
         winnerText.text = "";
 
-        // 底部悬停属性条
-        hoverPanel = new GameObject("HoverPanel");
-        hoverPanel.transform.SetParent(canvasRoot.transform, false);
-        var hpRt = hoverPanel.AddComponent<RectTransform>();
-        hpRt.anchorMin = new Vector2(0.18f, 0.015f);
-        hpRt.anchorMax = new Vector2(0.72f, 0.14f);
-        hpRt.offsetMin = Vector2.zero;
-        hpRt.offsetMax = Vector2.zero;
-        var hpImg = hoverPanel.AddComponent<Image>();
-        hpImg.color = new Color(0.05f, 0.08f, 0.07f, 0.88f);
-        hoverText = CreateText(hoverPanel.transform, "HoverText", new Vector2(0.03f, 0.05f), new Vector2(0.97f, 0.95f), 15, TextAnchor.MiddleLeft);
-        hoverPanel.SetActive(false);
+        tabAction = CreateDrawerTab(canvasRoot.transform, "行动 A", new Vector2(0f, 0.55f), new Vector2(0.032f, 0.72f),
+            () => ToggleActionDrawer());
+        tabLog = CreateDrawerTab(canvasRoot.transform, "战报 L", new Vector2(0.38f, 0f), new Vector2(0.52f, 0.038f),
+            () => ToggleLogDrawer());
+        tabBag = CreateDrawerTab(canvasRoot.transform, "背包 B", new Vector2(0.968f, 0.38f), new Vector2(1f, 0.55f),
+            () => ToggleBagDrawer());
 
-        // 左侧：拾取 / 技能 / 领袖宣言 / 管理员领卡 / 状态
-        var left = CreatePanel(canvasRoot.transform, "LeftPanel", new Vector2(0.01f, 0.32f), new Vector2(0.18f, 0.94f));
-        float y = 0.96f;
-        float step = 0.125f;
-        pickupBtn = CreateButton(left, "拾取", ref y, step, () =>
+        // 左侧行动（窄，可收起）
+        leftPanelRt = CreatePanel(canvasRoot.transform, "LeftPanel",
+            new Vector2(0.01f, 0.2f), new Vector2(0.12f, 0.925f));
+        var leftHead = UiTheme.CreateHeaderBar(leftPanelRt, "LeftHead",
+            new Vector2(0.1f, 0.9f), new Vector2(0.72f, 0.98f));
+        var leftTitle = CreateText(leftHead, "LeftTitle", Vector2.zero, Vector2.one,
+            UiTheme.FontBody, TextAnchor.MiddleLeft);
+        leftTitle.text = "行动";
+        leftTitle.color = UiTheme.TextTitle;
+        leftTitle.fontStyle = FontStyle.Bold;
+        CreateCornerButton(leftPanelRt, "FoldLeft", "‹",
+            new Vector2(0.76f, 0.9f), new Vector2(0.94f, 0.98f),
+            () => SetActionDrawer(false));
+
+        float y = 0.86f;
+        float step = 0.1f;
+        pickupBtn = CreateButton(leftPanelRt, "拾取", ref y, step, () =>
         {
             var turn = TurnManager.Instance;
             var unit = turn?.CurrentUnit;
@@ -220,54 +368,91 @@ public class GameUI : MonoBehaviour
             }
             turn.EnterPickupMode();
             turn.LogFor(turn.CurrentUnit, "选择要拾取的物品（右侧列表，右键取消）");
+            SetBagDrawer(true);
             RequestRefresh();
         });
-        skillBtn = CreateButton(left, "技能", ref y, step, () =>
+        skillBtn = CreateButton(leftPanelRt, "技能", ref y, step, () =>
         {
             TryClickSkill();
             RequestRefresh();
         });
-        leaderBtn = CreateButton(left, "领袖宣言", ref y, step, () =>
+        leaderBtn = CreateButton(leftPanelRt, "领袖宣言", ref y, step, () =>
         {
             LeaderDeclarationService.TryDeclare(TurnManager.Instance?.CurrentUnit);
             RequestRefresh();
         });
-        adminGrantBtn = CreateButton(left, "领取卡牌", ref y, step, () =>
+        adminGrantBtn = CreateButton(leftPanelRt, "领取卡牌", ref y, step, () =>
         {
+            SetBagDrawer(true);
             ToggleAdminGrantPanel();
         });
-        adminWeatherBtn = CreateButton(left, "天气", ref y, step, () =>
+        adminWeatherBtn = CreateButton(leftPanelRt, "天气", ref y, step, () =>
         {
             if (WeatherService.AdminCycleWeather())
                 RequestRefresh();
         });
 
-        var statusTitle = CreateText(left, "StatusTitle", new Vector2(0.08f, 0.02f), new Vector2(0.92f, 0.14f), 14, TextAnchor.MiddleCenter);
-        statusTitle.text = "当前状态";
+        var statusTitle = CreateText(leftPanelRt, "StatusTitle", new Vector2(0.1f, 0.04f), new Vector2(0.9f, 0.12f),
+            UiTheme.FontSmall, TextAnchor.MiddleLeft);
+        statusTitle.text = "状态";
+        statusTitle.color = UiTheme.TextMuted;
         var statusGo = new GameObject("StatusIcons");
-        statusGo.transform.SetParent(left, false);
+        statusGo.transform.SetParent(leftPanelRt, false);
         var srt = statusGo.AddComponent<RectTransform>();
-        srt.anchorMin = new Vector2(0.06f, 0.16f);
-        srt.anchorMax = new Vector2(0.94f, 0.36f);
+        srt.anchorMin = new Vector2(0.1f, 0.14f);
+        srt.anchorMax = new Vector2(0.9f, 0.32f);
         srt.offsetMin = Vector2.zero;
         srt.offsetMax = Vector2.zero;
         statusIconRoot = statusGo.transform;
 
-        var right = CreatePanel(canvasRoot.transform, "RightPanel", new Vector2(0.72f, 0.02f), new Vector2(0.99f, 0.98f));
-        rightTitle = CreateText(right, "RightTitle", new Vector2(0.05f, 0.92f), new Vector2(0.95f, 0.99f), 18, TextAnchor.MiddleCenter);
-        rightTitle.text = "背包";
+        // 战报（可收起）
+        logPanelRt = UiTheme.CreateFramedPanel(canvasRoot.transform, "LogPanel",
+            new Vector2(0.13f, 0.02f), new Vector2(0.7f, 0.185f));
+        var logHeader = UiTheme.CreateHeaderBar(logPanelRt, "LogHeader",
+            new Vector2(0.04f, 0.78f), new Vector2(0.82f, 0.96f));
+        var logTitle = CreateText(logHeader, "LogTitle", Vector2.zero, Vector2.one,
+            UiTheme.FontSmall, TextAnchor.MiddleLeft);
+        logTitle.text = "战报";
+        logTitle.color = UiTheme.TextMuted;
+        CreateCornerButton(logPanelRt, "FoldLog", "˅",
+            new Vector2(0.86f, 0.78f), new Vector2(0.96f, 0.96f),
+            () => SetLogDrawer(false));
+        logText = CreateText(logPanelRt, "Log", new Vector2(0.04f, 0.06f), new Vector2(0.96f, 0.74f),
+            UiTheme.FontSmall, TextAnchor.UpperLeft);
+        logText.color = UiTheme.TextBody;
 
-        CreateItemScrollArea(right);
+        // 悬停条（贴底，战报收起时不挡地图中央）
+        hoverPanel = UiTheme.CreateFramedPanel(canvasRoot.transform, "HoverPanel",
+            new Vector2(0.13f, 0.02f), new Vector2(0.7f, 0.1f)).gameObject;
+        hoverText = CreateText(hoverPanel.transform, "HoverText", new Vector2(0.04f, 0.1f), new Vector2(0.96f, 0.9f),
+            UiTheme.FontSmall, TextAnchor.MiddleLeft);
+        hoverText.color = UiTheme.TextBody;
+        hoverPanel.SetActive(false);
+
+        // 背包（可收起）
+        bagPanelRt = CreatePanel(canvasRoot.transform, "RightPanel",
+            new Vector2(0.72f, 0.16f), new Vector2(0.99f, 0.58f));
+        var rightHead = UiTheme.CreateHeaderBar(bagPanelRt, "RightHead",
+            new Vector2(0.08f, 0.9f), new Vector2(0.72f, 0.98f));
+        rightTitle = CreateText(rightHead, "RightTitle", Vector2.zero, Vector2.one,
+            UiTheme.FontBody, TextAnchor.MiddleLeft);
+        rightTitle.text = "背包";
+        rightTitle.color = UiTheme.TextTitle;
+        rightTitle.fontStyle = FontStyle.Bold;
+        CreateCornerButton(bagPanelRt, "FoldBag", "›",
+            new Vector2(0.78f, 0.9f), new Vector2(0.94f, 0.98f),
+            () => SetBagDrawer(false));
+
+        CreateItemScrollArea(bagPanelRt);
 
         reinforcePanel = new GameObject("ReinforcePanel");
-        reinforcePanel.transform.SetParent(right, false);
+        reinforcePanel.transform.SetParent(bagPanelRt, false);
         var rpRt = reinforcePanel.AddComponent<RectTransform>();
-        rpRt.anchorMin = new Vector2(0.05f, 0.02f);
-        rpRt.anchorMax = new Vector2(0.95f, 0.30f);
+        rpRt.anchorMin = new Vector2(0.06f, 0.04f);
+        rpRt.anchorMax = new Vector2(0.94f, 0.42f);
         rpRt.offsetMin = Vector2.zero;
         rpRt.offsetMax = Vector2.zero;
-        var rpImg = reinforcePanel.AddComponent<Image>();
-        rpImg.color = new Color(0.15f, 0.2f, 0.18f, 0.95f);
+        UiTheme.StyleExistingImageAsPanel(reinforcePanel.AddComponent<Image>());
 
         float ry = 0.98f;
         float rstep = 0.24f;
@@ -313,13 +498,13 @@ public class GameUI : MonoBehaviour
 
         // 弹药选择
         ammoPanel = new GameObject("AmmoPanel");
-        ammoPanel.transform.SetParent(right, false);
+        ammoPanel.transform.SetParent(bagPanelRt, false);
         var apRt = ammoPanel.AddComponent<RectTransform>();
-        apRt.anchorMin = new Vector2(0.05f, 0.04f);
-        apRt.anchorMax = new Vector2(0.95f, 0.26f);
+        apRt.anchorMin = new Vector2(0.06f, 0.04f);
+        apRt.anchorMax = new Vector2(0.94f, 0.4f);
         apRt.offsetMin = Vector2.zero;
         apRt.offsetMax = Vector2.zero;
-        ammoPanel.AddComponent<Image>().color = new Color(0.15f, 0.18f, 0.22f, 0.95f);
+        UiTheme.StyleExistingImageAsPanel(ammoPanel.AddComponent<Image>());
         float ay = 0.95f;
         float astep = 0.3f;
         CreateButton(ammoPanel.transform, "弓箭", ref ay, astep, () =>
@@ -332,13 +517,13 @@ public class GameUI : MonoBehaviour
 
         // 定时炸弹延时
         delayPanel = new GameObject("DelayPanel");
-        delayPanel.transform.SetParent(right, false);
+        delayPanel.transform.SetParent(bagPanelRt, false);
         var dpRt = delayPanel.AddComponent<RectTransform>();
-        dpRt.anchorMin = new Vector2(0.05f, 0.04f);
-        dpRt.anchorMax = new Vector2(0.95f, 0.26f);
+        dpRt.anchorMin = new Vector2(0.06f, 0.04f);
+        dpRt.anchorMax = new Vector2(0.94f, 0.4f);
         dpRt.offsetMin = Vector2.zero;
         dpRt.offsetMax = Vector2.zero;
-        delayPanel.AddComponent<Image>().color = new Color(0.22f, 0.12f, 0.12f, 0.95f);
+        UiTheme.StyleExistingImageAsPanel(delayPanel.AddComponent<Image>());
         float dy = 0.95f;
         float dstep = 0.18f;
         for (int r = 1; r <= 5; r++)
@@ -349,11 +534,12 @@ public class GameUI : MonoBehaviour
         }
         delayPanel.SetActive(false);
 
-        BuildAdminGrantPanel(right);
+        BuildAdminGrantPanel(bagPanelRt);
 
         // 必须在背包面板之后创建，并置顶，否则会被 RightPanel 挡住点击
         endTurnBtn = CreateEndTurnButton(canvasRoot.transform);
         endTurnBtn.transform.SetAsLastSibling();
+        ApplyDrawerVisibility();
 
         if (TurnManager.Instance != null)
         {
@@ -487,7 +673,6 @@ public class GameUI : MonoBehaviour
                 TurnPhase.SelectingMotorcycleRam => "选择冲击终点（四向5–10格，右键取消）",
                 TurnPhase.SelectingHookTarget => "选择勾爪目标（半径3，右键取消）",
                 TurnPhase.SelectingPickup => "选择拾取（右键取消）",
-                TurnPhase.MandatoryDiscard => "超重强制弃置（降至容量内才能结束）",
                 _ => humanTurn ? "左键移动/近战" : "AI 行动中…"
             };
             statusText.text =
@@ -497,9 +682,10 @@ public class GameUI : MonoBehaviour
         }
 
         var logSb = new StringBuilder();
-        logSb.AppendLine("战报：");
         foreach (var line in logs)
             logSb.AppendLine("· " + line);
+        if (logs.Count == 0)
+            logSb.Append("等待交锋…");
         logText.text = logSb.ToString();
 
         bool humanTurnActive = MatchConfig.IsHumanTurn();
@@ -521,12 +707,10 @@ public class GameUI : MonoBehaviour
             || turn.Phase == TurnPhase.SelectingPickup;
 
         bool canAct = playing && humanTurnActive;
-        bool trimming = turn.Phase == TurnPhase.MandatoryDiscard || turn.AwaitingCapacityTrim;
-        endTurnBtn.interactable = canAct && (!aiming || trimming) &&
-            (turn.Phase == TurnPhase.WaitingAction || turn.Phase == TurnPhase.MandatoryDiscard);
+        endTurnBtn.interactable = canAct && !aiming && turn.Phase == TurnPhase.WaitingAction;
         if (restartBtn != null)
             restartBtn.interactable = true;
-        pickupBtn.interactable = canAct && !aiming && !trimming && turn.CurrentUnit != null && !turn.CurrentUnit.IsDying;
+        pickupBtn.interactable = canAct && !aiming && turn.CurrentUnit != null && !turn.CurrentUnit.IsDying;
         if (skillBtn != null)
         {
             // 普通 AI 对战：他人回合隐藏；管理员模式可查看 AI 技能信息
@@ -535,9 +719,9 @@ public class GameUI : MonoBehaviour
             if (showSkillPanel)
             {
                 var cu = turn.CurrentUnit;
-                bool skillOk = canAct && !aiming && !trimming && cu != null && !cu.IsDying
+                bool skillOk = canAct && !aiming && cu != null && !cu.IsDying
                     && !SkillInfo.IsPassive(cu.Role) && cu.SkillCooldownLeft <= 0;
-                skillBtn.interactable = skillOk || (canAct && !aiming && !trimming && cu != null && SkillInfo.IsPassive(cu.Role));
+                skillBtn.interactable = skillOk || (canAct && !aiming && cu != null && SkillInfo.IsPassive(cu.Role));
                 var label = skillBtn.GetComponentInChildren<Text>();
                 if (label != null && cu != null)
                 {
@@ -554,7 +738,7 @@ public class GameUI : MonoBehaviour
             if (showLeader)
             {
                 var cu = turn.CurrentUnit;
-                bool canLeader = canAct && !aiming && !trimming && cu != null
+                bool canLeader = canAct && !aiming && cu != null
                     && LeaderDeclarationService.CanDeclare(cu, out _, out _, out _);
                 leaderBtn.interactable = canLeader;
                 var label = leaderBtn.GetComponentInChildren<Text>();
@@ -573,7 +757,7 @@ public class GameUI : MonoBehaviour
             if (showGrant)
             {
                 bool canGrant = AdminGrantService.CanOpenPanel(turn.CurrentUnit, out _);
-                adminGrantBtn.interactable = canGrant && !aiming && !trimming;
+                adminGrantBtn.interactable = canGrant && !aiming;
                 var label = adminGrantBtn.GetComponentInChildren<Text>();
                 if (label != null)
                     label.text = "领取卡牌";
@@ -600,6 +784,18 @@ public class GameUI : MonoBehaviour
             ammoPanel.SetActive(turn.Phase == TurnPhase.SelectingAmmo && canAct);
         if (delayPanel != null)
             delayPanel.SetActive(turn.Phase == TurnPhase.SelectingTimedBombDelay && canAct);
+
+        // 需要背包交互时自动展开
+        bool needBag =
+            turn.Phase == TurnPhase.SelectingPickup
+            || turn.Phase == TurnPhase.SelectingReinforce
+            || turn.Phase == TurnPhase.SelectingSkillReinforce
+            || turn.Phase == TurnPhase.SelectingAmmo
+            || turn.Phase == TurnPhase.SelectingTimedBombDelay
+            || turn.Phase == TurnPhase.SelectingMonkeyMarkItem
+            || (adminGrantPanel != null && adminGrantPanel.activeSelf);
+        if (needBag && canAct)
+            SetBagDrawer(true);
         if (adminGrantPanel != null && (!MatchConfig.IsAdminMode || !canAct || aiming))
             adminGrantPanel.SetActive(false);
 
@@ -701,11 +897,11 @@ public class GameUI : MonoBehaviour
         rt.anchorMax = new Vector2(0.97f, 0.91f);
         rt.offsetMin = Vector2.zero;
         rt.offsetMax = Vector2.zero;
-        adminGrantPanel.AddComponent<Image>().color = new Color(0.12f, 0.08f, 0.14f, 0.97f);
+        UiTheme.StyleExistingImageAsPanel(adminGrantPanel.AddComponent<Image>());
 
         var title = CreateText(adminGrantPanel.transform, "GrantTitle", new Vector2(0.05f, 0.92f), new Vector2(0.7f, 0.99f), 16, TextAnchor.MiddleLeft);
         title.text = "从牌库领取（不限次数）";
-        title.color = new Color(1f, 0.85f, 0.95f);
+        title.color = UiTheme.TextIvory;
 
         float closeY = 0.99f;
         CreateButton(adminGrantPanel.transform, "关闭", ref closeY, 0.08f, () =>
@@ -840,8 +1036,8 @@ public class GameUI : MonoBehaviour
         var scrollGo = new GameObject("ItemScroll");
         scrollGo.transform.SetParent(right, false);
         var scrollRt = scrollGo.AddComponent<RectTransform>();
-        scrollRt.anchorMin = new Vector2(0.03f, 0.28f);
-        scrollRt.anchorMax = new Vector2(0.97f, 0.91f);
+        scrollRt.anchorMin = new Vector2(0.06f, 0.04f);
+        scrollRt.anchorMax = new Vector2(0.94f, 0.86f);
         scrollRt.offsetMin = Vector2.zero;
         scrollRt.offsetMax = Vector2.zero;
 
@@ -875,8 +1071,8 @@ public class GameUI : MonoBehaviour
         contentRt.sizeDelta = new Vector2(0f, 0f);
 
         var layout = contentGo.AddComponent<VerticalLayoutGroup>();
-        layout.padding = new RectOffset(2, 2, 2, 2);
-        layout.spacing = 4f;
+        layout.padding = new RectOffset(8, 8, 8, 8);
+        layout.spacing = 8f;
         layout.childAlignment = TextAnchor.UpperCenter;
         layout.childControlWidth = true;
         layout.childControlHeight = true;
@@ -988,9 +1184,9 @@ public class GameUI : MonoBehaviour
             var row = CreateListRow($"Loot_{i}", ItemRowHeight);
             var bg = row.AddComponent<Image>();
             bool isDoll = ItemInfo.IsDoll(kind);
-            bg.color = isDoll
-                ? ItemInfo.GetDollGoldUiBg()
-                : new Color(0.18f, 0.16f, 0.1f, 0.92f);
+            bg.sprite = UiTheme.RoundSprite();
+            bg.type = Image.Type.Sliced;
+            bg.color = isDoll ? ItemInfo.GetDollGoldUiBg() : UiTheme.Row;
 
             var label = CreateText(row.transform, "Name", new Vector2(0.02f, 0.05f), new Vector2(0.62f, 0.95f), 13, TextAnchor.MiddleLeft);
             int dist = GridManager.Instance.GetManhattanDistance(unit.Cell, cell);
@@ -1073,9 +1269,9 @@ public class GameUI : MonoBehaviour
             var row = CreateListRow($"Item_{i}", ItemRowHeight);
             var bg = row.AddComponent<Image>();
             bool isDoll = ItemInfo.IsDoll(kind);
-            bg.color = isDoll
-                ? ItemInfo.GetDollGoldUiBg()
-                : new Color(0.12f, 0.16f, 0.14f, 0.9f);
+            bg.sprite = UiTheme.RoundSprite();
+            bg.type = Image.Type.Sliced;
+            bg.color = isDoll ? ItemInfo.GetDollGoldUiBg() : UiTheme.Row;
 
             var label = CreateText(row.transform, "Name", new Vector2(0.02f, 0.05f), new Vector2(0.48f, 0.95f), 13, TextAnchor.MiddleLeft);
             string name = ItemInfo.GetDisplayName(kind);
@@ -1124,13 +1320,12 @@ public class GameUI : MonoBehaviour
                     useLabel = "卸下";
             }
             if (entry.Equipped)
-                bg.color = new Color(0.14f, 0.28f, 0.2f, 0.95f);
+                bg.color = UiTheme.RowEquipped;
             else if (isDoll)
                 bg.color = ItemInfo.GetDollGoldUiBg();
 
             bool canUseItems = allowActions && turn.Phase == TurnPhase.WaitingAction;
-            bool canDiscardItems = allowActions &&
-                (turn.Phase == TurnPhase.WaitingAction || turn.Phase == TurnPhase.MandatoryDiscard);
+            bool canDiscardItems = allowActions && turn.Phase == TurnPhase.WaitingAction;
             bool crossbowLocked = isEquip && entry.Equipped && kind == ItemKind.Crossbow
                 && unit.CrossbowCharged && unit.CrossbowChargedThisAction;
             var useBtn = CreateSmallButton(row.transform, useLabel, new Vector2(0.5f, 0.15f), new Vector2(0.74f, 0.85f), () =>
@@ -1152,41 +1347,9 @@ public class GameUI : MonoBehaviour
         Transform parent, string name, string label, Vector2 anchorMin, Vector2 anchorMax,
         UnityEngine.Events.UnityAction onClick)
     {
-        var go = new GameObject(name);
-        go.transform.SetParent(parent, false);
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = anchorMin;
-        rt.anchorMax = anchorMax;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-
-        var img = go.AddComponent<Image>();
-        img.color = new Color(0.18f, 0.42f, 0.28f, 0.88f);
-        var btn = go.AddComponent<Button>();
-        btn.targetGraphic = img;
-        var colors = btn.colors;
-        colors.normalColor = Color.white;
-        colors.highlightedColor = new Color(0.85f, 1f, 0.9f, 1f);
-        colors.pressedColor = new Color(0.7f, 0.9f, 0.75f, 1f);
-        btn.colors = colors;
-        btn.onClick.AddListener(onClick);
-
-        var textGo = new GameObject("Text");
-        textGo.transform.SetParent(go.transform, false);
-        var trt = textGo.AddComponent<RectTransform>();
-        trt.anchorMin = Vector2.zero;
-        trt.anchorMax = Vector2.one;
-        trt.offsetMin = Vector2.zero;
-        trt.offsetMax = Vector2.zero;
-        var text = textGo.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (text.font == null)
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        text.text = label;
-        text.alignment = TextAnchor.MiddleCenter;
-        text.color = new Color(0.75f, 1f, 0.82f, 1f);
-        text.fontSize = 14;
-        text.raycastTarget = false;
+        var btn = UiTheme.CreateButton(parent, label, anchorMin, anchorMax, onClick,
+            UiTheme.ButtonTintClay, 14);
+        btn.gameObject.name = name;
         return btn;
     }
 
@@ -1208,41 +1371,10 @@ public class GameUI : MonoBehaviour
     }
 
     private static Text CreateText(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax, int fontSize, TextAnchor align)
-    {
-        var go = new GameObject(name);
-        go.transform.SetParent(parent, false);
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = anchorMin;
-        rt.anchorMax = anchorMax;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-        var text = go.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (text.font == null)
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        text.fontSize = fontSize;
-        text.color = Color.white;
-        text.alignment = align;
-        text.horizontalOverflow = HorizontalWrapMode.Wrap;
-        text.verticalOverflow = VerticalWrapMode.Overflow;
-        text.raycastTarget = false;
-        text.supportRichText = true;
-        return text;
-    }
+        => UiTheme.CreateText(parent, name, anchorMin, anchorMax, fontSize, align);
 
     private static RectTransform CreatePanel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax)
-    {
-        var go = new GameObject(name);
-        go.transform.SetParent(parent, false);
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = anchorMin;
-        rt.anchorMax = anchorMax;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-        var img = go.AddComponent<Image>();
-        img.color = new Color(0f, 0f, 0f, 0.55f);
-        return rt;
-    }
+        => UiTheme.CreateFramedPanel(parent, name, anchorMin, anchorMax);
 
     private static Button CreateEndTurnButton(Transform parent)
     {
@@ -1285,14 +1417,12 @@ public class GameUI : MonoBehaviour
         trt.offsetMin = Vector2.zero;
         trt.offsetMax = Vector2.zero;
         var text = textGo.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (text.font == null)
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        text.font = UiTheme.Font();
         text.text = "结束行动";
         text.alignment = TextAnchor.MiddleCenter;
         text.fontSize = 15;
         text.fontStyle = FontStyle.Bold;
-        text.color = new Color(0.96f, 0.9f, 0.72f, 1f);
+        text.color = UiTheme.TextIvory;
         text.raycastTarget = false;
 
         var hintGo = new GameObject("Hint");
@@ -1307,81 +1437,15 @@ public class GameUI : MonoBehaviour
         hint.text = "Enter";
         hint.alignment = TextAnchor.UpperCenter;
         hint.fontSize = 12;
-        hint.color = new Color(0.78f, 0.7f, 0.48f, 0.9f);
+        hint.color = UiTheme.TextMuted;
         hint.raycastTarget = false;
 
         return btn;
     }
 
     private static Button CreateButton(Transform parent, string label, ref float topY, float step, UnityEngine.Events.UnityAction onClick)
-    {
-        float bottom = topY - step + 0.015f;
-        var go = new GameObject(label);
-        go.transform.SetParent(parent, false);
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.08f, bottom);
-        rt.anchorMax = new Vector2(0.92f, topY);
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-        topY -= step;
-
-        var img = go.AddComponent<Image>();
-        img.color = new Color(0.2f, 0.45f, 0.35f, 0.95f);
-        var btn = go.AddComponent<Button>();
-        btn.targetGraphic = img;
-        btn.onClick.AddListener(onClick);
-
-        var textGo = new GameObject("Text");
-        textGo.transform.SetParent(go.transform, false);
-        var trt = textGo.AddComponent<RectTransform>();
-        trt.anchorMin = Vector2.zero;
-        trt.anchorMax = Vector2.one;
-        trt.offsetMin = Vector2.zero;
-        trt.offsetMax = Vector2.zero;
-        var text = textGo.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (text.font == null)
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        text.text = label;
-        text.alignment = TextAnchor.MiddleCenter;
-        text.color = Color.white;
-        text.fontSize = 18;
-        text.raycastTarget = false;
-        return btn;
-    }
+        => UiTheme.CreateStackedButton(parent, label, ref topY, step, onClick, UiTheme.ButtonTintMoss, 17);
 
     private static Button CreateSmallButton(Transform parent, string label, Vector2 anchorMin, Vector2 anchorMax, UnityEngine.Events.UnityAction onClick)
-    {
-        var go = new GameObject(label);
-        go.transform.SetParent(parent, false);
-        var rt = go.AddComponent<RectTransform>();
-        rt.anchorMin = anchorMin;
-        rt.anchorMax = anchorMax;
-        rt.offsetMin = Vector2.zero;
-        rt.offsetMax = Vector2.zero;
-
-        var img = go.AddComponent<Image>();
-        img.color = new Color(0.25f, 0.5f, 0.4f, 0.95f);
-        var btn = go.AddComponent<Button>();
-        btn.targetGraphic = img;
-        btn.onClick.AddListener(onClick);
-
-        var textGo = new GameObject("Text");
-        textGo.transform.SetParent(go.transform, false);
-        var trt = textGo.AddComponent<RectTransform>();
-        trt.anchorMin = Vector2.zero;
-        trt.anchorMax = Vector2.one;
-        trt.offsetMin = Vector2.zero;
-        trt.offsetMax = Vector2.zero;
-        var text = textGo.AddComponent<Text>();
-        text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (text.font == null)
-            text.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        text.text = label;
-        text.alignment = TextAnchor.MiddleCenter;
-        text.color = Color.white;
-        text.fontSize = 14;
-        text.raycastTarget = false;
-        return btn;
-    }
+        => UiTheme.CreateButton(parent, label, anchorMin, anchorMax, onClick, UiTheme.ButtonTintMoss, 13);
 }

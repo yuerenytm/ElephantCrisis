@@ -281,10 +281,14 @@ public class GroundItemManager : MonoBehaviour
 
         var sr = go.GetComponent<SpriteRenderer>();
         sr.sprite = SpriteFactory.CreateBorderedSprite(fill, border, 16, 2);
-        sr.sortingOrder = hasDoll ? 3 : 2;
+        var grid = GridManager.Instance;
+        sr.sortingOrder = grid.GetSortOrder(cell, hasDoll ? 35 : 30);
 
-        go.transform.position = GridManager.Instance.CellToWorld(cell) + new Vector3(0.32f, -0.32f, 0f);
+        // 东南角偏移（XZ），贴在格面高度上
+        go.transform.position = grid.CellToWorld(cell) + new Vector3(0.32f, 0.04f, -0.32f);
         go.transform.localScale = Vector3.one * (hasDoll ? 0.34f : 0.28f);
+        if (go.GetComponent<CameraBillboard>() == null)
+            go.AddComponent<CameraBillboard>();
 
         var viewer = VisibilityService.GetFogViewer();
         go.SetActive(viewer == null || VisibilityService.CanSeeCell(viewer, cell));
