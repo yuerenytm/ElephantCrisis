@@ -1,0 +1,11 @@
+# 逻辑 QA：基线 + Isolation Forest + Streamlit
+# 造数/日志依赖见 ../sim/requirements.txt（需能 import elephant_sim.log_io）
+-r ../sim/requirements.txt
+pytest>=7.0
+numpy>=1.24
+pandas>=2.0
+scikit-learn>=1.3
+joblib>=1.3
+streamlit>=1.28
+plotly>=5.18
+fpdf2>=2.7

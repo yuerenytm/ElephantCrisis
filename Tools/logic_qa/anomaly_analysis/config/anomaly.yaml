@@ -1,0 +1,12 @@
+isolation_forest:
+  n_estimators: 200
+  contamination: 0.02
+  random_state: 42
+  max_samples: auto
+
+# score_samples 越低越异常。训练时会按 contamination 分位自动校准并写入模型；
+# 下列值仅在关闭自动校准或旧模型时作为回退。
+score_threshold: null
+
+features:
+  use_hp_delta: true
