@@ -1,0 +1,51 @@
+﻿# Unity generated / cache (Game project)
+Game/[Ll]ibrary/
+Game/[Tt]emp/
+Game/[Oo]bj/
+Game/[Bb]uild/
+Game/[Bb]uilds/
+Game/[Ll]ogs/
+Game/[Uu]ser[Ss]ettings/
+Game/[Mm]emoryCaptures/
+Game/[Cc]rashReports/
+Game/ServerData/
+Game/**/StreamingAssets/aa/
+
+# Also match if patterns appear at repo root
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+[Mm]emoryCaptures/
+[Cc]rashReports/
+
+# IDE / OS junk
+.vs/
+.idea/
+.vscode/
+**/.DS_Store
+**/Thumbs.db
+
+# Python caches
+**/__pycache__/
+**/.pytest_cache/
+**/.mypy_cache/
+**/*.pyc
+
+# Tool run outputs (large JSONL / reports / models — not source)
+Tools/sim/output/
+Tools/sim/reports/
+Tools/logic_qa/reports/
+Tools/logic_qa/models/
+Tools/logic_qa/config/runtime/
+Tools/balance_advisor/reports/
+Tools/perf_analysis/reports/
+Tools/perf_analysis/samples/
+
+# Unity recovery / upgrade leftovers
+**/Assets/_Recovery/
+UpgradeLog.htm
+UpgradeLog*.htm

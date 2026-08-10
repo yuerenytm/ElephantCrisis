@@ -17,6 +17,8 @@ def main() -> int:
         "streamlit",
         "run",
         str(APP),
+        "--server.port",
+        "8502",
         "--browser.gatherUsageStats",
         "false",
     ]

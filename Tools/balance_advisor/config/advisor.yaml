@@ -1,0 +1,26 @@
+# 数值平衡顾问配置
+# 未公开前可把 api_key 写在这里；公开仓库前务必清空并改用环境变量。
+
+api:
+  api_key: "sk-30714e448c3c4e248c3f4640075e952a"
+  base_url: https://api.deepseek.com
+  model: deepseek-v4-flash
+  temperature: 0.3
+  timeout_sec: 120
+
+preprocess:
+  include_game_rules: true
+  include_overview_doc: true
+  overview_doc_max_chars: 8000
+  include_role_doc: true
+  role_doc_max_chars: 6000
+  # 只保留报告中的这些顶层字段，进一步压缩
+  report_keys:
+    - summary
+    - by_role
+    - strategy_usage
+
+advice:
+  win_rate_low: 0.12
+  win_rate_high: 0.38
+  prefer_yaml_fields: true   # 建议尽量落到 game_rules.yaml 可改字段

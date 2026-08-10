@@ -63,6 +63,77 @@ def test_dying_equip_without_heal_still_fails():
     assert "dying_no_draw" in _ids(check_match_events(events))
 
 
+def test_true_damage_amulet_full_block_ok():
+    """护身符可令真伤 dealt=0；仅部分减伤才违规。"""
+    events = [
+        {
+            "t": 1,
+            "type": "damage",
+            "actor": "none",
+            "target": "cat",
+            "kind": "true",
+            "raw": 12,
+            "dealt": 0,
+            "via": "cursed_blade",
+        }
+    ]
+    assert "dmg_true_no_mitigation" not in _ids(check_match_events(events))
+
+
+def test_no_turn_start_draw_flags_legacy_pattern():
+    events = [
+        {"t": 1, "type": "draw", "actor": "human", "item": "bomb"},
+        {"t": 2, "type": "turn_start", "actor": "human", "round": 1},
+    ]
+    assert "no_turn_start_draw" in _ids(check_match_events(events))
+
+
+def test_draw_after_turn_start_ok_for_leader():
+    """领袖宣言等：turn_start 之后再 draw 合法。"""
+    events = [
+        {"t": 1, "type": "turn_start", "actor": "human", "round": 1},
+        {"t": 2, "type": "draw", "actor": "human", "item": "bomb"},
+    ]
+    assert "no_turn_start_draw" not in _ids(check_match_events(events))
+
+
+def test_hidden_break_recognizes_melee_via():
+    events = [
+        {
+            "t": 1,
+            "type": "snapshot",
+            "round": 0,
+            "weather": "clear",
+            "hour": 6,
+            "lava_inset": 0,
+            "deck_draw": 0,
+            "units": [
+                {
+                    "role": "cat",
+                    "hp": 60,
+                    "max_hp": 60,
+                    "statuses": ["hidden"],
+                    "dead": False,
+                },
+                {"role": "human", "hp": 90, "max_hp": 90, "statuses": [], "dead": False},
+                {"role": "elephant", "hp": 100, "max_hp": 100, "statuses": [], "dead": False},
+                {"role": "monkey", "hp": 90, "max_hp": 90, "statuses": [], "dead": False},
+            ],
+        },
+        {
+            "t": 2,
+            "type": "damage",
+            "actor": "cat",
+            "target": "human",
+            "kind": "physical",
+            "raw": 10,
+            "dealt": 4,
+            "via": "melee",
+        },
+    ]
+    assert "hidden_break_on_attack" in _ids(check_match_events(events))
+
+
 def test_dead_no_action(fixture_dir: Path):
     events = load_events(fixture_dir / "match_bad_dead" / "events.jsonl")
     assert "dead_no_action" in _ids(check_match_events(events))

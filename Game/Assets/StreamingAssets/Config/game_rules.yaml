@@ -1,0 +1,92 @@
+# 本体与仿真共用：角色基础属性等。
+# Unity 从 StreamingAssets 加载；Tools/sim 默认也读本文件（路径：Game/Assets/...）。
+
+grid:
+  width: 18
+  height: 18
+  spawn_cells:
+    elephant: [2, 2]
+    human: [15, 2]
+    monkey: [2, 15]
+    cat: [15, 15]
+
+roles:
+  elephant: { move: 3, hp: 100, atk: 9, def: 10, bag: 30 }
+  human: { move: 5, hp: 90, atk: 10, def: 8, bag: 48 }
+  monkey: { move: 6, hp: 90, atk: 8, def: 6, bag: 36 }
+  cat: { move: 8, hp: 60, atk: 6, def: 4, bag: 30 }
+
+combat:
+  melee_range: 1
+  lava_true_damage: 20
+  burning_magic_damage: 10
+  poison_visibility: 1
+  dying_visibility: 1
+
+clock:
+  start_hour: 6
+  hours_per_round: 2
+  visibility:
+    dawn: 8
+    day: 10
+    dusk: 7
+    night: 5
+
+weather:
+  rain_def_mod: -3
+  rain_vis_mod: -1
+  fog_vis_mod: -2
+  # 变更后第 6–10 完整回合内再变
+  lock_min: 6
+  lock_max: 10
+
+lava:
+  shrink_every_rounds: 5
+
+match:
+  max_full_rounds: 80
+  draw_per_turn: 1
+
+deck:
+  small_potion: 5
+  large_potion: 2
+  bomb: 5
+  bow: 3
+  arrow: 12
+  wood_armor: 3
+  energy_shield: 3
+  banana_peel: 4
+  doll_elephant: 1
+  doll_human: 1
+  doll_monkey: 1
+  doll_cat: 1
+
+items:
+  small_potion_heal: 30
+  large_potion_heal: 60
+  bomb_damage: 24
+  bomb_radius: 2
+  bomb_range: 5
+  bow_atk: 2
+  bow_range: 3
+  wood_armor_def: 4
+  elephant_doll_def: 3
+  human_doll_atk: 3
+  human_doll_bag: 3
+  monkey_doll_move: 1
+  cat_doll_move: 1
+
+terrain:
+  sand_move: -1
+  swamp_move: -2
+  swamp_def: -3
+  ice_move: 1
+  ice_trip_chance: 0.2
+  highland_atk: 3
+  highland_def: 3
+  highland_range: 1
+
+deter:
+  # 象威慑：半径 -> 移动惩罚（对自己无效）
+  lv1_radius: 3
+  lv1_penalty: 1

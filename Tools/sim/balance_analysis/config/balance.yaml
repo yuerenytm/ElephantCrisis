@@ -1,0 +1,13 @@
+# 数值平衡统计默认约定
+
+default_matches: 100
+
+metrics:
+  - win_rate
+  - death_rate
+  - survival_rounds   # mean / p25 / median / p75
+  - end_reasons
+  - avg_full_rounds
+
+disclaimer: >
+  指标基于 Unity LogicSim（Game 启发式 AI）与种子集合，反映该策略下的相对强弱，不等于真人平衡结论。

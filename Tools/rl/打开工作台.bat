@@ -8,11 +8,12 @@ if not defined PY goto :no_python
 
 echo Starting RL workbench...
 echo Browser: http://localhost:8501
+echo NOTE: Port 8501 = RL. logic_qa uses 8502; balance_advisor uses 8503.
 echo Close this window to stop.
 echo NOTE: Close Game project Editor before Unity train/eval.
 echo Trainer needs Python 3.10 venv: Tools\rl\.venv
 echo.
-"%PY%" -m streamlit run "app\streamlit_app.py" --browser.gatherUsageStats false
+"%PY%" -m streamlit run "app\streamlit_app.py" --server.port 8501 --browser.gatherUsageStats false
 if errorlevel 1 goto :fail
 goto :eof
 
@@ -26,5 +27,6 @@ echo.
 echo Failed. Try:
 echo   py -3.10 -m venv .venv
 echo   .venv\Scripts\python -m pip install -r requirements.txt
+echo If port 8501 is busy, close the other Streamlit window first.
 pause
 exit /b 1

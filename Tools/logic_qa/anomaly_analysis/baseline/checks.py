@@ -31,6 +31,7 @@ def check_match_events(events: List[Dict[str, Any]], match_id: str = "") -> List
     viols.extend(_check_lava_shrink_monotonic(events))
     viols.extend(_check_hidden_break_on_attack(events))
     viols.extend(_check_dmg_hp_consistent(events))
+    viols.extend(_check_no_turn_start_draw(events))
     for v in viols:
         v.context.setdefault("match_id", match_id)
     return viols
@@ -66,14 +67,15 @@ def _check_damage_rules(events: List[Dict[str, Any]]) -> List[Violation]:
         except (TypeError, ValueError):
             continue
 
-        if kind == "true" and dealt_i != raw_i:
+        if kind == "true" and dealt_i != raw_i and dealt_i != 0:
+            # 真伤不可减防/护盾；仅允许全额（dealt==raw）或护身符等完全免伤（dealt==0）
             viols.append(
                 Violation(
                     "dmg_true_no_mitigation",
                     "critical",
                     t,
-                    f"真伤 dealt({dealt_i}) != raw({raw_i})",
-                    {"target": e.get("target"), "actor": e.get("actor")},
+                    f"真伤 dealt({dealt_i}) 既非 raw({raw_i}) 也非 0（部分减伤非法）",
+                    {"target": e.get("target"), "actor": e.get("actor"), "via": e.get("via")},
                 )
             )
         if kind == "physical":
@@ -330,13 +332,15 @@ def _check_lava_shrink_monotonic(events: List[Dict[str, Any]]) -> List[Violation
 
 def _check_hidden_break_on_attack(events: List[Dict[str, Any]]) -> List[Violation]:
     """
-    简化可观测规则：若某角色 damage(via melee/bow/bomb 或无 via 的角色主动伤害)
-    且攻击前最近 snapshot 该角色有 hidden，则中间须有 status break_attack / 或同 t 附近 clear。
+    简化可观测规则：若某角色主动伤害（melee / melee_pierce / bow / bomb 等）
+    且攻击前最近 snapshot 该角色有 hidden，则中间须有 status break_attack。
+    无来源真伤（actor=none，如诅咒之刃）不检此项。
     """
     viols: List[Violation] = []
     last_hidden: Dict[str, bool] = {r: False for r in ROLES}
     # 记录自上次 snapshot 以来的 break_attack
     broke_since_snap: Set[str] = set()
+    attack_vias = {None, "melee", "melee_pierce", "bow", "bomb", "shoot"}
 
     for e in events:
         typ = e.get("type")
@@ -361,8 +365,7 @@ def _check_hidden_break_on_attack(events: List[Dict[str, Any]]) -> List[Violatio
         if actor not in ROLES:
             continue
         via = e.get("via")
-        # 主动攻击：melee（无 via）、bow、bomb
-        if via not in (None, "bow", "bomb"):
+        if via not in attack_vias:
             continue
         if last_hidden.get(actor) and actor not in broke_since_snap:
             viols.append(
@@ -375,6 +378,39 @@ def _check_hidden_break_on_attack(events: List[Dict[str, Any]]) -> List[Violatio
                 )
             )
             last_hidden[actor] = False
+    return viols
+
+
+def _check_no_turn_start_draw(events: List[Dict[str, Any]]) -> List[Violation]:
+    """
+    现行规则：取消行动开始摸牌。旧引擎顺序为 DrawFor → EmitTurnStart，
+    故「同一 actor 的 draw 紧挨在 turn_start 之前」视为回归违规。
+    领袖宣言 / 技能摸牌发生在 turn_start 之后，不受本条约束。
+    """
+    viols: List[Violation] = []
+    prev_meaningful: Optional[Dict[str, Any]] = None
+    for e in events:
+        typ = e.get("type")
+        if typ in (None, "snapshot", "clock", "weather"):
+            continue
+        if typ == "turn_start" and prev_meaningful is not None:
+            if (
+                prev_meaningful.get("type") == "draw"
+                and prev_meaningful.get("actor")
+                and prev_meaningful.get("actor") == e.get("actor")
+            ):
+                t = int(e.get("t", 0))
+                actor = e.get("actor")
+                viols.append(
+                    Violation(
+                        "no_turn_start_draw",
+                        "critical",
+                        t,
+                        f"疑似行动开始摸牌回归: {actor} 在 turn_start 前有 draw",
+                        {"actor": actor, "item": prev_meaningful.get("item")},
+                    )
+                )
+        prev_meaningful = e
     return viols
 
 

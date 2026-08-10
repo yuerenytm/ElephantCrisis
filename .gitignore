@@ -26,6 +26,11 @@
 *.opendb
 *.VC.db
 
+# Python venv / caches (RL tools)
+Tools/rl/.venv/
+**/__pycache__/
+*.pyc
+
 # IDE / OS
 .vs/
 .vscode/
@@ -41,6 +46,8 @@ sysinfo.txt
 *.stackdump
 Assets/_Recovery/
 Assets/_Recovery.meta
+**/Assets/_Recovery/
+**/Assets/_Recovery.meta
 UpgradeLog.htm
 UpgradeLog*.htm
 

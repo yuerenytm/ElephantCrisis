@@ -44,7 +44,7 @@ py -3.10 -m venv .venv
 python scripts/run_workbench.py
 ```
 
-或双击 [`打开工作台.bat`](打开工作台.bat) / [`start_workbench.bat`](start_workbench.bat)（一般是 http://localhost:8501）。
+或双击 [`打开工作台.bat`](打开工作台.bat) / [`start_workbench.bat`](start_workbench.bat)（**http://localhost:8501**；logic_qa 为 8502）。
 
 页签：
 

@@ -42,7 +42,7 @@ python scripts/run_qa_pipeline.py --matches 30 --train
 python scripts/run_workbench.py
 ```
 
-或资源管理器中双击 [`打开工作台.bat`](打开工作台.bat)（会开浏览器，一般是 http://localhost:8501）。
+或资源管理器中双击 [`打开工作台.bat`](打开工作台.bat)（会开浏览器，**http://localhost:8502**；勿与 RL 的 8501 混淆）。
 
 测试：`pytest -q`
 
@@ -53,3 +53,16 @@ python scripts/run_workbench.py
 - **`clean`**：两边都没报警  
 
 缺陷故事请用真实跑批自行沉淀。
+
+## 基线与现行规则（摘要）
+
+近期规则变更后基线已对齐，重点包括：
+
+| 规则 id | 含义 |
+|---------|------|
+| `dmg_true_no_mitigation` | 真伤 `dealt` 须为 `raw` 或 `0`（护身符全免） |
+| `no_turn_start_draw` | 禁止旧式「draw → turn_start」行动开始摸牌 |
+| `hidden_break_on_attack` | 识别 `melee` / `melee_pierce` / `bow` / `bomb` 等 via |
+| `dying_no_draw` 等 | 濒死不可抽牌/用卡（仍有效） |
+
+开局牌库散落到地图后，snapshot 的 `deck_draw` 通常为 **0**；异常检测特征仍保留该字段。

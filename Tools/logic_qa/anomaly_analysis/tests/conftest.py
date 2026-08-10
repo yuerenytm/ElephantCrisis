@@ -26,7 +26,7 @@ def output_dir(sim_root: Path) -> Path:
     return sim_root / "output"
 
 
-def _snap(t: int, units, weather="clear", hour=6, round_=0, lava=0, deck=40):
+def _snap(t: int, units, weather="clear", hour=6, round_=0, lava=0, deck=0):
     return {
         "t": t,
         "type": "snapshot",
