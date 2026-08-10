@@ -32,6 +32,8 @@ def check_match_events(events: List[Dict[str, Any]], match_id: str = "") -> List
     viols.extend(_check_hidden_break_on_attack(events))
     viols.extend(_check_dmg_hp_consistent(events))
     viols.extend(_check_no_turn_start_draw(events))
+    viols.extend(_check_quasi_nonneg(events))
+    viols.extend(_check_quasi_equipped_dependency(events))
     for v in viols:
         v.context.setdefault("match_id", match_id)
     return viols
@@ -52,7 +54,22 @@ def _statuses(u: Dict[str, Any]) -> Set[str]:
 
 def _check_damage_rules(events: List[Dict[str, Any]]) -> List[Violation]:
     viols: List[Violation] = []
+    # 最近一次快照各角色法抗（百分比），供法伤精确公式校验（仅对攻击者发起的 melee_magic/molotov 适用，
+    # 因为防守方在攻击者行动内不会移动、天气在回合边界才变，快照法抗即结算法抗；
+    # burning/poison 的结算时刻与快照可能有地形时点差，只查边界）。
+    last_mr: Dict[str, int] = {}
     for e in events:
+        if e.get("type") == "snapshot":
+            for u in e.get("units") or []:
+                role = u.get("role")
+                if not role:
+                    continue
+                mr = u.get("magic_resist")
+                if isinstance(mr, int):
+                    last_mr[role] = mr
+                elif isinstance(mr, float):
+                    last_mr[role] = int(mr)
+            continue
         if e.get("type") != "damage":
             continue
         t = int(e.get("t", 0))
@@ -89,6 +106,34 @@ def _check_damage_rules(events: List[Dict[str, Any]]) -> List[Violation]:
                         {"target": e.get("target"), "actor": e.get("actor")},
                     )
                 )
+        if kind == "magic":
+            # 法伤：⌊raw × (1 − 法抗%)⌋，故 dealt 应在 [0, raw]
+            if dealt_i < 0 or dealt_i > raw_i:
+                viols.append(
+                    Violation(
+                        "dmg_magic_bound",
+                        "critical",
+                        t,
+                        f"法伤 dealt({dealt_i}) 不在 [0, raw={raw_i}]（法抗只能减免）",
+                        {"target": e.get("target"), "actor": e.get("actor")},
+                    )
+                )
+                continue
+            # 精确公式校验：dealt 应为 ⌊raw × (1 − mr%)⌋，或为 0（护盾全额吸收）
+            if e.get("via") in ("melee_magic", "molotov"):
+                mr = last_mr.get(e.get("target"))
+                if isinstance(mr, int):
+                    expected = raw_i * (100 - mr) // 100
+                    if dealt_i != expected and dealt_i != 0:
+                        viols.append(
+                            Violation(
+                                "dmg_magic_formula",
+                                "major",
+                                t,
+                                f"法伤 dealt({dealt_i}) ≠ ⌊raw({raw_i}) × (1 − {mr}%)⌋ = {expected}，且非 0（护盾全额吸收）",
+                                {"target": e.get("target"), "actor": e.get("actor"), "via": e.get("via")},
+                            )
+                        )
     return viols
 
 
@@ -340,7 +385,7 @@ def _check_hidden_break_on_attack(events: List[Dict[str, Any]]) -> List[Violatio
     last_hidden: Dict[str, bool] = {r: False for r in ROLES}
     # 记录自上次 snapshot 以来的 break_attack
     broke_since_snap: Set[str] = set()
-    attack_vias = {None, "melee", "melee_pierce", "bow", "bomb", "shoot"}
+    attack_vias = {None, "melee", "melee_magic", "melee_pierce", "bow", "bomb", "shoot"}
 
     for e in events:
         typ = e.get("type")
@@ -353,7 +398,12 @@ def _check_hidden_break_on_attack(events: List[Dict[str, Any]]) -> List[Violatio
                     continue
                 last_hidden[role] = (not u.get("dead")) and ("hidden" in _statuses(u))
             continue
-        if typ == "status" and e.get("status") == "hidden" and e.get("op") in ("break_attack",):
+        if typ == "status" and e.get("status") == "hidden" and e.get("op") in (
+            "break_attack",
+            "leave_jungle",
+            "amulet_expire",
+        ):
+            # 隐匿解除途径：攻击破隐 / 离开丛林（丛林来源）/ 护身符到期
             actor = e.get("actor")
             if actor:
                 broke_since_snap.add(actor)
@@ -504,4 +554,100 @@ def _check_dmg_hp_consistent(events: List[Dict[str, Any]]) -> List[Violation]:
             actor = e.get("actor")
             if actor:
                 skip_roles.add(actor)
+    return viols
+
+
+# ---- 准状态基线：弩蓄力 / 摩托发动 / 红牛 / 护盾 / CD 等计数器 ----
+# 这些不是具名状态，但影响结算；snapshot 现在输出它们，供此处检测回归。
+
+
+def _bag_items(u: Dict[str, Any]) -> List[Dict[str, Any]]:
+    return u.get("bag_items") or []
+
+
+def _has_equipped(u: Dict[str, Any], kind: str) -> bool:
+    return any(it.get("kind") == kind and bool(it.get("equipped")) for it in _bag_items(u))
+
+
+def _check_quasi_nonneg(events: List[Dict[str, Any]]) -> List[Violation]:
+    """准状态计数器不得为负（弩蓄力/摩托回合/红牛/护盾/CD/濒死倒数/肾上腺素）。"""
+    viols: List[Violation] = []
+    keys = (
+        "motorcycle_active",
+        "pending_extra_actions",
+        "skill_cooldown",
+        "skill_shield",
+        "amulet_shield",
+        "adrenaline_rounds",
+        "dying_rounds",
+        "flamethrower_cooldown",
+    )
+    for e in events:
+        if e.get("type") != "snapshot":
+            continue
+        t = int(e.get("t", 0))
+        for u in e.get("units") or []:
+            role = u.get("role")
+            if not role:
+                continue
+            for k in keys:
+                v = u.get(k)
+                if v is None:
+                    continue
+                try:
+                    vi = int(v)
+                except (TypeError, ValueError):
+                    continue
+                if vi < 0:
+                    viols.append(
+                        Violation(
+                            "quasi_nonneg",
+                            "critical",
+                            t,
+                            f"{role} 准状态 {k}={vi} < 0",
+                            {"role": role, "key": k, "value": vi},
+                        )
+                    )
+    return viols
+
+
+def _check_quasi_equipped_dependency(events: List[Dict[str, Any]]) -> List[Violation]:
+    """
+    蓄力弩 / 发动中的摩托必须以对应装备为前提：
+    - crossbow_charged=true → bag_items 中须有 equipped 的 crossbow（卸下弩会清除蓄力）。
+    - motorcycle_active>0 → 须有 equipped 的 motorcycle（熄火/卸下后归 0）。
+    """
+    viols: List[Violation] = []
+    for e in events:
+        if e.get("type") != "snapshot":
+            continue
+        t = int(e.get("t", 0))
+        for u in e.get("units") or []:
+            role = u.get("role")
+            if not role or u.get("dead"):
+                continue
+            if u.get("crossbow_charged") and not _has_equipped(u, "crossbow"):
+                viols.append(
+                    Violation(
+                        "quasi_crossbow_requires_equipped",
+                        "critical",
+                        t,
+                        f"{role} crossbow_charged 但未装备弩",
+                        {"role": role},
+                    )
+                )
+            try:
+                mc = int(u.get("motorcycle_active") or 0)
+            except (TypeError, ValueError):
+                continue
+            if mc > 0 and not _has_equipped(u, "motorcycle"):
+                viols.append(
+                    Violation(
+                        "quasi_motorcycle_requires_equipped",
+                        "critical",
+                        t,
+                        f"{role} motorcycle_active={mc} 但未装备摩托车",
+                        {"role": role, "rounds": mc},
+                    )
+                )
     return viols

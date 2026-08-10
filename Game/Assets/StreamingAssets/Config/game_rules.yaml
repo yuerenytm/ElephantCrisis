@@ -11,10 +11,10 @@ grid:
     cat: [15, 15]
 
 roles:
-  elephant: { move: 3, hp: 100, atk: 9, def: 10, bag: 30 }
-  human: { move: 5, hp: 90, atk: 10, def: 8, bag: 48 }
-  monkey: { move: 6, hp: 90, atk: 8, def: 6, bag: 36 }
-  cat: { move: 8, hp: 60, atk: 6, def: 4, bag: 30 }
+  elephant: { move: 3, hp: 100, atk: 9, def: 10, bag: 30, magic_resist: 0 }
+  human: { move: 5, hp: 90, atk: 10, def: 8, bag: 48, magic_resist: 20 }
+  monkey: { move: 6, hp: 90, atk: 8, def: 6, bag: 36, magic_resist: 20 }
+  cat: { move: 8, hp: 60, atk: 6, def: 4, bag: 30, magic_resist: 50 }
 
 combat:
   melee_range: 1

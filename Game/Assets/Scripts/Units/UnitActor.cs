@@ -158,6 +158,21 @@ public class UnitActor : MonoBehaviour
     public int Def => BaseDef + PermDef + GetDollDefBonus() + (Inventory?.GetArmorDefenseBonus() ?? 0)
         + GetStatusDefMod() + GetTerrainDefMod() + WeatherService.GetDefMod(this);
 
+    /// <summary>基础法抗（game_rules.yaml，百分比：象 0 / 人 20 / 猴 20 / 猫 50）。</summary>
+    public int BaseMagicResist { get; private set; }
+
+    private int GetTerrainMagicResistMod() => TerrainInfo.GetMagicResistMod(CurrentTile);
+
+    /// <summary>法伤结算用百分比（0–100），下限 0：基础 + 地形（丛林+20/沙−10/沼−20）+ 天气（雨+25/雾+10）。</summary>
+    public int MagicResist
+    {
+        get
+        {
+            if (IsDead) return 0;
+            return Mathf.Max(0, BaseMagicResist + GetTerrainMagicResistMod() + WeatherService.GetMagicResistMod(this));
+        }
+    }
+
     public const int MaxPoisonStacks = 3;
 
     /// <summary>存活时移动力下限恒为 1（含濒死、满层中毒等）；死亡为 0。</summary>
@@ -691,6 +706,7 @@ public class UnitActor : MonoBehaviour
         BaseMove = move;
         BaseAtk = atk;
         BaseDef = def;
+        BaseMagicResist = RoleInfo.GetMagicResist(role);
         MaxHp = hp;
         Hp = hp;
         BagCapacity = bag;
@@ -893,7 +909,7 @@ public class UnitActor : MonoBehaviour
     /// <summary>
     /// amount 为伤害基础值。
     /// 物伤：护盾 → 减防 → 耗甲耐久。
-    /// 法伤：护盾可吸收；不减防、不耗甲（法抗未实装）。
+    /// 法伤：护盾可吸收；不减防、不耗甲，按 ⌊伤害 × (1 − 法抗%)⌋ 结算（下限 0）。
     /// 真伤：不减防、不耗甲、护盾不可吸收，直接扣血。
     /// 护身符：即将致命时免伤一次，并获得临时能量护盾与隐匿。
     /// fromBombOrMine：炸弹/高爆/地雷；装备战术背心时结算后再额外 −2。
@@ -938,9 +954,13 @@ public class UnitActor : MonoBehaviour
             }
         }
 
-        int applied = (magicDamage || trueDamage)
-            ? amount
-            : Mathf.Max(0, amount - GetDefenseForPhysicalHit(ignoreArmorDefense));
+        int applied;
+        if (trueDamage)
+            applied = amount;
+        else if (magicDamage)
+            applied = Mathf.FloorToInt(amount * (1f - MagicResist * 0.01f));
+        else
+            applied = Mathf.Max(0, amount - GetDefenseForPhysicalHit(ignoreArmorDefense));
         if (fromBombOrMine && !trueDamage && ItemInfo.HasEquippedTacticalVest(this))
             applied = Mathf.Max(0, applied - 2);
 
@@ -1341,7 +1361,7 @@ public class UnitActor : MonoBehaviour
     {
         if (IsDead) return "已死亡";
         if (IsDying) return $"濒死(剩余{DyingRoundsLeft}回合) 能见度1";
-        return $"移{CurrentMove} 血{Hp}/{MaxHp} 攻{CurrentAtk} 防{CurrentDef} 视{CurrentVisibility} 包{Inventory.UsedWeight:0.##}/{CurrentBagCapacity:0.##} 偶{Inventory.CountDolls()} 技{SkillInfo.GetSkillName(Role)}Lv{SkillLevel}";
+        return $"移{CurrentMove} 血{Hp}/{MaxHp} 攻{CurrentAtk} 防{CurrentDef} 法抗{MagicResist}% 视{CurrentVisibility} 包{Inventory.UsedWeight:0.##}/{CurrentBagCapacity:0.##} 偶{Inventory.CountDolls()} 技{SkillInfo.GetSkillName(Role)}Lv{SkillLevel}";
     }
 
     public string GetHoverStatusText()
@@ -1352,7 +1372,7 @@ public class UnitActor : MonoBehaviour
             return $"{RoleInfo.GetDisplayName(Role)}  ·  濒死（剩余{DyingRoundsLeft}回合）  能见度1  移{CurrentMove}";
 
         return $"{RoleInfo.GetDisplayName(Role)}  ·  " +
-               $"移 {CurrentMove}   血 {Hp}/{MaxHp}   攻 {CurrentAtk}   防 {CurrentDef}   视 {CurrentVisibility}   " +
+               $"移 {CurrentMove}   血 {Hp}/{MaxHp}   攻 {CurrentAtk}   防 {CurrentDef}   法抗 {MagicResist}%   视 {CurrentVisibility}   " +
                $"包 {Inventory.UsedWeight:0.##}/{CurrentBagCapacity:0.##}   玩偶 {Inventory.CountDolls()}   " +
                $"{SkillInfo.GetSkillName(Role)} Lv{SkillLevel}" +
                (SkillCooldownLeft > 0 ? $" CD{SkillCooldownLeft}" : "") +

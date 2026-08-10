@@ -43,6 +43,12 @@ public static class RoleInfo
         bag = s.Bag;
     }
 
+    /// <summary>角色基础法抗（百分比 0–100），法伤结算：⌊伤害 × (1 − 法抗%)⌋。象为 0（法伤克制其高物防）。</summary>
+    public static int GetMagicResist(RoleType role)
+    {
+        return GameRulesConfig.GetRoleStats(role).MagicResist;
+    }
+
     public static ItemKind GetOwnDoll(RoleType role)
     {
         switch (role)

@@ -426,8 +426,15 @@ public static class SimpleHeuristicAi
             }
             else
             {
-                expected = Mathf.Max(0,
-                    unit.MeleeAtk - other.GetDefenseForPhysicalHit(ItemInfo.MeleeIgnoresArmor(unit)));
+                // 猫普攻为法伤：按目标法抗百分比估算；其余按物防（破甲武器可无视防具防御）
+                float resist = unit.Role == RoleType.Cat
+                    ? other.MagicResist * 0.01f
+                    : 0f;
+                int physical = unit.Role == RoleType.Cat
+                    ? 0
+                    : other.GetDefenseForPhysicalHit(ItemInfo.MeleeIgnoresArmor(unit));
+                expected = Mathf.FloorToInt(unit.MeleeAtk * (1f - resist)) - physical;
+                expected = Mathf.Max(0, expected);
                 score = expected * 10f - dist;
             }
 

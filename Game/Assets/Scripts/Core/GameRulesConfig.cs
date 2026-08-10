@@ -17,13 +17,14 @@ public static class GameRulesConfig
         public int Atk;
         public int Def;
         public int Bag;
+        public int MagicResist;
     }
 
     private static bool loaded;
     private static readonly Dictionary<RoleType, RoleBaseStats> roleStats = new Dictionary<RoleType, RoleBaseStats>();
 
     private static readonly Regex InlineRole = new Regex(
-        @"^\s*(elephant|human|monkey|cat)\s*:\s*\{\s*move\s*:\s*(-?\d+)\s*,\s*hp\s*:\s*(-?\d+)\s*,\s*atk\s*:\s*(-?\d+)\s*,\s*def\s*:\s*(-?\d+)\s*,\s*bag\s*:\s*(-?\d+)\s*\}\s*$",
+        @"^\s*(elephant|human|monkey|cat)\s*:\s*\{\s*move\s*:\s*(-?\d+)\s*,\s*hp\s*:\s*(-?\d+)\s*,\s*atk\s*:\s*(-?\d+)\s*,\s*def\s*:\s*(-?\d+)\s*,\s*bag\s*:\s*(-?\d+)\s*(,\s*magic_resist\s*:\s*(-?\d+))?\s*\}\s*$",
         RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
@@ -131,6 +132,9 @@ public static class GameRulesConfig
                     Atk = int.Parse(m.Groups[4].Value),
                     Def = int.Parse(m.Groups[5].Value),
                     Bag = int.Parse(m.Groups[6].Value),
+                    MagicResist = m.Groups.Count > 8 && m.Groups[8].Success
+                        ? int.Parse(m.Groups[8].Value)
+                        : Fallback(role).MagicResist,
                 };
             }
         }
@@ -163,15 +167,15 @@ public static class GameRulesConfig
         switch (role)
         {
             case RoleType.Elephant:
-                return new RoleBaseStats { Move = 3, Hp = 100, Atk = 9, Def = 10, Bag = 30 };
+                return new RoleBaseStats { Move = 3, Hp = 100, Atk = 9, Def = 10, Bag = 30, MagicResist = 0 };
             case RoleType.Human:
-                return new RoleBaseStats { Move = 5, Hp = 90, Atk = 10, Def = 8, Bag = 48 };
+                return new RoleBaseStats { Move = 5, Hp = 90, Atk = 10, Def = 8, Bag = 48, MagicResist = 20 };
             case RoleType.Monkey:
-                return new RoleBaseStats { Move = 6, Hp = 90, Atk = 8, Def = 6, Bag = 36 };
+                return new RoleBaseStats { Move = 6, Hp = 90, Atk = 8, Def = 6, Bag = 36, MagicResist = 20 };
             case RoleType.Cat:
-                return new RoleBaseStats { Move = 8, Hp = 60, Atk = 6, Def = 4, Bag = 30 };
+                return new RoleBaseStats { Move = 8, Hp = 60, Atk = 6, Def = 4, Bag = 30, MagicResist = 50 };
             default:
-                return new RoleBaseStats { Move = 4, Hp = 90, Atk = 9, Def = 8, Bag = 30 };
+                return new RoleBaseStats { Move = 4, Hp = 90, Atk = 9, Def = 8, Bag = 30, MagicResist = 20 };
         }
     }
 }

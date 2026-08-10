@@ -35,6 +35,34 @@ def events_between(
     return out
 
 
+def _quasi_text(u: Dict[str, Any]) -> str:
+    parts = []
+    if u.get("crossbow_charged"):
+        parts.append("弩蓄力")
+    mc = u.get("motorcycle_active") or 0
+    if mc > 0:
+        parts.append(f"摩托{mc}")
+    rx = u.get("pending_extra_actions") or 0
+    if rx > 0:
+        parts.append(f"红牛×{rx}")
+    ad = u.get("adrenaline_rounds") or 0
+    if ad > 0:
+        parts.append(f"肾上腺素{ad}")
+    ss = u.get("skill_shield") or 0
+    if ss > 0:
+        parts.append(f"技能盾{ss}")
+    ams = u.get("amulet_shield") or 0
+    if ams > 0:
+        parts.append(f"护符盾{ams}")
+    sc = u.get("skill_cooldown") or 0
+    if sc > 0:
+        parts.append(f"CD{sc}")
+    dr = u.get("dying_rounds")
+    if dr:
+        parts.append(f"濒死{dr}")
+    return " ".join(parts) or "-"
+
+
 def unit_table_rows(snapshot: Dict[str, Any]) -> List[Dict[str, Any]]:
     rows = []
     for u in snapshot.get("units") or []:
@@ -51,6 +79,7 @@ def unit_table_rows(snapshot: Dict[str, Any]) -> List[Dict[str, Any]]:
                     "tile": "-",
                     "statuses": "dead",
                     "bag": "",
+                    "quasi": "-",
                 }
             )
             continue
@@ -65,6 +94,7 @@ def unit_table_rows(snapshot: Dict[str, Any]) -> List[Dict[str, Any]]:
                 "tile": u.get("tile"),
                 "statuses": ",".join(u.get("statuses") or []) or "-",
                 "bag": ",".join(u.get("bag") or []) or "-",
+                "quasi": _quasi_text(u),
             }
         )
     return rows

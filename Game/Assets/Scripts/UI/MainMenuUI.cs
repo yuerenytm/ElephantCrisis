@@ -237,7 +237,7 @@ public class MainMenuUI : MonoBehaviour
             var role = roles[i];
             string label = RoleInfo.GetDisplayName(role);
             RoleInfo.GetBaseStats(role, out int move, out int hp, out int atk, out int def, out int bag);
-            string text = $"{label}    移{move} 血{hp} 攻{atk} 防{def} 包{bag}";
+            string text = $"{label}    移{move} 血{hp} 攻{atk} 防{def} 法抗{RoleInfo.GetMagicResist(role)}% 包{bag}";
             float bottom = y - step + 0.015f;
             CreateMenuButton(plate, text, ref y, step, colors[i], () =>
             {

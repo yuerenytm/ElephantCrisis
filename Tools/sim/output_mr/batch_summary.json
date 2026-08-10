@@ -1,0 +1,47 @@
+{
+  "summary": {
+    "matches": 2,
+    "winners": {
+      "human": 1,
+      "elephant": 1
+    },
+    "reasons": {
+      "last_standing": 2
+    },
+    "avg_rounds": 32.5,
+    "avg_events": 544.0,
+    "engine": "game_logic_sim"
+  },
+  "results": [
+    {
+      "seed": 1,
+      "path": "C:\\Users\\Administrator\\Projects\\ElephantCrisis\\Tools\\sim\\output_mr\\match_1",
+      "winner": "human",
+      "reason": "last_standing",
+      "full_rounds": 30,
+      "events": 481,
+      "strategies": {
+        "elephant": "game_heuristic",
+        "human": "game_heuristic",
+        "monkey": "game_heuristic",
+        "cat": "game_heuristic"
+      },
+      "source": "game_logic_sim"
+    },
+    {
+      "seed": 2,
+      "path": "C:\\Users\\Administrator\\Projects\\ElephantCrisis\\Tools\\sim\\output_mr\\match_2",
+      "winner": "elephant",
+      "reason": "last_standing",
+      "full_rounds": 35,
+      "events": 607,
+      "strategies": {
+        "elephant": "game_heuristic",
+        "human": "game_heuristic",
+        "monkey": "game_heuristic",
+        "cat": "game_heuristic"
+      },
+      "source": "game_logic_sim"
+    }
+  ]
+}

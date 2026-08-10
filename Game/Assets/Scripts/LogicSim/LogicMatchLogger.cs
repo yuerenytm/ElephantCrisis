@@ -275,6 +275,9 @@ public sealed class LogicMatchLogger
     {
         var bag = new StringBuilder();
         bag.Append('[');
+        // bag_items：物品详情（kind/charges/equipped），供准状态基线（诅咒刃次数、甲耐久、弹药支数等）
+        var bagItems = new StringBuilder();
+        bagItems.Append('[');
         if (u.Inventory != null)
         {
             bool first = true;
@@ -284,8 +287,20 @@ public sealed class LogicMatchLogger
                 first = false;
                 bag.Append(Q(LogicSimNaming.Item(it.Kind)));
             }
+            bool bf = true;
+            foreach (var it in u.Inventory.Items)
+            {
+                if (!bf) bagItems.Append(',');
+                bf = false;
+                bagItems.Append('{')
+                    .Append("\"kind\":").Append(Q(LogicSimNaming.Item(it.Kind))).Append(',')
+                    .Append("\"charges\":").Append(I(it.Charges)).Append(',')
+                    .Append("\"equipped\":").Append(B(it.Equipped))
+                    .Append('}');
+            }
         }
         bag.Append(']');
+        bagItems.Append(']');
 
         var statuses = new StringBuilder();
         statuses.Append('[');
@@ -319,14 +334,30 @@ public sealed class LogicMatchLogger
         sb.Append("\"max_hp\":").Append(u.MaxHp).Append(',');
         sb.Append("\"atk\":").Append(u.CurrentAtk).Append(',');
         sb.Append("\"def\":").Append(u.CurrentDef).Append(',');
+        sb.Append("\"magic_resist\":").Append(u.MagicResist).Append(',');
         sb.Append("\"move\":").Append(u.CurrentMove).Append(',');
         sb.Append("\"vis\":").Append(u.CurrentVisibility).Append(',');
         sb.Append("\"bag\":").Append(bag).Append(',');
+        sb.Append("\"bag_items\":").Append(bagItems).Append(',');
         sb.Append("\"weight\":").Append(F(u.Inventory != null ? u.Inventory.UsedWeight : 0f)).Append(',');
         sb.Append("\"cap\":").Append(F(u.Inventory != null ? u.Inventory.Capacity : 0f)).Append(',');
         sb.Append("\"statuses\":").Append(statuses).Append(',');
         sb.Append("\"skill_level\":").Append(u.SkillLevel).Append(',');
         sb.Append("\"tile\":").Append(Q(LogicSimNaming.Tile(tile)));
+        // 准状态：计数器/布尔（非具名状态，但影响结算，供 logic_qa 基线）
+        sb.Append(",\"crossbow_charged\":").Append(B(u.CrossbowCharged));
+        sb.Append(",\"crossbow_charged_this_action\":").Append(B(u.CrossbowChargedThisAction));
+        sb.Append(",\"motorcycle_active\":").Append(u.MotorcycleActiveRounds);
+        sb.Append(",\"pending_extra_actions\":").Append(u.PendingExtraActions);
+        sb.Append(",\"skill_cooldown\":").Append(u.SkillCooldownLeft);
+        sb.Append(",\"skill_shield\":").Append(u.SkillShieldCharges);
+        sb.Append(",\"amulet_shield\":").Append(u.AmuletShieldCharges);
+        sb.Append(",\"amulet_buff\":").Append(B(u.AmuletBuffActive));
+        sb.Append(",\"adrenaline_rounds\":").Append(u.AdrenalineRoundsLeft);
+        sb.Append(",\"hidden_from_jungle\":").Append(B(u.HiddenFromJungle));
+        sb.Append(",\"dying_rounds\":").Append(u.DyingRoundsLeft);
+        sb.Append(",\"leader_declared\":").Append(B(u.HasUsedLeaderDeclaration));
+        sb.Append(",\"flamethrower_cooldown\":").Append(u.FlamethrowerCooldown);
         if (u.IsDead)
             sb.Append(",\"dead\":true");
         sb.Append('}');
@@ -387,5 +418,6 @@ public sealed class LogicMatchLogger
 
     private static string I(int v) => v.ToString(CultureInfo.InvariantCulture);
     private static string F(float v) => v.ToString("0.###", CultureInfo.InvariantCulture);
+    private static string B(bool v) => v ? "true" : "false";
     private static string Cell(Vector2Int c) => "[" + c.x + "," + c.y + "]";
 }

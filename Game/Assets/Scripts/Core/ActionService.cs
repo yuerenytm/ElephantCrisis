@@ -247,19 +247,22 @@ public static class ActionService
 
         BreakStealthIfAttacking(attacker, defender);
         int raw = attacker.MeleeAtk;
+        // 猫的普攻为法伤（法系输出定位：穿高物防，但受目标法抗减免、不耗甲耐久）
+        bool magicMelee = attacker.Role == RoleType.Cat;
         bool thorns = ItemInfo.HasEquippedThornsArmor(defender);
         bool pierce = ItemInfo.MeleeIgnoresArmor(attacker);
-        int dealt = defender.TakeDamage(raw, magicDamage: false, ignoreArmorDefense: pierce);
+        int dealt = defender.TakeDamage(raw, magicDamage: magicMelee, ignoreArmorDefense: pierce && !magicMelee);
         LogicMatchLogger.Active?.EmitDamage(
             LogicSimNaming.Role(attacker.Role),
             LogicSimNaming.Role(defender.Role),
-            "physical", raw, dealt, pierce ? "melee_pierce" : "melee");
+            magicMelee ? "magic" : "physical", raw, dealt,
+            magicMelee ? "melee_magic" : pierce ? "melee_pierce" : "melee");
         TurnManager.Instance.MarkMeleeAttacked();
         TurnManager.Instance.Log(
             $"{RoleInfo.GetDisplayName(attacker.Role)} 近战攻击 {RoleInfo.GetDisplayName(defender.Role)}" +
-            (pierce ? "（破甲）" : "") +
+            (magicMelee ? "（法伤）" : pierce ? "（破甲）" : "") +
             $"，造成 {dealt} 伤害" +
-            (defender.IsDead ? "（击杀）" : defender.IsDying ? "（濒死）" : dealt <= 0 ? "（被挡下）" : $"（剩余HP {defender.Hp}）"));
+            (defender.IsDead ? "（击杀）" : defender.IsDying ? "（濒死）" : dealt <= 0 ? (magicMelee ? "（法抗抵消）" : "（被挡下）") : $"（剩余HP {defender.Hp}）"));
 
         if (thorns)
             TryThornsReflect(attacker, defender, dealt);

@@ -42,8 +42,8 @@ public static class WeatherService
     {
         switch (weather)
         {
-            case WeatherType.Rain: return "防-3 视-1；浇灭格火/着火且不可再燃";
-            case WeatherType.Fog: return "视-2";
+            case WeatherType.Rain: return "防-3 视-1 法抗+25；浇灭格火/着火且不可再燃";
+            case WeatherType.Fog: return "视-2 法抗+10";
             default: return "无额外修正";
         }
     }
@@ -113,6 +113,17 @@ public static class WeatherService
         if (ItemInfo.HasEquippedRubberRaincoat(unit))
             return 0;
         return -3;
+    }
+
+    /// <summary>天气法抗修正（百分比，平值相加，下限 0 由 UnitActor.MagicResist 统一夹取）。雨天 +25、雾天 +10。</summary>
+    public static int GetMagicResistMod(UnitActor unit = null)
+    {
+        switch (Current)
+        {
+            case WeatherType.Rain: return 25;
+            case WeatherType.Fog: return 10;
+            default: return 0;
+        }
     }
 
     public static bool BlocksBurning => Current == WeatherType.Rain;

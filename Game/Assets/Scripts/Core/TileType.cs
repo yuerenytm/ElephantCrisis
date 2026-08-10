@@ -33,10 +33,10 @@ public static class TerrainInfo
     {
         switch (type)
         {
-            case TileType.Sand: return "移动力-1";
-            case TileType.Swamp: return "中毒；每行动始叠层；离开清地形层";
+            case TileType.Sand: return "移动力-1；法抗-10";
+            case TileType.Swamp: return "中毒；每行动始叠层；离开清地形层；法抗-20";
             case TileType.Ice: return "移动力+1；行动开始20%跌倒";
-            case TileType.Jungle: return "进入获得隐匿";
+            case TileType.Jungle: return "进入获得隐匿；法抗+20";
             case TileType.Highland: return "攻击+3 防御+3 射程+1";
             case TileType.Lava: return "行动开始20真伤";
             default: return "无修正";
@@ -114,6 +114,18 @@ public static class TerrainInfo
         {
             case TileType.Highland: return 3;
             default: return 0; // 沼泽不再直接改防御（经中毒状态）
+        }
+    }
+
+    /// <summary>地形法抗修正（百分比，平值相加，下限 0 由 UnitActor.MagicResist 统一夹取）。丛林 +20、沙地 −10、沼泽 −20。</summary>
+    public static int GetMagicResistMod(TileType type)
+    {
+        switch (type)
+        {
+            case TileType.Jungle: return 20;
+            case TileType.Sand: return -10;
+            case TileType.Swamp: return -20;
+            default: return 0;
         }
     }
 

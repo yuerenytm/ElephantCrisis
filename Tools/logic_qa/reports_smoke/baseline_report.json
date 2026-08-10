@@ -1,0 +1,54 @@
+{
+  "summary": {
+    "matches": 2,
+    "passed": 2,
+    "failed": 0,
+    "total_violations": 0,
+    "by_rule": {},
+    "quarantine": []
+  },
+  "matches": [
+    {
+      "match_id": "match_1",
+      "path": "C:\\Users\\Administrator\\Projects\\ElephantCrisis\\Tools\\sim\\output_smoke\\match_1",
+      "meta": {
+        "seed": 1,
+        "strategies": {
+          "elephant": "game_heuristic",
+          "human": "game_heuristic",
+          "monkey": "game_heuristic",
+          "cat": "game_heuristic"
+        },
+        "winner": "human",
+        "reason": "last_standing",
+        "full_rounds": 30,
+        "events": 481,
+        "source": "game_logic_sim"
+      },
+      "violation_count": 0,
+      "violations": [],
+      "pass": true
+    },
+    {
+      "match_id": "match_2",
+      "path": "C:\\Users\\Administrator\\Projects\\ElephantCrisis\\Tools\\sim\\output_smoke\\match_2",
+      "meta": {
+        "seed": 2,
+        "strategies": {
+          "elephant": "game_heuristic",
+          "human": "game_heuristic",
+          "monkey": "game_heuristic",
+          "cat": "game_heuristic"
+        },
+        "winner": "human",
+        "reason": "last_standing",
+        "full_rounds": 34,
+        "events": 600,
+        "source": "game_logic_sim"
+      },
+      "violation_count": 0,
+      "violations": [],
+      "pass": true
+    }
+  ]
+}

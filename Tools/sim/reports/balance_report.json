@@ -1,19 +1,18 @@
 {
   "summary": {
-    "matches": 1000,
-    "avg_full_rounds": 22.338,
+    "matches": 10,
+    "avg_full_rounds": 28.8,
     "full_rounds": {
-      "mean": 22.338,
-      "p25": 18.0,
-      "median": 22.0,
-      "p75": 26.0,
-      "min": 9,
-      "max": 44,
-      "n": 1000
+      "mean": 28.8,
+      "p25": 25.75,
+      "median": 30.0,
+      "p75": 32.0,
+      "min": 18,
+      "max": 37,
+      "n": 10
     },
     "end_reasons": {
-      "last_standing": 884,
-      "all_dolls": 116
+      "last_standing": 10
     },
     "roles": [
       "elephant",
@@ -25,98 +24,98 @@
   },
   "by_role": {
     "elephant": {
-      "matches": 1000,
-      "wins": 397,
-      "win_rate": 0.397,
-      "deaths": 546,
-      "death_rate": 0.546,
-      "survived_to_end": 454,
-      "survive_to_end_rate": 0.454,
+      "matches": 10,
+      "wins": 1,
+      "win_rate": 0.1,
+      "deaths": 9,
+      "death_rate": 0.9,
+      "survived_to_end": 1,
+      "survive_to_end_rate": 0.1,
       "survival_rounds": {
-        "mean": 22.011,
-        "p25": 18.0,
-        "median": 21.0,
-        "p75": 26.0,
-        "min": 9,
-        "max": 44,
-        "n": 1000
+        "mean": 28.8,
+        "p25": 25.75,
+        "median": 30.0,
+        "p75": 32.0,
+        "min": 18,
+        "max": 37,
+        "n": 10
       }
     },
     "human": {
-      "matches": 1000,
-      "wins": 527,
-      "win_rate": 0.527,
-      "deaths": 435,
-      "death_rate": 0.435,
-      "survived_to_end": 565,
-      "survive_to_end_rate": 0.565,
+      "matches": 10,
+      "wins": 9,
+      "win_rate": 0.9,
+      "deaths": 1,
+      "death_rate": 0.1,
+      "survived_to_end": 9,
+      "survive_to_end_rate": 0.9,
       "survival_rounds": {
-        "mean": 20.757,
-        "p25": 17.0,
-        "median": 20.0,
-        "p75": 24.0,
-        "min": 6,
-        "max": 43,
-        "n": 1000
+        "mean": 28.8,
+        "p25": 25.75,
+        "median": 30.0,
+        "p75": 32.0,
+        "min": 18,
+        "max": 37,
+        "n": 10
       }
     },
     "monkey": {
-      "matches": 1000,
-      "wins": 75,
-      "win_rate": 0.075,
-      "deaths": 904,
-      "death_rate": 0.904,
-      "survived_to_end": 96,
-      "survive_to_end_rate": 0.096,
+      "matches": 10,
+      "wins": 0,
+      "win_rate": 0.0,
+      "deaths": 10,
+      "death_rate": 1.0,
+      "survived_to_end": 0,
+      "survive_to_end_rate": 0.0,
       "survival_rounds": {
-        "mean": 15.637,
-        "p25": 11.0,
-        "median": 14.0,
-        "p75": 18.0,
-        "min": 5,
-        "max": 44,
-        "n": 1000
+        "mean": 14.8,
+        "p25": 14.25,
+        "median": 15.5,
+        "p75": 16.0,
+        "min": 7,
+        "max": 25,
+        "n": 10
       }
     },
     "cat": {
-      "matches": 1000,
-      "wins": 1,
-      "win_rate": 0.001,
-      "deaths": 993,
-      "death_rate": 0.993,
-      "survived_to_end": 7,
-      "survive_to_end_rate": 0.007,
+      "matches": 10,
+      "wins": 0,
+      "win_rate": 0.0,
+      "deaths": 10,
+      "death_rate": 1.0,
+      "survived_to_end": 0,
+      "survive_to_end_rate": 0.0,
       "survival_rounds": {
-        "mean": 7.273,
-        "p25": 5.0,
-        "median": 6.0,
-        "p75": 8.0,
-        "min": 2,
-        "max": 32,
-        "n": 1000
+        "mean": 8.3,
+        "p25": 6.25,
+        "median": 8.0,
+        "p75": 9.75,
+        "min": 6,
+        "max": 13,
+        "n": 10
       }
     }
   },
   "strategy_usage": {
     "elephant": {
-      "game_heuristic": 1000
+      "game_heuristic": 10
     },
     "human": {
-      "game_heuristic": 1000
+      "game_heuristic": 10
     },
     "monkey": {
-      "game_heuristic": 1000
+      "game_heuristic": 10
     },
     "cat": {
-      "game_heuristic": 1000
+      "game_heuristic": 10
     }
   },
   "match_strategy_signatures_top": {
-    "elephant:game_heuristic,human:game_heuristic,monkey:game_heuristic,cat:game_heuristic": 1000,
-    "role:elephant:game_heuristic": 1000,
-    "role:human:game_heuristic": 1000,
-    "role:monkey:game_heuristic": 1000,
-    "role:cat:game_heuristic": 1000
+    "elephant:game_heuristic,human:game_heuristic,monkey:game_heuristic,cat:game_heuristic": 10,
+    "role:elephant:game_heuristic": 10,
+    "role:human:game_heuristic": 10,
+    "role:monkey:game_heuristic": 10,
+    "role:cat:game_heuristic": 10
   },
   "input_dir": "C:\\Users\\Administrator\\Projects\\ElephantCrisis\\Tools\\sim\\output"
 }
