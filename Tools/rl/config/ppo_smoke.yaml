@@ -21,11 +21,11 @@ behaviors:
       extrinsic:
         gamma: 0.99
         strength: 1.0
-    keep_checkpoints: 10
-    checkpoint_interval: 100000
-    max_steps: 500000
+    keep_checkpoints: 5
+    checkpoint_interval: 5000
+    max_steps: 50000
     time_horizon: 128
-    summary_freq: 10000
+    summary_freq: 1000
     threaded: false
 
 env_settings:
@@ -33,7 +33,7 @@ env_settings:
   env_args: null
   num_envs: 1
   seed: 42
-  # Unity Editor 冷启动可能超过 1 分钟，握手超时放大到 600s，避免 worker 重启
+  # Unity Editor 冷启动可能超过 1 分钟，握手超时放大到 600s
   timeout_wait: 600
 
 engine_settings:
@@ -45,5 +45,7 @@ engine_settings:
 
 environment_parameters: {}
 
-# Bootstrap：Unity 侧 -rlCurriculum bootstrap（1 RL vs 3 Heuristic）
-# 启动示例见 Tools/rl/README.md
+# 冒烟测试配置：仅验证 链路握手 / SPS / checkpoint 产出，非正式训练。
+# 用法：
+#   终端A: .\.venv\Scripts\python -m mlagents.trainers.learn config/ppo_smoke.yaml --run-id ec_smoke_v1 --results-dir results --force
+#   终端B: python scripts/run_train_env.py --curriculum bootstrap --role human

@@ -43,6 +43,22 @@ public class GroundItemManager : MonoBehaviour
         return piles.TryGetValue(cell, out var list) && list.Count > 0;
     }
 
+    /// <summary>曼哈顿半径内是否有掉落物（无分配；供动作掩码/寻路预判用）。</summary>
+    public bool HasItemsAround(Vector2Int center, int radius)
+    {
+        for (int dx = -radius; dx <= radius; dx++)
+        {
+            for (int dy = -radius; dy <= radius; dy++)
+            {
+                if (Mathf.Abs(dx) + Mathf.Abs(dy) > radius)
+                    continue;
+                if (HasItems(center + new Vector2Int(dx, dy)))
+                    return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>全图随机收集至多 count 张牌进背包（领袖宣言等效果用）；不消耗行动、不限距离、允许超重。返回实际收集张数。</summary>
     public int CollectRandom(Inventory inventory, int count)
     {

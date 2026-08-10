@@ -53,8 +53,11 @@ public static class RlActionMask
                 return unit.Inventory != null
                     && (unit.Inventory.CountOf(ItemKind.Bomb) > 0 || unit.Inventory.CountOf(ItemKind.MegaBomb) > 0);
             case RlActionSpace.Op.Pickup:
-                return ActionService.HasGroundPotionAt(unit)
-                    || (GroundItemManager.Instance != null && GroundItemManager.Instance.HasItems(unit.Cell));
+                // 与 TryPickupAround 的实际拾取范围一致（半径 1 曼哈顿）；背包无空位时不发起
+                return unit.Inventory != null
+                    && unit.Inventory.HasSpace
+                    && GroundItemManager.Instance != null
+                    && GroundItemManager.Instance.HasItemsAround(unit.Cell, 1);
             case RlActionSpace.Op.PotionSmall:
                 return unit.Inventory != null && unit.Inventory.CountOf(ItemKind.SmallPotion) > 0;
             case RlActionSpace.Op.PotionLarge:
@@ -103,7 +106,7 @@ public static class RlActionMask
 
     public static UnitActor FindMeleeTarget(UnitActor unit, List<UnitActor> all)
     {
-        if (all == null)
+        if (all == null || GridManager.Instance == null)
             return null;
         foreach (var o in all)
         {
@@ -118,7 +121,7 @@ public static class RlActionMask
 
     private static bool CanShootAnyone(UnitActor unit, List<UnitActor> all)
     {
-        if (unit.Inventory == null || all == null)
+        if (unit.Inventory == null || all == null || GridManager.Instance == null)
             return false;
         int weapon = -1;
         for (int i = 0; i < unit.Inventory.Count; i++)

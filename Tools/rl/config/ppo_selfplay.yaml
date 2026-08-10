@@ -40,6 +40,8 @@ env_settings:
   env_path: null
   num_envs: 1
   seed: 7
+  # Unity Editor 冷启动可能超过 1 分钟，握手超时放大到 600s，避免 worker 重启
+  timeout_wait: 600
 
 engine_settings:
   time_scale: 20

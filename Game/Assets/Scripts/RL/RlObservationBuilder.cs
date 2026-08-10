@@ -135,6 +135,8 @@ public static class RlObservationBuilder
             return false;
         if (other.HasStatus(StatusType.Hidden))
             return false;
+        if (GridManager.Instance == null)
+            return false;
         int vis = viewer.CurrentVisibility;
         int d = GridManager.Instance.GetManhattanDistance(viewer.Cell, other.Cell);
         return d <= vis;

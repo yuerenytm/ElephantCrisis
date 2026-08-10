@@ -626,6 +626,10 @@ public static class SimpleHeuristicAi
         if (loot == null || loot.Count == 0)
             return false;
 
+        // TryPickupOne 要求处于拾取模式（SelectingPickup），先进入再拾取，否则每次必失败
+        if (TurnManager.Instance != null && TurnManager.Instance.Phase != TurnPhase.SelectingPickup)
+            TurnManager.Instance.EnterPickupMode();
+
         // 优先玩偶（仍须能放下）
         for (int i = 0; i < loot.Count; i++)
         {
