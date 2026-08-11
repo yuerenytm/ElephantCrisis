@@ -16,7 +16,8 @@ public class HazardManager : MonoBehaviour
     public class TimedBombHazard
     {
         public Vector2Int Cell;
-        public int RoundsLeft;
+        /// <summary>剩余行动数（安放时 = 所选回合×4；每次行动结束 −1，含安放当次）。</summary>
+        public int ActionsLeft;
         public RoleType Owner;
         public GameObject Visual;
     }
@@ -30,7 +31,8 @@ public class HazardManager : MonoBehaviour
     public class FlamePatch
     {
         public Vector2Int Cell;
-        public int RoundsLeft;
+        /// <summary>剩余行动数（铺设时 = 规则回合×4；每次行动结束 −1）。</summary>
+        public int ActionsLeft;
         public GameObject Visual;
     }
 
@@ -71,12 +73,16 @@ public class HazardManager : MonoBehaviour
 
     public void ClearAllFlames(string reason = null)
     {
+        var cells = new List<Vector2Int>(flames.Count);
         for (int i = flames.Count - 1; i >= 0; i--)
         {
+            cells.Add(flames[i].Cell);
             if (flames[i].Visual != null)
                 Destroy(flames[i].Visual);
             flames.RemoveAt(i);
         }
+        for (int i = 0; i < cells.Count; i++)
+            NotifyJungleStealthAt(cells[i]);
         if (!string.IsNullOrEmpty(reason))
             TurnManager.Instance?.Log(reason);
     }
@@ -101,14 +107,15 @@ public class HazardManager : MonoBehaviour
 
     public void PlaceTimedBomb(Vector2Int cell, int rounds, RoleType owner)
     {
-        var bomb = new TimedBombHazard { Cell = cell, RoundsLeft = rounds, Owner = owner };
+        int actions = Mathf.Clamp(rounds, 1, 5) * 4;
+        var bomb = new TimedBombHazard { Cell = cell, ActionsLeft = actions, Owner = owner };
         bomb.Visual = CreateRedMarker(cell, "TimedBomb");
         var labelGo = new GameObject("Label");
         labelGo.transform.SetParent(bomb.Visual.transform, false);
         labelGo.transform.localPosition = new Vector3(0f, 0.55f, 0f);
         labelGo.transform.localScale = Vector3.one * 2.2f;
         var tm = labelGo.AddComponent<TextMesh>();
-        tm.text = rounds.ToString();
+        tm.text = actions.ToString();
         tm.characterSize = 0.12f;
         tm.fontSize = 48;
         tm.anchor = TextAnchor.MiddleCenter;
@@ -132,7 +139,7 @@ public class HazardManager : MonoBehaviour
         mines.Add(mine);
     }
 
-    /// <summary>在爆点半径内铺火焰，持续 rounds 个完整回合；同格刷新为较长剩余。</summary>
+    /// <summary>在爆点半径内铺火焰，持续 rounds 个完整回合（实际 = rounds×4 个行动）；熔岩/冰地不铺；同格刷新为较长剩余。</summary>
     public void PlaceFlameArea(Vector2Int center, int radius, int rounds)
     {
         if (WeatherService.BlocksBurning)
@@ -141,6 +148,7 @@ public class HazardManager : MonoBehaviour
         if (grid == null || rounds <= 0)
             return;
 
+        int actions = rounds * 4;
         for (int x = 0; x < grid.gridWidth; x++)
         {
             for (int y = 0; y < grid.gridHeight; y++)
@@ -150,14 +158,16 @@ public class HazardManager : MonoBehaviour
                     continue;
                 if (grid.GetTileType(cell) == TileType.Lava)
                     continue;
-                UpsertFlame(cell, rounds);
+                if (grid.GetTileType(cell) == TileType.Ice)
+                    continue;
+                UpsertFlame(cell, actions);
             }
         }
         RefreshHazardVisibility();
     }
 
     /// <summary>
-    /// 沿四向直线铺火焰（不含起点）：最多 maxSteps 格，持续 rounds 个完整回合；熔岩格跳过。
+    /// 沿四向直线铺火焰（不含起点）：最多 maxSteps 格，持续 rounds 个完整回合（实际 = rounds×4 个行动）；熔岩/冰地跳过。
     /// </summary>
     public void PlaceFlameLine(Vector2Int origin, Vector2Int stepDir, int maxSteps, int rounds)
     {
@@ -169,6 +179,7 @@ public class HazardManager : MonoBehaviour
         if (stepDir == Vector2Int.zero)
             return;
 
+        int actions = rounds * 4;
         for (int step = 1; step <= maxSteps; step++)
         {
             var cell = origin + stepDir * step;
@@ -176,30 +187,53 @@ public class HazardManager : MonoBehaviour
                 break;
             if (grid.GetTileType(cell) == TileType.Lava)
                 continue;
-            UpsertFlame(cell, rounds);
+            if (grid.GetTileType(cell) == TileType.Ice)
+                continue;
+            UpsertFlame(cell, actions);
         }
         RefreshHazardVisibility();
     }
 
-    private void UpsertFlame(Vector2Int cell, int rounds)
+    private void UpsertFlame(Vector2Int cell, int actions)
     {
+        var grid = GridManager.Instance;
+        if (grid != null)
+        {
+            var tile = grid.GetTileType(cell);
+            if (tile == TileType.Lava || tile == TileType.Ice)
+                return;
+        }
+
+        bool existed = false;
         for (int i = 0; i < flames.Count; i++)
         {
             if (flames[i].Cell != cell)
                 continue;
             var f = flames[i];
-            f.RoundsLeft = Mathf.Max(f.RoundsLeft, rounds);
+            f.ActionsLeft = Mathf.Max(f.ActionsLeft, actions);
             flames[i] = f;
-            return;
+            existed = true;
+            break;
         }
 
-        var patch = new FlamePatch
+        if (!existed)
         {
-            Cell = cell,
-            RoundsLeft = rounds,
-            Visual = CreateFlameVisual(cell)
-        };
-        flames.Add(patch);
+            flames.Add(new FlamePatch
+            {
+                Cell = cell,
+                ActionsLeft = actions,
+                Visual = CreateFlameVisual(cell)
+            });
+        }
+
+        // 有火的丛林不再提供隐匿
+        NotifyJungleStealthAt(cell);
+    }
+
+    private static void NotifyJungleStealthAt(Vector2Int cell)
+    {
+        var occ = StealthService.GetOccupantUnit(cell);
+        occ?.SyncJungleStealthFromTerrain();
     }
 
     private GameObject CreateFlameVisual(Vector2Int cell)
@@ -327,7 +361,7 @@ public class HazardManager : MonoBehaviour
             if (bomb.Cell != cell) continue;
             if (viewer == null || bomb.Owner != viewer.Role)
                 continue;
-            lines.Add($"定时炸弹（你放置）：{bomb.RoundsLeft} 回合后爆炸（半径4）");
+            lines.Add($"定时炸弹（你放置）：{bomb.ActionsLeft} 个行动后爆炸（半径4）");
         }
 
         foreach (var mine in mines)
@@ -347,7 +381,7 @@ public class HazardManager : MonoBehaviour
         foreach (var f in flames)
         {
             if (f.Cell != cell) continue;
-            lines.Add($"火焰：剩余 {f.RoundsLeft} 回合；身处立刻着火");
+            lines.Add($"火焰：剩余 {f.ActionsLeft} 个行动；身处立刻着火");
         }
 
         if (lines.Count == 0)
@@ -445,41 +479,43 @@ public class HazardManager : MonoBehaviour
         }
     }
 
-    /// <summary>完整回合推进：火焰剩余回合 −1，耗尽移除。</summary>
-    public void TickFlamesOnFullRound()
+    /// <summary>行动结束：火焰剩余行动 −1，耗尽移除。</summary>
+    public void TickFlamesOnActionEnd()
     {
         for (int i = flames.Count - 1; i >= 0; i--)
         {
             var f = flames[i];
-            f.RoundsLeft--;
-            if (f.RoundsLeft > 0)
+            f.ActionsLeft--;
+            if (f.ActionsLeft > 0)
             {
                 flames[i] = f;
                 continue;
             }
+            var cell = f.Cell;
             if (f.Visual != null)
                 Destroy(f.Visual);
             flames.RemoveAt(i);
+            NotifyJungleStealthAt(cell);
         }
     }
 
     /// <summary>
-    /// 每回合结束时结算：倒计时−1，到 0 则爆炸。
+    /// 每次行动结束结算：倒计时−1（安放时为所选回合×4，含安放当次行动），到 0 则爆炸。
     /// </summary>
-    public void TickTimedBombsOnFullRound()
+    public void TickTimedBombsOnActionEnd()
     {
         for (int i = timedBombs.Count - 1; i >= 0; i--)
         {
             var bomb = timedBombs[i];
-            bomb.RoundsLeft--;
+            bomb.ActionsLeft--;
             if (bomb.Visual != null)
             {
                 var tm = bomb.Visual.GetComponentInChildren<TextMesh>();
                 if (tm != null)
-                    tm.text = Mathf.Max(0, bomb.RoundsLeft).ToString();
+                    tm.text = Mathf.Max(0, bomb.ActionsLeft).ToString();
             }
 
-            if (bomb.RoundsLeft > 0)
+            if (bomb.ActionsLeft > 0)
             {
                 timedBombs[i] = bomb;
                 continue;
@@ -541,8 +577,10 @@ public class HazardManager : MonoBehaviour
         for (int i = flames.Count - 1; i >= 0; i--)
         {
             if (!set.Contains(flames[i].Cell)) continue;
+            var cell = flames[i].Cell;
             if (flames[i].Visual != null) Destroy(flames[i].Visual);
             flames.RemoveAt(i);
+            NotifyJungleStealthAt(cell);
         }
     }
 }

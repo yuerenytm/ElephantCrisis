@@ -355,7 +355,7 @@ public sealed class LogicMatchLogger
         sb.Append(",\"amulet_buff\":").Append(B(u.AmuletBuffActive));
         sb.Append(",\"adrenaline_rounds\":").Append(u.AdrenalineRoundsLeft);
         sb.Append(",\"hidden_from_jungle\":").Append(B(u.HiddenFromJungle));
-        sb.Append(",\"dying_rounds\":").Append(u.DyingRoundsLeft);
+        sb.Append(",\"dying_rounds\":").Append(u.DyingActionsLeft);
         sb.Append(",\"leader_declared\":").Append(B(u.HasUsedLeaderDeclaration));
         sb.Append(",\"flamethrower_cooldown\":").Append(u.FlamethrowerCooldown);
         if (u.IsDead)

@@ -192,10 +192,16 @@ public static class RoleModelFactory
         if (MatCache.TryGetValue(key, out var cached) && cached != null)
             return cached;
 
-        var shader = Shader.Find("Universal Render Pipeline/Lit")
-            ?? Shader.Find("Standard")
+        var shader = ShaderRefs.Instance != null ? ShaderRefs.Instance.PlayerModelShader : null
             ?? Shader.Find("Universal Render Pipeline/Unlit")
-            ?? Shader.Find("Unlit/Color");
+            ?? Shader.Find("Universal Render Pipeline/Lit")
+            ?? Shader.Find("Unlit/Color")
+            ?? Shader.Find("Standard");
+        if (shader == null)
+        {
+            Debug.LogError("[RoleModelFactory] No suitable shader found for role model material.");
+            return null;
+        }
         var mat = new Material(shader) { name = $"RoleMat_{key}" };
         if (mat.HasProperty("_BaseColor"))
             mat.SetColor("_BaseColor", color);

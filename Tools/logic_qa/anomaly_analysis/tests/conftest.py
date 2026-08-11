@@ -65,16 +65,16 @@ def _unit(role, hp, max_hp=None, statuses=None, weight=0, cap=15, dead=False, **
 @pytest.fixture
 def clean_events():
     units0 = [
-        _unit("elephant", 100, 100),
-        _unit("human", 90, 90),
-        _unit("monkey", 90, 90),
-        _unit("cat", 60, 60),
+        _unit("elephant", 100, 100, vis=40),
+        _unit("human", 90, 90, vis=40),
+        _unit("monkey", 90, 90, vis=40),
+        _unit("cat", 60, 60, vis=40),
     ]
     units1 = [
-        _unit("elephant", 80, 100),
-        _unit("human", 90, 90),
-        _unit("monkey", 90, 90),
-        _unit("cat", 60, 60),
+        _unit("elephant", 80, 100, vis=40),
+        _unit("human", 90, 90, vis=40),
+        _unit("monkey", 90, 90, vis=40),
+        _unit("cat", 60, 60, vis=40),
     ]
     return [
         {"t": 1, "type": "match_start", "seed": 1},
@@ -138,10 +138,11 @@ def fixture_dir(tmp_path: Path, clean_events):
         _snap(
             1,
             [
-                _unit("elephant", 100, statuses=["burning"]),
-                _unit("human", 90),
-                _unit("monkey", 90),
-                _unit("cat", 60),
+                # hour=6 清晨 + 雨：矩阵无限 vis=40
+                _unit("elephant", 100, statuses=["burning"], vis=40),
+                _unit("human", 90, vis=40),
+                _unit("monkey", 90, vis=40),
+                _unit("cat", 60, vis=40),
             ],
             weather="rain",
         )

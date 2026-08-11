@@ -35,8 +35,8 @@ public static class TerrainInfo
         {
             case TileType.Sand: return "移动力-1；法抗-10";
             case TileType.Swamp: return "中毒；每行动始叠层；离开清地形层；法抗-20";
-            case TileType.Ice: return "移动力+1；行动开始20%跌倒";
-            case TileType.Jungle: return "进入获得隐匿；法抗+20";
+            case TileType.Ice: return "移动力+1；行动开始20%跌倒；不铺火焰";
+            case TileType.Jungle: return "进入获得隐匿（有火除外）；法抗+20";
             case TileType.Highland: return "攻击+3 防御+3 射程+1";
             case TileType.Lava: return "行动开始20真伤";
             default: return "无修正";

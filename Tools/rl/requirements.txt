@@ -1,6 +1,0 @@
-# ML-Agents 1.1.0 needs CPython 3.10.x (not 3.11+/3.14). Use Tools/rl/.venv.
-mlagents>=1.1.0,<1.2
-setuptools>=65,<81
-PyYAML>=6.0
-streamlit>=1.28
-pandas>=2.0

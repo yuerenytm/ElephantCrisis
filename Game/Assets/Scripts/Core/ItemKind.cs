@@ -58,7 +58,7 @@ public enum ItemUseKind
     TargetCell,
     TargetUnit,
     EquipToggle,
-    ChooseDelay,    // 定时炸弹：选 1–5 回合
+    ChooseDelay,    // 定时炸弹：选 1–5 回合（实际 = 回合×4 个行动后爆）
     ChooseDirection // 火焰喷射器：选方向
 }
 
@@ -126,7 +126,7 @@ public static class ItemInfo
             case ItemKind.LargePotion: return "+15血";
             case ItemKind.Bomb: return "掷地，15物伤，半径2";
             case ItemKind.MegaBomb: return "掷地，24物伤，半径2";
-            case ItemKind.TimedBomb: return "安放，1–5回合后爆半径4，仅自己可见";
+            case ItemKind.TimedBomb: return "安放，1–5回合(×4行动)后爆半径4，仅自己可见";
             case ItemKind.Reinforce: return "攻/防/移 永久+1（三选一）";
             case ItemKind.Bow: return "攻+2 射距3，耗1弹药（须装备）";
             case ItemKind.Crossbow: return "攻+10 射距5，耗1；须蓄力，同行动不可射";
@@ -134,7 +134,7 @@ public static class ItemInfo
             case ItemKind.PoisonArrow: return "1支/张，命中中毒1回合";
             case ItemKind.FireRocket: return "1支/张，命中着火1回合";
             case ItemKind.BananaPeel: return "投掷隐身陷阱，踩踏跌倒";
-            case ItemKind.Flamethrower: return "须装备+耗1汽油；直线5格10法伤+着火；路径火焰2回合";
+            case ItemKind.Flamethrower: return "须装备+耗1汽油；直线5格10法伤+着火；路径火焰2回合(×4行动)";
             case ItemKind.WoodArmor: return "装备防+4；物伤即耗耐久";
             case ItemKind.IronArmor: return "装备防+8；物伤即耗耐久";
             case ItemKind.RubberRaincoat: return "装备防+3；免雨天减益；免着火耗耐久；耐久3";
@@ -144,8 +144,8 @@ public static class ItemInfo
             case ItemKind.Adrenaline: return "HP低于30%：移+2攻+3，3回合";
             case ItemKind.Mine: return "放置陷阱，踩中15法伤；弃置可捡";
             case ItemKind.SkillUpgrade: return "集齐3张：技能等级+1";
-            case ItemKind.NightVision: return "装备；黑夜基础能见度按8";
-            case ItemKind.Telescope: return "装备；昼间晴/雨：全图视野（不含隐匿）";
+            case ItemKind.NightVision: return "装备；黑夜晴+3/雨+2/雾+1 能见度";
+            case ItemKind.Telescope: return "装备；昼间雾+2；非黑夜窥隐匿与背包";
             case ItemKind.Skateboard: return "装备；移动力+2";
             case ItemKind.Motorcycle: return "装备；耗1油发动3回合：移+3/冲击6–10宽3";
             case ItemKind.IceSkates: return "装备；冰地移+2且不跌倒";
@@ -449,6 +449,18 @@ public static class ItemInfo
     /// <summary>全图视野用曼哈顿半径（覆盖 18×18）。</summary>
     public const int FullMapVisibilityRadius = 40;
 
+    public static bool HasEquippedNightVision(UnitActor unit)
+    {
+        if (unit?.Inventory == null)
+            return false;
+        foreach (var it in unit.Inventory.Items)
+        {
+            if (it.Kind == ItemKind.NightVision && it.Equipped)
+                return true;
+        }
+        return false;
+    }
+
     public static bool HasEquippedTelescope(UnitActor unit)
     {
         if (unit?.Inventory == null)
@@ -461,17 +473,50 @@ public static class ItemInfo
         return false;
     }
 
-    /// <summary>望远镜生效：已装备，且非黑夜 +（晴天或雨天）（清晨/白天/黄昏均可）。</summary>
+    /// <summary>望远镜生效：已装备且非黑夜。</summary>
     public static bool IsTelescopeVisionActive(UnitActor unit)
     {
         if (!HasEquippedTelescope(unit) || unit.IsDead)
             return false;
         int round = TurnManager.Instance != null ? TurnManager.Instance.RoundNumber : 1;
-        if (GameClock.GetPeriod(round) == GameClock.Period.Night)
-            return false;
-        var w = WeatherService.Current;
-        return w == WeatherType.Clear || w == WeatherType.Rain;
+        return GameClock.GetPeriod(round) != GameClock.Period.Night;
     }
+
+    /// <summary>夜视镜生效：已装备且黑夜。</summary>
+    public static bool IsNightVisionActive(UnitActor unit)
+    {
+        if (!HasEquippedNightVision(unit) || unit.IsDead)
+            return false;
+        int round = TurnManager.Instance != null ? TurnManager.Instance.RoundNumber : 1;
+        return GameClock.GetPeriod(round) == GameClock.Period.Night;
+    }
+
+    /// <summary>夜视镜能见度加成：黑夜晴 +3、雨 +2、雾 +1（白天/晨昏 0）。</summary>
+    public static int GetNightVisionVisibilityBonus(WeatherType weather)
+    {
+        switch (weather)
+        {
+            case WeatherType.Rain: return 2;
+            case WeatherType.Fog: return 1;
+            default: return 3; // Clear
+        }
+    }
+
+    /// <summary>望远镜能见度加成：仅白天/晨昏的雾天 +2。</summary>
+    public static int GetTelescopeVisibilityBonus(GameClock.Period period, WeatherType weather)
+    {
+        if (period == GameClock.Period.Night)
+            return 0;
+        return weather == WeatherType.Fog ? 2 : 0;
+    }
+
+    /// <summary>望远镜：非黑夜可看见隐匿单位（仍须在能见度内）。</summary>
+    public static bool CanRevealHidden(UnitActor viewer)
+        => IsTelescopeVisionActive(viewer);
+
+    /// <summary>望远镜：非黑夜可窥视其他可见角色背包。</summary>
+    public static bool CanPeekInventories(UnitActor viewer)
+        => IsTelescopeVisionActive(viewer);
 
     public static int GetBombDamage(ItemKind kind)
     {

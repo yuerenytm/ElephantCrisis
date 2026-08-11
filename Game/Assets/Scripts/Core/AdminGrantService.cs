@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 
-/// <summary>管理员模式：从共用牌库任选取出（可洗入弃牌）；本行动次数不限。</summary>
+/// <summary>管理员模式：虚空印牌（凭空生成卡牌入背包，不消耗牌库/弃牌）；本行动次数不限。</summary>
 public static class AdminGrantService
 {
     public static bool CanOpenPanel(UnitActor unit, out string reason)
@@ -14,12 +14,12 @@ public static class AdminGrantService
         }
         if (unit == null || unit.IsDead || unit.IsDying)
         {
-            reason = "无法领取";
+            reason = "无法印牌";
             return false;
         }
         if (!MatchConfig.IsHumanControlled(unit))
         {
-            reason = "仅玩家行动可领取";
+            reason = "仅玩家行动可印牌";
             return false;
         }
         if (TurnManager.Instance == null || TurnManager.Instance.CurrentUnit != unit)
@@ -29,25 +29,18 @@ public static class AdminGrantService
         }
         if (TurnManager.Instance.Phase != TurnPhase.WaitingAction)
         {
-            reason = "当前无法领取";
+            reason = "当前无法印牌";
             return false;
         }
         return true;
     }
 
-    public static List<(ItemKind Kind, int Count)> ListAvailableFromDeck()
+    /// <summary>可印的全部卡种（不依赖牌库存量）。</summary>
+    public static List<ItemKind> ListPrintableKinds()
     {
-        var result = new List<(ItemKind, int)>();
-        var deck = DeckManager.Instance;
-        if (deck == null)
-            return result;
-
+        var result = new List<ItemKind>();
         foreach (ItemKind kind in Enum.GetValues(typeof(ItemKind)))
-        {
-            int n = deck.CountAvailable(kind);
-            if (n > 0)
-                result.Add((kind, n));
-        }
+            result.Add(kind);
         return result;
     }
 
@@ -59,28 +52,13 @@ public static class AdminGrantService
             return false;
         }
 
-        var deck = DeckManager.Instance;
-        if (deck == null)
-        {
-            TurnManager.Instance?.LogFor(unit, "牌库不可用");
-            return false;
-        }
-
-        if (!deck.TryTakeSpecific(kind))
-        {
-            TurnManager.Instance?.LogFor(unit,
-                $"牌库与弃牌堆中已无【{ItemInfo.GetDisplayName(kind)}】");
-            return false;
-        }
-
         unit.Inventory.Add(kind);
         unit.RefreshBagCapacity();
         string name = ItemInfo.GetDisplayName(kind);
         if (ItemInfo.IsDoll(kind))
             name = $"★{name}★";
         TurnManager.Instance.LogFor(unit,
-            $"[管理员] {RoleInfo.GetDisplayName(unit.Role)} 从牌库取出【{name}】" +
-            $"（库{deck.DrawCount}/弃{deck.DiscardCount}）");
+            $"[管理员] {RoleInfo.GetDisplayName(unit.Role)} 虚空印出【{name}】");
         if (unit.Inventory.IsOverCapacity)
         {
             TurnManager.Instance.LogFor(unit,

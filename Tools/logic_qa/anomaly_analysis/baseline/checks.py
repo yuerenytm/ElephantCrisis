@@ -34,6 +34,7 @@ def check_match_events(events: List[Dict[str, Any]], match_id: str = "") -> List
     viols.extend(_check_no_turn_start_draw(events))
     viols.extend(_check_quasi_nonneg(events))
     viols.extend(_check_quasi_equipped_dependency(events))
+    viols.extend(_check_visibility_period_weather(events))
     for v in viols:
         v.context.setdefault("match_id", match_id)
     return viols
@@ -400,10 +401,13 @@ def _check_hidden_break_on_attack(events: List[Dict[str, Any]]) -> List[Violatio
             continue
         if typ == "status" and e.get("status") == "hidden" and e.get("op") in (
             "break_attack",
+            "break_attacked",
+            "break_burning",
             "leave_jungle",
+            "jungle_flame",
             "amulet_expire",
         ):
-            # 隐匿解除途径：攻击破隐 / 离开丛林（丛林来源）/ 护身符到期
+            # 隐匿解除：攻击/被攻击/着火/离林/丛林着火/护身符到期
             actor = e.get("actor")
             if actor:
                 broke_since_snap.add(actor)
@@ -648,6 +652,145 @@ def _check_quasi_equipped_dependency(events: List[Dict[str, Any]]) -> List[Viola
                         t,
                         f"{role} motorcycle_active={mc} 但未装备摩托车",
                         {"role": role, "rounds": mc},
+                    )
+                )
+    return viols
+
+
+# ---- 能见度：四时段 × 三天气矩阵（及状态/装备覆盖）----
+# 规则真源：Docs/规则_天气与地形.md；实现：WeatherService.GetPeriodWeatherVisibility / UnitActor.CurrentVisibility
+
+FULL_MAP_VIS = 40  # ItemInfo.FullMapVisibilityRadius（无限）
+NIGHT_VISION_VIS = 8  # 黑夜晴+夜视镜 = 5+3
+
+# (period, weather) → 矩阵能见度
+PERIOD_WEATHER_VIS = {
+    ("dawn", "clear"): FULL_MAP_VIS,
+    ("dawn", "rain"): FULL_MAP_VIS,
+    ("dawn", "fog"): 6,
+    ("day", "clear"): FULL_MAP_VIS,
+    ("day", "rain"): FULL_MAP_VIS,
+    ("day", "fog"): 8,
+    ("dusk", "clear"): FULL_MAP_VIS,
+    ("dusk", "rain"): FULL_MAP_VIS,
+    ("dusk", "fog"): 6,
+    ("night", "clear"): 5,
+    ("night", "rain"): 4,
+    ("night", "fog"): 3,
+}
+
+
+def period_from_hour(hour: int) -> str:
+    h = ((int(hour) % 24) + 24) % 24
+    if 8 <= h <= 15:
+        return "day"
+    if 16 <= h <= 19:
+        return "dusk"
+    if 4 <= h <= 7:
+        return "dawn"
+    return "night"
+
+
+def expected_visibility(
+    hour: int,
+    weather: str,
+    *,
+    dead: bool = False,
+    statuses: Optional[Set[str]] = None,
+    bag_items: Optional[List[Dict[str, Any]]] = None,
+) -> int:
+    """复刻 UnitActor.CurrentVisibility 结算。"""
+    statuses = statuses or set()
+    bag_items = bag_items or []
+    if dead or "dead" in statuses:
+        return 0
+    if "blind" in statuses:
+        return 0
+    if "dying" in statuses:
+        return 1
+    if "poison" in statuses:
+        return 2
+
+    period = period_from_hour(hour)
+    w = weather if weather in ("clear", "rain", "fog") else "clear"
+    # 雨衣：雨天按同时段晴天矩阵
+    if w == "rain" and any(
+        it.get("kind") == "rubber_raincoat" and bool(it.get("equipped")) for it in bag_items
+    ):
+        w = "clear"
+
+    v = PERIOD_WEATHER_VIS.get((period, w), FULL_MAP_VIS)
+
+    # 夜视镜：黑夜晴+3 / 雨+2 / 雾+1（对雨衣替换后的天气）
+    if period == "night" and any(
+        it.get("kind") == "night_vision" and bool(it.get("equipped")) for it in bag_items
+    ):
+        nv = {"clear": 3, "rain": 2, "fog": 1}.get(w, 3)
+        v += nv
+
+    # 望远镜：白天/晨昏雾天 +2（用真实天气，非雨衣替换）
+    if period != "night" and any(
+        it.get("kind") == "telescope" and bool(it.get("equipped")) for it in bag_items
+    ):
+        if weather == "fog":
+            v += 2
+
+    return max(0, v)
+
+
+def _check_visibility_period_weather(events: List[Dict[str, Any]]) -> List[Violation]:
+    """
+    snapshot 中各存活单位 vis 须等于「时段基础 ± 天气」再经状态/装备覆盖后的期望值。
+    无 vis 字段的旧日志跳过。
+    """
+    viols: List[Violation] = []
+    for e in events:
+        if e.get("type") != "snapshot":
+            continue
+        if "hour" not in e or "weather" not in e:
+            continue
+        try:
+            hour = int(e["hour"])
+        except (TypeError, ValueError):
+            continue
+        weather = str(e.get("weather") or "clear")
+        period = period_from_hour(hour)
+        t = int(e.get("t", 0))
+        for u in e.get("units") or []:
+            if "vis" not in u:
+                continue
+            role = u.get("role")
+            if not role:
+                continue
+            try:
+                got = int(u["vis"])
+            except (TypeError, ValueError):
+                continue
+            statuses = _statuses(u)
+            dead = bool(u.get("dead")) or "dead" in statuses
+            expect = expected_visibility(
+                hour,
+                weather,
+                dead=dead,
+                statuses=statuses,
+                bag_items=_bag_items(u),
+            )
+            if got != expect:
+                viols.append(
+                    Violation(
+                        "vis_period_weather",
+                        "critical",
+                        t,
+                        f"{role} vis={got} 不合理：期望 {expect}（{period}/{weather}）",
+                        {
+                            "role": role,
+                            "vis": got,
+                            "expected": expect,
+                            "period": period,
+                            "hour": hour,
+                            "weather": weather,
+                            "statuses": sorted(statuses),
+                        },
                     )
                 )
     return viols

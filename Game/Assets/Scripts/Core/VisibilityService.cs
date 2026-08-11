@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 能见度：基础半径由虚拟时钟时段决定；不可移动到自身能见度外；迷雾按当前视野角色刷新（热座=行动者；AI 对战=玩家角色）。
+/// 能见度：时段×天气矩阵 + 挂件/状态；不可移动到自身能见度外；迷雾按当前视野角色刷新（热座=行动者；AI 对战=玩家角色）。
 /// </summary>
 public static class VisibilityService
 {
@@ -66,9 +66,20 @@ public static class VisibilityService
         if (!CanSeeCell(viewer, target.Cell))
             return false;
         if (target.HasStatus(StatusType.Hidden)
-            && GridManager.Instance.GetManhattanDistance(viewer.Cell, target.Cell) > 1)
+            && GridManager.Instance.GetManhattanDistance(viewer.Cell, target.Cell) > 1
+            && !ItemInfo.CanRevealHidden(viewer))
             return false;
         return true;
+    }
+
+    /// <summary>望远镜窥视：viewer 能否查看 target 背包（须望远镜生效且能看见该单位）。</summary>
+    public static bool CanPeekInventory(UnitActor viewer, UnitActor target)
+    {
+        if (!ItemInfo.CanPeekInventories(viewer) || target == null || target.IsDead)
+            return false;
+        if (viewer == target)
+            return true;
+        return CanSeeUnit(viewer, target);
     }
 
     public static void RefreshWorld()
@@ -79,6 +90,15 @@ public static class VisibilityService
         GroundItemManager.Instance?.RefreshAllVisibility(viewer);
         HazardManager.Instance?.RefreshHazardVisibility();
         AtmosphereVisual.Instance?.Refresh();
+    }
+
+    /// <summary>天气/时段变更后：立刻重算迷雾半径、单位显隐与移动提示。</summary>
+    public static void RefreshAfterVisionRuleChange()
+    {
+        RefreshWorld();
+        PlayerInputController.Instance?.RefreshHints();
+        // 状态栏「视」等：延后刷新，避免在用牌按钮回调里拆毁 UI
+        GameUI.Instance?.RequestRefresh();
     }
 
     private static void RefreshUnitVisibility(UnitActor viewer)

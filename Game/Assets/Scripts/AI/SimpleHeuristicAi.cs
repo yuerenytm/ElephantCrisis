@@ -630,10 +630,10 @@ public static class SimpleHeuristicAi
         if (TurnManager.Instance != null && TurnManager.Instance.Phase != TurnPhase.SelectingPickup)
             TurnManager.Instance.EnterPickupMode();
 
-        // 优先玩偶（仍须能放下）
+        // 优先玩偶（仅正面朝上可知；开局散落背面不暴露）
         for (int i = 0; i < loot.Count; i++)
         {
-            if (!ItemInfo.IsDoll(loot[i].Kind))
+            if (loot[i].FaceDown || !ItemInfo.IsDoll(loot[i].Kind))
                 continue;
             if (!unit.Inventory.CanAdd(loot[i].Kind))
                 continue;
@@ -641,12 +641,17 @@ public static class SimpleHeuristicAi
                 return true;
         }
 
-        // 每次只捡一件放得下的，避免一次扫光超重
+        // 每次只捡一件放得下的，避免一次扫光超重（背面不知种类：有空位即捡）
         for (int i = 0; i < loot.Count; i++)
         {
-            if (ItemInfo.IsDoll(loot[i].Kind))
+            if (!loot[i].FaceDown && ItemInfo.IsDoll(loot[i].Kind))
                 continue;
-            if (!unit.Inventory.CanAdd(loot[i].Kind))
+            if (loot[i].FaceDown)
+            {
+                if (!unit.Inventory.HasSpace)
+                    continue;
+            }
+            else if (!unit.Inventory.CanAdd(loot[i].Kind))
                 continue;
             if (ActionService.TryPickupOne(unit, loot[i].Cell, loot[i].Index))
                 return true;
@@ -749,11 +754,13 @@ public static class SimpleHeuristicAi
                     var c = new Vector2Int(x, y);
                     if (!GroundItemManager.Instance.HasItems(c))
                         continue;
-                    var peek = GroundItemManager.Instance.Peek(c);
+                    var peek = GroundItemManager.Instance.PeekEntries(c);
                     bool doll = false;
+                    bool anyLoot = peek.Count > 0;
                     for (int i = 0; i < peek.Count; i++)
                     {
-                        if (ItemInfo.IsDoll(peek[i].Kind))
+                        // 仅正面玩偶计分；背面散落一律当普通未知牌
+                        if (!peek[i].FaceDown && ItemInfo.IsDoll(peek[i].Item.Kind))
                         {
                             doll = true;
                             break;
@@ -762,7 +769,7 @@ public static class SimpleHeuristicAi
                     int d = grid.GetManhattanDistance(cell, c);
                     if (doll)
                         score += Mathf.Max(0f, 50f - d * 3f);
-                    else if (d <= 2)
+                    else if (anyLoot && d <= 2)
                         score += 8f;
                 }
             }

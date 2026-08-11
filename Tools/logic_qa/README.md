@@ -65,7 +65,7 @@ python scripts/run_workbench.py
 | `dmg_magic_bound` | 法伤 `dealt` 在 `[0, raw]`（法抗 `⌊raw × (1 − 法抗%)⌋`，只能减免） |
 | `dmg_magic_formula` | 法伤精确公式校验（`melee_magic`/`molotov` 对快照 `magic_resist` 逐条核对；`0` 视为护盾全额吸收） |
 | `no_turn_start_draw` | 禁止旧式「draw → turn_start」行动开始摸牌 |
-| `hidden_break_on_attack` | 识别 `melee` / `melee_magic` / `melee_pierce` / `bow` / `bomb` 等 via |
+| `hidden_break_on_attack` | 识别 `melee` / `melee_magic` / `melee_pierce` / `bow` / `bomb` 等 via；破隐 op 含 `break_attack` / `break_attacked` / `break_burning` / `jungle_flame` |
 | `dying_no_draw` 等 | 濒死不可抽牌/用卡（仍有效） |
 | `quasi_nonneg` | 准状态计数器（摩托回合/红牛/CD/护盾/濒死倒数等）不得为负 |
 | `quasi_crossbow_requires_equipped` | 弩已蓄力时须仍装备弩（卸下会清蓄力） |
@@ -83,7 +83,7 @@ snapshot 单位新增**准状态**字段（非具名状态但影响结算，供�
 | `skill_cooldown` / `skill_shield` / `amulet_shield` / `amulet_buff` | 技能 CD / 技能护盾 / 护身符护盾与增益 |
 | `adrenaline_rounds` | 肾上腺素剩余回合 |
 | `hidden_from_jungle` | 隐匿是否来自丛林 |
-| `dying_rounds` | 濒死剩余回合 |
+| `dying_rounds` | 濒死剩余行动数（进入时 12） |
 | `leader_declared` | 是否已发动领袖宣言 |
 | `flamethrower_cooldown` | 喷火冷却 |
 

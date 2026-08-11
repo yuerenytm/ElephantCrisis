@@ -9,7 +9,6 @@ ElephantCrisis/
     logic_qa/           # 逻辑微观检测（基线 / 异常 / Streamlit）
     balance_advisor/    # 数值平衡 LLM 顾问（吃 balance 报告）
     perf_analysis/      # 实际对局性能（帧率 / 美术加载 / 玩法共现）
-    rl/                 # ML-Agents 自博弈（工作台 + PPO 配置）
 ```## 三件套怎么分工
 
 | | 跑什么 | 看什么 |

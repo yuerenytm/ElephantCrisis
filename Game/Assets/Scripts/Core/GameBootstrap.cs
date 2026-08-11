@@ -35,7 +35,7 @@ public class GameBootstrap : MonoBehaviour
 
     private void Start()
     {
-        if (LogicSimRunner.IsRequested || RlTrainingRunner.IsRequested)
+        if (LogicSimRunner.IsRequested)
             return;
         ShowMainMenu();
     }
@@ -226,16 +226,7 @@ public class GameBootstrap : MonoBehaviour
         StartMatch();
     }
 
-    /// <summary>RL 训练/评估：瘦开局（调用前须 MatchConfig.SetRlTraining）。</summary>
-    public void StartRlTrainingMatch()
-    {
-        if (!MatchConfig.IsRlTraining)
-            MatchConfig.SetRlTraining();
-        matchRunning = false;
-        StartMatch();
-    }
-
-    /// <summary>局间清理后允许再次 StartMatch（LogicSim / RL 连跑）。</summary>
+    /// <summary>局间清理后允许再次 StartMatch（LogicSim 连跑）。</summary>
     public void ResetMatchRunningFlag()
     {
         matchRunning = false;
@@ -300,8 +291,7 @@ public class GameBootstrap : MonoBehaviour
 
         if (AiController.Instance != null)
         {
-            // RL 训练由 RlMatchController 接管，避免与启发式泵冲突
-            bool useHeuristicAi = MatchConfig.IsAiBattle && !MatchConfig.IsRlTraining;
+            bool useHeuristicAi = MatchConfig.IsAiBattle;
             AiController.Instance.enabled = useHeuristicAi;
             if (useHeuristicAi)
                 AiController.Instance.EnsureSubscribed();
@@ -326,8 +316,6 @@ public class GameBootstrap : MonoBehaviour
             gameObject.AddComponent<GameUI>();
         if (AiController.Instance == null)
             gameObject.AddComponent<AiController>();
-        if (MatchConfig.IsRlTraining && RlMatchController.Instance == null)
-            gameObject.AddComponent<RlMatchController>();
 
         if (!leanLogicSim)
         {

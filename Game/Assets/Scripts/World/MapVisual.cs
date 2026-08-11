@@ -347,10 +347,15 @@ public class MapVisual : MonoBehaviour
     {
         if (highlandMaterial != null)
             return;
-        var shader = Shader.Find("Unlit/Color")
+        var shader = ShaderRefs.Instance != null ? ShaderRefs.Instance.HighlandShader : null
             ?? Shader.Find("Universal Render Pipeline/Unlit")
-            ?? Shader.Find("Sprites/Default")
+            ?? Shader.Find("Unlit/Color")
             ?? Shader.Find("Standard");
+        if (shader == null)
+        {
+            Debug.LogError("[MapVisual] No suitable shader for highland slabs.");
+            return;
+        }
         highlandMaterial = new Material(shader) { name = "HighlandSlab" };
         if (highlandMaterial.HasProperty("_BaseColor"))
             highlandMaterial.SetColor("_BaseColor", HighlandRock);

@@ -42,10 +42,43 @@ public static class WeatherService
     {
         switch (weather)
         {
-            case WeatherType.Rain: return "防-3 视-1 法抗+25；浇灭格火/着火且不可再燃";
-            case WeatherType.Fog: return "视-2 法抗+10";
-            default: return "无额外修正";
+            case WeatherType.Rain: return "防-3 法抗+25；浇灭格火/着火且不可再燃；能见度见时段×天气表";
+            case WeatherType.Fog: return "法抗+10；能见度见时段×天气表";
+            default: return "能见度见时段×天气表";
         }
+    }
+
+    /// <summary>
+    /// 时段×天气能见度矩阵（曼哈顿半径；无限=FullMapVisibilityRadius）。
+    /// 清晨/白天/黄昏 × 晴/雨 → 无限；白天雾 8；清晨/黄昏雾 6；黑夜晴 5 / 雨 4 / 雾 3。
+    /// </summary>
+    public static int GetPeriodWeatherVisibility(GameClock.Period period, WeatherType weather)
+    {
+        if (period == GameClock.Period.Night)
+        {
+            switch (weather)
+            {
+                case WeatherType.Rain: return 4;
+                case WeatherType.Fog: return 3;
+                default: return 5;
+            }
+        }
+
+        // 清晨 / 白天 / 黄昏
+        if (weather == WeatherType.Fog)
+            return period == GameClock.Period.Day ? 8 : 6;
+        return ItemInfo.FullMapVisibilityRadius;
+    }
+
+    public static int GetVisibilityAfterWeather(int periodBaseVisibility, UnitActor unit = null)
+    {
+        // 兼容旧调用：改走时段×天气矩阵（忽略 periodBaseVisibility）
+        int round = TurnManager.Instance != null ? TurnManager.Instance.RoundNumber : 1;
+        var period = GameClock.GetPeriod(round);
+        var weather = Current;
+        if (weather == WeatherType.Rain && ItemInfo.HasEquippedRubberRaincoat(unit))
+            weather = WeatherType.Clear;
+        return GetPeriodWeatherVisibility(period, weather);
     }
 
     public static void ResetForMatch(int roundNumber = 1)
@@ -88,22 +121,6 @@ public static class WeatherService
         int round = TurnManager.Instance != null ? TurnManager.Instance.RoundNumber : 1;
         ApplyWeather(weather, round, ChangeSource.Card);
         return true;
-    }
-
-    public static int GetVisibilityAfterWeather(int periodBaseVisibility, UnitActor unit = null)
-    {
-        switch (Current)
-        {
-            case WeatherType.Rain:
-                if (ItemInfo.HasEquippedRubberRaincoat(unit))
-                    return periodBaseVisibility;
-                return Mathf.Max(0, periodBaseVisibility - 1);
-            case WeatherType.Fog:
-                return Mathf.Max(0, periodBaseVisibility - 2);
-            default:
-                // 晴天：不改时段基础能见度
-                return periodBaseVisibility;
-        }
     }
 
     public static int GetDefMod(UnitActor unit = null)
@@ -193,8 +210,9 @@ public static class WeatherService
         TurnManager.Instance?.Log(
             $"天气变更：{GetDisplayName(prev)} → {GetDisplayName(weather)}（{GetShortEffect(weather)}）{extra}");
 
-        VisibilityService.RefreshWorld();
+        // 先通知 UI，再强制按新天气重算能见度（迷雾半径 / 移动提示 / 状态「视」）
         TurnManager.Instance?.NotifyActionDone();
+        VisibilityService.RefreshAfterVisionRuleChange();
     }
 
     private static void ClearAllBurning()

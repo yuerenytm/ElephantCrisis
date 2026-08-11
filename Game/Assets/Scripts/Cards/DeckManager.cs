@@ -2,8 +2,8 @@ using System.Collections.Generic;
 using UnityEngine;
 
 /// <summary>
-/// 共用限量牌库：开局构建后散落到地图格；结算进弃牌；场上弃置/散落物被熔岩吞噬后进弃牌。
-/// 行动开始不再摸牌（管理员领取、人技能「摸牌」等仍可从牌库/弃牌抽牌）。
+/// 共用限量牌库：开局构建后背面散落到地图格；结算进弃牌；场上弃置/散落物被熔岩吞噬后进弃牌。
+/// 行动开始不再摸牌；管理员虚空印牌不走牌库。
 /// </summary>
 public class DeckManager : MonoBehaviour
 {
@@ -109,7 +109,7 @@ public class DeckManager : MonoBehaviour
 
         int n = Mathf.Min(drawPile.Count, cells.Count);
         for (int i = 0; i < n; i++)
-            ground.DropItem(cells[i], InventoryItem.CreateFresh(drawPile[i]));
+            ground.ScatterFaceDown(cells[i], InventoryItem.CreateFresh(drawPile[i]));
 
         if (n > 0)
             drawPile.RemoveRange(0, n);

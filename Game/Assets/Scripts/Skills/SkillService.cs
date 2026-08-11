@@ -50,7 +50,7 @@ public static class SkillService
             return false;
 
         TurnManager.Instance.EnterSkillReinforce();
-        TurnManager.Instance.LogFor(unit, "技能强化：选择 攻击 / 防御 / 移动 / 摸牌");
+        TurnManager.Instance.LogFor(unit, "技能强化：选择 攻击 / 防御 / 移动");
         return true;
     }
 
@@ -61,6 +61,8 @@ public static class SkillService
         if (TurnManager.Instance.Phase != TurnPhase.SelectingSkillReinforce)
             return false;
         if (unit.SkillCooldownLeft > 0)
+            return false;
+        if (boost != StatBoost.Attack && boost != StatBoost.Defense && boost != StatBoost.Move)
             return false;
 
         string detail = unit.ApplySkillReinforce(boost);
@@ -186,7 +188,7 @@ public static class SkillService
     }
 }
 
-/// <summary>隐匿：邻接外不可见/不可选为目标；攻击解除；撞入隐匿格则弹回来向邻格（不解除隐匿）。</summary>
+/// <summary>隐匿：邻接外不可见/不可选为目标；攻击或被攻击后解除；获得着火时解除；撞入隐匿格则弹回来向邻格（不解除隐匿）。</summary>
 public static class StealthService
 {
     public static void CheckAll() { }
@@ -199,6 +201,8 @@ public static class StealthService
             return true;
         if (attacker == null)
             return false;
+        if (ItemInfo.CanRevealHidden(attacker))
+            return true;
         return GridManager.Instance.GetManhattanDistance(attacker.Cell, defender.Cell) <= 1;
     }
 

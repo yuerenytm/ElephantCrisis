@@ -148,10 +148,7 @@ public class AiController : MonoBehaviour
             if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
                 break;
 
-            bool acted = RlPolicyBridge.UseRlForLogicSim
-                ? (RlPolicyBridge.TryActOnce(unit) || SimpleHeuristicAi.TryActOnce(unit))
-                : SimpleHeuristicAi.TryActOnce(unit);
-            if (!acted)
+            if (!SimpleHeuristicAi.TryActOnce(unit))
                 break;
 
             if (unit.IsDying && !ActionService.HasGroundPotionAt(unit))
@@ -185,9 +182,7 @@ public class AiController : MonoBehaviour
             if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
                 yield break;
 
-            bool acted = RlPolicyBridge.UseRlForLogicSim
-                ? (RlPolicyBridge.TryActOnce(unit) || SimpleHeuristicAi.TryActOnce(unit))
-                : SimpleHeuristicAi.TryActOnce(unit);
+            bool acted = SimpleHeuristicAi.TryActOnce(unit);
             GameUI.Instance?.RequestRefresh();
             PlayerInputController.Instance?.RefreshHints();
 

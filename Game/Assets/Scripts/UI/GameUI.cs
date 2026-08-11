@@ -388,7 +388,7 @@ public class GameUI : MonoBehaviour
             LeaderDeclarationService.TryDeclare(TurnManager.Instance?.CurrentUnit);
             RequestRefresh();
         });
-        adminGrantBtn = CreateButton(leftPanelRt, "领取卡牌", ref y, step, () =>
+        adminGrantBtn = CreateButton(leftPanelRt, "虚空印牌", ref y, step, () =>
         {
             SetBagDrawer(true);
             ToggleAdminGrantPanel();
@@ -490,14 +490,6 @@ public class GameUI : MonoBehaviour
                 SkillService.TryConfirmHumanReinforce(u, StatBoost.Move);
             else
                 ItemUseService.TryConfirmReinforce(u, StatBoost.Move);
-            RequestRefresh();
-        });
-        CreateButton(reinforcePanel.transform, "强化·摸牌", ref ry, rstep, () =>
-        {
-            var turn = TurnManager.Instance;
-            var u = turn?.CurrentUnit;
-            if (turn != null && turn.Phase == TurnPhase.SelectingSkillReinforce)
-                SkillService.TryConfirmHumanReinforce(u, StatBoost.Draw);
             RequestRefresh();
         });
         reinforcePanel.SetActive(false);
@@ -608,6 +600,31 @@ public class GameUI : MonoBehaviour
                     if (hazard != null) extra += "\n" + hazard;
                 }
             }
+            var peekViewer = VisibilityService.GetFogViewer();
+            if (peekViewer != null
+                && hoveredUnit != peekViewer
+                && VisibilityService.CanPeekInventory(peekViewer, hoveredUnit)
+                && hoveredUnit.Inventory != null)
+            {
+                extra ??= "";
+                extra += "\n望远镜·背包：";
+                if (hoveredUnit.Inventory.Count == 0)
+                    extra += "空";
+                else
+                {
+                    var names = new System.Collections.Generic.List<string>();
+                    foreach (var it in hoveredUnit.Inventory.Items)
+                    {
+                        string n = ItemInfo.GetDisplayName(it.Kind);
+                        if (ItemInfo.IsDoll(it.Kind))
+                            n = "★" + n;
+                        if (it.Equipped)
+                            n += "·装";
+                        names.Add(n);
+                    }
+                    extra += string.Join("、", names);
+                }
+            }
             hoverText.text = hoveredUnit.GetHoverStatusText() + (extra ?? "");
             return;
         }
@@ -685,6 +702,7 @@ public class GameUI : MonoBehaviour
             };
             statusText.text =
                 $"当前行动：{RoleInfo.GetDisplayName(u.Role)}{controller}    " +
+                $"移{u.CurrentMove} 视{u.CurrentVisibility} 防{u.CurrentDef}    " +
                 $"移动{(turn.HasMoved ? "✓" : "○")}  普攻{(turn.HasMeleeAttacked ? "✓" : "○")}    {phaseHint}";
             winnerText.text = "";
         }
@@ -768,7 +786,7 @@ public class GameUI : MonoBehaviour
                 adminGrantBtn.interactable = canGrant && !aiming;
                 var label = adminGrantBtn.GetComponentInChildren<Text>();
                 if (label != null)
-                    label.text = "领取卡牌";
+                    label.text = "虚空印牌";
             }
         }
         if (adminAtmosphereBtn != null)
@@ -829,8 +847,19 @@ public class GameUI : MonoBehaviour
         }
         else if (MatchConfig.IsAiBattle && !humanTurnActive && !MatchConfig.IsAdminMode)
         {
-            rightTitle.text = "背包";
-            RebuildHiddenInventory(turn.CurrentUnit);
+            var viewer = VisibilityService.GetFogViewer();
+            var aiUnit = turn.CurrentUnit;
+            if (viewer != null && aiUnit != null
+                && VisibilityService.CanPeekInventory(viewer, aiUnit))
+            {
+                rightTitle.text = $"窥视·{RoleInfo.GetDisplayName(aiUnit.Role)}";
+                RebuildItemList(false);
+            }
+            else
+            {
+                rightTitle.text = "背包";
+                RebuildHiddenInventory(turn.CurrentUnit);
+            }
         }
         else if (MatchConfig.IsAdminMode && !humanTurnActive)
         {
@@ -917,7 +946,7 @@ public class GameUI : MonoBehaviour
         UiTheme.StyleExistingImageAsPanel(adminGrantPanel.AddComponent<Image>());
 
         var title = CreateText(adminGrantPanel.transform, "GrantTitle", new Vector2(0.05f, 0.92f), new Vector2(0.7f, 0.99f), 16, TextAnchor.MiddleLeft);
-        title.text = "从牌库领取（不限次数）";
+        title.text = "虚空印牌（不限次数）";
         title.color = UiTheme.TextIvory;
 
         float closeY = 0.99f;
@@ -1089,26 +1118,10 @@ public class GameUI : MonoBehaviour
         if (adminGrantListRoot == null)
             return;
 
-        var available = AdminGrantService.ListAvailableFromDeck();
-        if (available.Count == 0)
+        var kinds = AdminGrantService.ListPrintableKinds();
+        for (int i = 0; i < kinds.Count; i++)
         {
-            var empty = new GameObject("Empty");
-            empty.transform.SetParent(adminGrantListRoot, false);
-            empty.AddComponent<RectTransform>();
-            var le = empty.AddComponent<LayoutElement>();
-            le.minHeight = 48f;
-            le.preferredHeight = 48f;
-            var tip = CreateText(empty.transform, "Tip", new Vector2(0.05f, 0.1f), new Vector2(0.95f, 0.9f), 14, TextAnchor.MiddleCenter);
-            tip.text = "牌库与弃牌堆皆空";
-            tip.color = new Color(0.8f, 0.7f, 0.75f);
-            adminGrantRows.Add(empty);
-            return;
-        }
-
-        for (int i = 0; i < available.Count; i++)
-        {
-            var kind = available[i].Kind;
-            int count = available[i].Count;
+            var kind = kinds[i];
             var row = new GameObject($"Grant_{kind}");
             row.transform.SetParent(adminGrantListRoot, false);
             row.AddComponent<RectTransform>();
@@ -1116,14 +1129,11 @@ public class GameUI : MonoBehaviour
             le.minHeight = 40f;
             le.preferredHeight = 40f;
 
-            string label = $"×{count}  {ItemInfo.GetDisplayName(kind)}  ·  {ItemInfo.GetShortDesc(kind)}";
+            string label = $"{ItemInfo.GetDisplayName(kind)}  ·  {ItemInfo.GetShortDesc(kind)}";
             var btn = CreateSmallButton(row.transform, label, new Vector2(0.02f, 0.08f), new Vector2(0.98f, 0.92f), () =>
             {
                 if (AdminGrantService.TryGrant(TurnManager.Instance?.CurrentUnit, kind))
-                {
-                    RebuildAdminGrantList();
                     RequestRefresh();
-                }
             });
             var img = btn.targetGraphic as Image;
             if (img != null)
@@ -1288,19 +1298,30 @@ public class GameUI : MonoBehaviour
 
             var row = CreateListRow($"Loot_{i}", ItemRowHeight);
             var bg = row.AddComponent<Image>();
-            bool isDoll = ItemInfo.IsDoll(kind);
+            bool faceDown = entry.FaceDown;
+            bool isDoll = !faceDown && ItemInfo.IsDoll(kind);
             bg.sprite = UiTheme.RoundSprite();
             bg.type = Image.Type.Sliced;
-            bg.color = isDoll ? ItemInfo.GetDollGoldUiBg() : UiTheme.Row;
+            bg.color = isDoll
+                ? ItemInfo.GetDollGoldUiBg()
+                : faceDown
+                    ? new Color(0.32f, 0.3f, 0.28f, 0.95f)
+                    : UiTheme.Row;
 
             var label = CreateText(row.transform, "Name", new Vector2(0.02f, 0.05f), new Vector2(0.62f, 0.95f), 13, TextAnchor.MiddleLeft);
             int dist = GridManager.Instance.GetManhattanDistance(unit.Cell, cell);
-            string lootName = kind == ItemKind.Arrow && entry.Charges > 0
-                ? $"弓箭×{entry.Charges}"
-                : ItemInfo.GetDisplayName(kind);
+            string lootName;
+            if (faceDown)
+                lootName = "未知卡牌";
+            else if (kind == ItemKind.Arrow && entry.Charges > 0)
+                lootName = $"弓箭×{entry.Charges}";
+            else
+                lootName = ItemInfo.GetDisplayName(kind);
             label.text = $"{lootName}\n<size=11>({cell.x},{cell.y}) 距{dist}</size>";
             if (isDoll)
                 label.color = ItemInfo.GetDollGoldText();
+            else if (faceDown)
+                label.color = new Color(0.75f, 0.72f, 0.68f);
 
             var pickBtn = CreateSmallButton(row.transform, "拾取", new Vector2(0.64f, 0.15f), new Vector2(0.98f, 0.85f), () =>
             {
@@ -1448,6 +1469,7 @@ public class GameUI : MonoBehaviour
             var useBtn = CreateSmallButton(row.transform, useLabel, new Vector2(0.5f, 0.15f), new Vector2(0.74f, 0.85f), () =>
             {
                 ItemUseService.TryBeginUse(TurnManager.Instance?.CurrentUnit, index);
+                RequestRefresh();
             });
             var dropBtn = CreateSmallButton(row.transform, "弃置", new Vector2(0.76f, 0.15f), new Vector2(0.98f, 0.85f), () =>
             {

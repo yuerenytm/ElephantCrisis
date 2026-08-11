@@ -398,6 +398,15 @@ public class TurnManager : MonoBehaviour
             }
         }
 
+        // 定时炸弹 / 火焰地块 / 濒死：按行动倒数（规则回合×4，含当次行动）
+        HazardManager.Instance?.TickTimedBombsOnActionEnd();
+        HazardManager.Instance?.TickFlamesOnActionEnd();
+        if (GameManager.Instance != null)
+        {
+            foreach (var u in GameManager.Instance.Units)
+                u?.TickDyingOnActionEnd();
+        }
+
         if (LogicMatchLogger.IsRecording && endingUnit != null)
         {
             LogicMatchLogger.Active.EmitTurnEnd(endingUnit, skipped: skipped);
@@ -428,12 +437,8 @@ public class TurnManager : MonoBehaviour
                 RoundNumber++;
                 advancedFullRound = true;
 
-                HazardManager.Instance?.TickTimedBombsOnFullRound();
-                HazardManager.Instance?.TickFlamesOnFullRound();
-
                 foreach (var u in units)
                 {
-                    u?.TickDyingOnFullRound();
                     u?.TickStatusOnFullRound();
                     u?.TickSkillCooldownOnFullRound();
                 }
@@ -443,7 +448,7 @@ public class TurnManager : MonoBehaviour
 
                 WeatherService.OnFullRoundAdvanced(RoundNumber);
 
-                Log($"—— 进入第{RoundNumber}回合 · {GameClock.GetStatusLine(RoundNumber)} · {WeatherService.GetDisplayName()}（时段视 {GameClock.GetBaseVisibility(RoundNumber)}）——");
+                Log($"—— 进入第{RoundNumber}回合 · {GameClock.GetStatusLine(RoundNumber)} · {WeatherService.GetDisplayName()}（矩阵视 {GameClock.GetBaseVisibility(RoundNumber)}）——");
                 if (!MatchConfig.IsLogicSim)
                     VisibilityService.RefreshWorld();
 

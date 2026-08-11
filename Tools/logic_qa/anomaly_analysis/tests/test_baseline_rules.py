@@ -421,3 +421,167 @@ def test_real_output_baseline_optional(output_dir: Path, tmp_path: Path):
     report = run_baseline(output_dir, tmp_path / "reports")
     # 现有引擎健康时期望 0 违规；若有误报再收紧规则
     assert report["summary"]["failed"] == 0, report["summary"]
+
+
+def _four_units(**vis_kw):
+    """四个存活单位，共用同一 vis（及可选 bag_items/statuses）。"""
+    return [
+        {
+            "role": r,
+            "hp": 90,
+            "max_hp": 90,
+            "statuses": vis_kw.get("statuses", []),
+            "dead": False,
+            "vis": vis_kw["vis"],
+            "bag_items": vis_kw.get("bag_items", []),
+        }
+        for r in ("elephant", "human", "monkey", "cat")
+    ]
+
+
+@pytest.mark.parametrize(
+    "hour,weather,vis",
+    [
+        (6, "clear", 40),   # 清晨晴：无限
+        (12, "clear", 40),  # 白天晴
+        (18, "clear", 40),  # 黄昏晴
+        (0, "clear", 5),    # 黑夜晴
+        (6, "rain", 40),    # 清晨雨：无限
+        (12, "rain", 40),
+        (18, "rain", 40),
+        (0, "rain", 4),     # 黑夜雨
+        (6, "fog", 6),      # 清晨雾
+        (12, "fog", 8),     # 白天雾
+        (18, "fog", 6),     # 黄昏雾
+        (0, "fog", 3),      # 黑夜雾
+    ],
+)
+def test_vis_period_weather_matrix_ok(hour, weather, vis):
+    events = [
+        {
+            "t": 1,
+            "type": "snapshot",
+            "hour": hour,
+            "weather": weather,
+            "units": _four_units(vis=vis),
+        }
+    ]
+    assert "vis_period_weather" not in _ids(check_match_events(events))
+
+
+def test_vis_period_weather_wrong_flags():
+    """白天晴天应为无限(40)，写成 8 → 违规。"""
+    events = [
+        {
+            "t": 1,
+            "type": "snapshot",
+            "hour": 12,
+            "weather": "clear",
+            "units": _four_units(vis=8),
+        }
+    ]
+    assert "vis_period_weather" in _ids(check_match_events(events))
+
+
+def test_vis_dying_overrides_period():
+    events = [
+        {
+            "t": 1,
+            "type": "snapshot",
+            "hour": 12,
+            "weather": "clear",
+            "units": [
+                {
+                    "role": "elephant",
+                    "hp": 0,
+                    "max_hp": 100,
+                    "statuses": ["dying"],
+                    "dead": False,
+                    "vis": 1,
+                    "bag_items": [],
+                },
+                {"role": "human", "hp": 90, "max_hp": 90, "statuses": [], "dead": False, "vis": 40, "bag_items": []},
+                {"role": "monkey", "hp": 90, "max_hp": 90, "statuses": [], "dead": False, "vis": 40, "bag_items": []},
+                {"role": "cat", "hp": 60, "max_hp": 60, "statuses": [], "dead": False, "vis": 40, "bag_items": []},
+            ],
+        }
+    ]
+    assert "vis_period_weather" not in _ids(check_match_events(events))
+
+
+def test_vis_night_vision_and_raincoat():
+    """黑夜夜视：晴+3=8、雨+2=6；雨衣使雨按晴再+3=8。"""
+    events = [
+        {
+            "t": 1,
+            "type": "snapshot",
+            "hour": 0,
+            "weather": "rain",
+            "units": [
+                {
+                    "role": "elephant",
+                    "hp": 100,
+                    "max_hp": 100,
+                    "statuses": [],
+                    "dead": False,
+                    "vis": 8,  # 雨衣→晴矩阵5 + 夜视+3
+                    "bag_items": [
+                        {"kind": "night_vision", "charges": 1, "equipped": True},
+                        {"kind": "rubber_raincoat", "charges": 3, "equipped": True},
+                    ],
+                },
+                {"role": "human", "hp": 90, "max_hp": 90, "statuses": [], "dead": False, "vis": 6, "bag_items": [
+                    {"kind": "night_vision", "charges": 1, "equipped": True},
+                ]},
+                {"role": "monkey", "hp": 90, "max_hp": 90, "statuses": [], "dead": False, "vis": 4, "bag_items": []},
+                {"role": "cat", "hp": 60, "max_hp": 60, "statuses": [], "dead": False, "vis": 4, "bag_items": []},
+            ],
+        }
+    ]
+    assert "vis_period_weather" not in _ids(check_match_events(events))
+
+
+def test_vis_telescope_fog_bonus():
+    """望远镜：白天雾 8+2=10；无镜仍为 8。"""
+    events = [
+        {
+            "t": 1,
+            "type": "snapshot",
+            "hour": 12,
+            "weather": "fog",
+            "units": [
+                {
+                    "role": "elephant",
+                    "hp": 100,
+                    "max_hp": 100,
+                    "statuses": [],
+                    "dead": False,
+                    "vis": 10,
+                    "bag_items": [{"kind": "telescope", "charges": 1, "equipped": True}],
+                },
+                {"role": "human", "hp": 90, "max_hp": 90, "statuses": [], "dead": False, "vis": 8, "bag_items": []},
+                {"role": "monkey", "hp": 90, "max_hp": 90, "statuses": [], "dead": False, "vis": 8, "bag_items": []},
+                {"role": "cat", "hp": 60, "max_hp": 60, "statuses": [], "dead": False, "vis": 8, "bag_items": []},
+            ],
+        }
+    ]
+    assert "vis_period_weather" not in _ids(check_match_events(events))
+
+
+def test_vis_skips_without_vis_field():
+    """旧日志无 vis 字段时不检。"""
+    events = [
+        {
+            "t": 1,
+            "type": "snapshot",
+            "hour": 12,
+            "weather": "clear",
+            "units": [
+                {"role": "elephant", "hp": 100, "max_hp": 100, "statuses": [], "dead": False},
+                {"role": "human", "hp": 90, "max_hp": 90, "statuses": [], "dead": False},
+                {"role": "monkey", "hp": 90, "max_hp": 90, "statuses": [], "dead": False},
+                {"role": "cat", "hp": 60, "max_hp": 60, "statuses": [], "dead": False},
+            ],
+        }
+    ]
+    assert "vis_period_weather" not in _ids(check_match_events(events))

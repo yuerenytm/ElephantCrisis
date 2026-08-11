@@ -33,9 +33,9 @@ public static class GameClock
         adminOverride = true;
         adminHour = GetRepresentativeHour(period);
         TurnManager.Instance?.Log(
-            $"管理员设定时段：{GetPeriodName(period)}（{adminHour}:00，能见度基础 {GetBaseVisibilityForPeriod(period)}）");
-        VisibilityService.RefreshWorld();
+            $"管理员设定时段：{GetPeriodName(period)}（{adminHour}:00；能见度见时段×天气矩阵）");
         TurnManager.Instance?.NotifyActionDone();
+        VisibilityService.RefreshAfterVisionRuleChange();
         return true;
     }
 
@@ -74,16 +74,17 @@ public static class GameClock
     }
 
     public static int GetBaseVisibility(int roundNumber)
-        => GetBaseVisibilityForPeriod(GetPeriod(roundNumber));
+        => WeatherService.GetPeriodWeatherVisibility(GetPeriod(roundNumber), WeatherService.Current);
 
+    /// <summary>仅按时段的标称值（不含天气）；展示/兼容用。现行结算见 WeatherService.GetPeriodWeatherVisibility。</summary>
     public static int GetBaseVisibilityForPeriod(Period period)
     {
         switch (period)
         {
-            case Period.Day: return 10;
-            case Period.Dawn: return 8;
-            case Period.Dusk: return 7;
-            default: return 5; // Night
+            case Period.Day: return ItemInfo.FullMapVisibilityRadius;
+            case Period.Dawn:
+            case Period.Dusk: return ItemInfo.FullMapVisibilityRadius;
+            default: return 5; // Night clear
         }
     }
 

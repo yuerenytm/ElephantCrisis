@@ -5,8 +5,7 @@ public enum StatBoost
 {
     Attack,
     Defense,
-    Move,
-    Draw
+    Move
 }
 
 /// <summary>统一卡牌/物品使用入口，UI 只调用这里，不写死每种按钮。</summary>
@@ -157,7 +156,7 @@ public static class ItemUseService
 
             case ItemUseKind.ChooseDelay:
                 TurnManager.Instance.EnterTimedBombDelay(itemIndex);
-                TurnManager.Instance.LogFor(unit, "选择定时炸弹延时：1～5 回合后爆炸");
+                TurnManager.Instance.LogFor(unit, "选择定时炸弹延时：1～5 回合（×4 行动，含本次）后爆炸");
                 return true;
 
             case ItemUseKind.ChooseDirection:
@@ -356,18 +355,31 @@ public static class ActionService
 
     private static void BreakStealthIfAttacking(UnitActor attacker, UnitActor defender = null)
     {
-        if (attacker == null || !attacker.HasStatus(StatusType.Hidden))
-            return;
-        attacker.ClearStatus(StatusType.Hidden, "break_attack");
-        TurnManager.Instance?.Log(
-            $"{RoleInfo.GetDisplayName(attacker.Role)} 进行攻击，【隐匿】解除");
-        // 猫 Lv3：攻击破隐时，被攻击者获得中毒 1 回合
-        if (attacker.Role == RoleType.Cat && attacker.SkillLevel >= 3 && defender != null && !defender.IsDead)
+        if (attacker != null && attacker.HasStatus(StatusType.Hidden))
         {
-            defender.ApplyStatus(StatusType.Poison, 1, attacker);
+            attacker.ClearStatus(StatusType.Hidden, "break_attack");
             TurnManager.Instance?.Log(
-                $"{RoleInfo.GetDisplayName(defender.Role)} 因破隐攻击获得【中毒】");
+                $"{RoleInfo.GetDisplayName(attacker.Role)} 进行攻击，【隐匿】解除");
+            // 猫 Lv3：攻击破隐时，被攻击者获得中毒 1 回合
+            if (attacker.Role == RoleType.Cat && attacker.SkillLevel >= 3 && defender != null && !defender.IsDead)
+            {
+                defender.ApplyStatus(StatusType.Poison, 1, attacker);
+                TurnManager.Instance?.Log(
+                    $"{RoleInfo.GetDisplayName(defender.Role)} 因破隐攻击获得【中毒】");
+            }
         }
+
+        BreakStealthIfAttacked(defender);
+    }
+
+    /// <summary>被攻击（含 AOE 覆盖）后解除隐匿。</summary>
+    private static void BreakStealthIfAttacked(UnitActor defender)
+    {
+        if (defender == null || defender.IsDead || !defender.HasStatus(StatusType.Hidden))
+            return;
+        defender.ClearStatus(StatusType.Hidden, "break_attacked");
+        TurnManager.Instance?.Log(
+            $"{RoleInfo.GetDisplayName(defender.Role)} 被攻击，【隐匿】解除");
     }
 
     public static bool TryShoot(UnitActor attacker, int weaponIndex, UnitActor defender)
@@ -873,7 +885,7 @@ public static class ActionService
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.LogFor(unit,
             $"{RoleInfo.GetDisplayName(unit.Role)} 发射【{ItemInfo.GetDisplayName(kind)}】");
-        // ApplyWeather 内会 NotifyActionDone 并刷新视野 / 雨天灭火
+        // ApplyWeather 内会 NotifyActionDone，并 RefreshAfterVisionRuleChange（迷雾半径/移动提示）
         if (!WeatherService.TryApplyFromCard(target))
             TurnManager.Instance.NotifyActionDone();
         return true;
@@ -982,7 +994,7 @@ public static class ActionService
 
     public static bool TryUseReinforce(UnitActor unit, StatBoost boost)
     {
-        if (boost == StatBoost.Draw)
+        if (boost != StatBoost.Attack && boost != StatBoost.Defense && boost != StatBoost.Move)
             return false;
         if (!CanUseOwned(unit, ItemKind.Reinforce))
             return false;
@@ -1096,6 +1108,7 @@ public static class ActionService
             if (grid.GetManhattanDistance(target, other.Cell) <= 2)
             {
                 hits++;
+                BreakStealthIfAttacked(other);
                 int dealt = other.TakeDamage(damage, magicDamage: false, fromBombOrMine: true);
                 LogicMatchLogger.Active?.EmitDamage(
                     LogicSimNaming.Role(unit.Role),
@@ -1160,6 +1173,7 @@ public static class ActionService
             if (grid.GetManhattanDistance(target, other.Cell) > blast)
                 continue;
             hits++;
+            BreakStealthIfAttacked(other);
             int dealt = other.TakeDamage(damage, magicDamage: true);
             LogicMatchLogger.Active?.EmitDamage(
                 LogicSimNaming.Role(unit.Role),
@@ -1265,7 +1279,7 @@ public static class ActionService
         HazardManager.Instance?.PlaceTimedBomb(unit.Cell, rounds, unit.Role);
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.LogFor(unit,
-            $"{RoleInfo.GetDisplayName(unit.Role)} 在脚下安置定时炸弹，{rounds} 回合后爆炸（仅你可见；猫行动结束后结算）");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 在脚下安置定时炸弹，{rounds} 回合（{rounds * 4} 个行动，含本次）后爆炸（仅你可见）");
         TurnManager.Instance.NotifyActionDone();
         ClientPerfMark.Action("place_hazard", "timed_bomb");
         return true;
@@ -1321,6 +1335,7 @@ public static class ActionService
             var other = occ.GetComponent<UnitActor>();
             if (other == null || other.IsDead || other == unit) continue;
             hits++;
+            BreakStealthIfAttacked(other);
             int dealt = other.TakeDamage(10, magicDamage: true);
             if (dealt > 0 && !other.IsDead)
                 other.ApplyStatus(StatusType.Burning, 1, unit);
@@ -1350,7 +1365,7 @@ public static class ActionService
         BreakStealthIfAttacking(unit);
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.Log(
-            $"{RoleInfo.GetDisplayName(unit.Role)} 使用火焰喷射器（耗【汽油瓶】×1），命中 {hits} 人，{damaged} 人扣血；路径火焰 {flameRounds} 回合");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 使用火焰喷射器（耗【汽油瓶】×1），命中 {hits} 人，{damaged} 人扣血；路径火焰 {flameRounds} 回合（{flameRounds * 4} 行动）");
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
         ClientPerfMark.Action("aoe_flame", "flamethrower");
@@ -1385,6 +1400,7 @@ public static class ActionService
                 continue;
             if (grid.GetManhattanDistance(target, other.Cell) > 2)
                 continue;
+            BreakStealthIfAttacked(other);
             other.ApplyStatus(StatusType.Blind, 1, unit);
             hits++;
         }
@@ -1511,6 +1527,7 @@ public static class ActionService
                 if (occ == null || occ == unit || !hitUnits.Add(occ))
                     continue;
                 hits++;
+                BreakStealthIfAttacked(occ);
                 int dealt = occ.TakeDamage(damage, magicDamage: false);
                 if (!occ.IsDead)
                     occ.ApplyStatus(StatusType.Stun, 1, unit);

@@ -61,28 +61,26 @@ public class UnitActor : MonoBehaviour
 
     public bool IsDying { get; private set; }
     public bool IsDead { get; private set; }
-    public int DyingRoundsLeft { get; private set; }
+    /// <summary>濒死剩余行动数（进入时 = 3 回合×4；每次行动结束 −1，含进入当次行动）。</summary>
+    public int DyingActionsLeft { get; private set; }
 
     /// <summary>角色默认近战射程（不计入远程武器叠加）。</summary>
     public int BaseAttackRange => 1;
 
-    /// <summary>基础能见度半径（虚拟时钟时段；夜视镜黑夜按 8）。</summary>
+    /// <summary>时段×天气矩阵能见度（未叠挂件/状态）；夜视镜在 CurrentVisibility 中另计。</summary>
     public int BaseVisibility
     {
         get
         {
             int round = TurnManager.Instance != null ? TurnManager.Instance.RoundNumber : 1;
-            int v = GameClock.GetBaseVisibility(round);
-            if (GameClock.GetPeriod(round) == GameClock.Period.Night
-                && FindEquippedIndex(ItemKind.NightVision) >= 0)
-                v = GameClock.NightVisionVisibility;
-            return v;
+            return WeatherService.GetPeriodWeatherVisibility(
+                GameClock.GetPeriod(round), WeatherService.Current);
         }
     }
 
     /// <summary>
-    /// 当前能见度（曼哈顿半径）。致盲=0；望远镜生效时全图；
-    /// 否则濒死=1、中毒=2；再叠天气。隐匿单位仍按 CanSeeUnit 另计。
+    /// 当前能见度（曼哈顿半径）。致盲=0；濒死=1；中毒=2；
+    /// 否则取时段×天气矩阵，再叠雨衣 / 夜视镜 / 望远镜。
     /// </summary>
     public int CurrentVisibility
     {
@@ -90,11 +88,27 @@ public class UnitActor : MonoBehaviour
         {
             if (IsDead) return 0;
             if (HasStatus(StatusType.Blind)) return 0;
-            if (ItemInfo.IsTelescopeVisionActive(this))
-                return ItemInfo.FullMapVisibilityRadius;
             if (IsDying) return 1;
             if (HasStatus(StatusType.Poison)) return 2;
-            return Mathf.Max(0, WeatherService.GetVisibilityAfterWeather(BaseVisibility, this));
+
+            int round = TurnManager.Instance != null ? TurnManager.Instance.RoundNumber : 1;
+            var period = GameClock.GetPeriod(round);
+            var weather = WeatherService.Current;
+            // 橡胶雨衣：雨天能见度按同时段晴天矩阵结算
+            if (weather == WeatherType.Rain && ItemInfo.HasEquippedRubberRaincoat(this))
+                weather = WeatherType.Clear;
+
+            int v = WeatherService.GetPeriodWeatherVisibility(period, weather);
+
+            // 夜视镜：黑夜晴+3 / 雨+2 / 雾+1（对矩阵天气；雨衣已把雨换成晴则按晴+3）
+            if (ItemInfo.IsNightVisionActive(this))
+                v += ItemInfo.GetNightVisionVisibilityBonus(weather);
+
+            // 望远镜：白天/晨昏雾天 +2
+            if (ItemInfo.IsTelescopeVisionActive(this))
+                v += ItemInfo.GetTelescopeVisibilityBonus(period, WeatherService.Current);
+
+            return Mathf.Max(0, v);
         }
     }
 
@@ -408,24 +422,47 @@ public class UnitActor : MonoBehaviour
     {
         if (IsDead || IsDying)
             return;
-        if (CurrentTile == TileType.Jungle)
-        {
-            ApplyHiddenStatus();
-            HiddenFromJungle = true; // 必须在 ApplyHiddenStatus（内部 ClearStatus）之后设置
-            TurnManager.Instance?.LogFor(this,
-                $"{RoleInfo.GetDisplayName(Role)} 进入丛林，获得【隐匿】");
-        }
-        else if (HiddenFromJungle)
-        {
-            HiddenFromJungle = false;
-            ClearStatus(StatusType.Hidden, "leave_jungle");
-            TurnManager.Instance?.LogFor(this,
-                $"{RoleInfo.GetDisplayName(Role)} 离开丛林，【隐匿】解除");
-        }
+        SyncJungleStealthFromTerrain();
         if (CurrentTile == TileType.Swamp)
             ApplySwampEnterPoison();
         else
             ClearTerrainPoison();
+    }
+
+    /// <summary>
+    /// 丛林隐匿：进入无火丛林时获得；离开丛林或所在丛林格有火焰时，丛林来源隐匿解除。
+    /// </summary>
+    public void SyncJungleStealthFromTerrain()
+    {
+        if (IsDead || IsDying)
+            return;
+
+        bool jungleOk = CurrentTile == TileType.Jungle
+            && (HazardManager.Instance == null || !HazardManager.Instance.HasFlameAt(Cell));
+
+        if (jungleOk)
+        {
+            if (HiddenFromJungle && HasStatus(StatusType.Hidden))
+                return;
+            ApplyHiddenStatus();
+            HiddenFromJungle = true;
+            TurnManager.Instance?.LogFor(this,
+                $"{RoleInfo.GetDisplayName(Role)} 进入丛林，获得【隐匿】");
+            return;
+        }
+
+        if (!HiddenFromJungle)
+            return;
+
+        HiddenFromJungle = false;
+        bool onBurningJungle = CurrentTile == TileType.Jungle
+            && HazardManager.Instance != null
+            && HazardManager.Instance.HasFlameAt(Cell);
+        ClearStatus(StatusType.Hidden, onBurningJungle ? "jungle_flame" : "leave_jungle");
+        TurnManager.Instance?.LogFor(this,
+            onBurningJungle
+                ? $"{RoleInfo.GetDisplayName(Role)} 所在丛林着火，【隐匿】解除"
+                : $"{RoleInfo.GetDisplayName(Role)} 离开丛林，【隐匿】解除");
     }
 
     /// <summary>踏入沼泽：立刻叠 1 层地形中毒（受 3 层上限）。</summary>
@@ -559,12 +596,25 @@ public class UnitActor : MonoBehaviour
             else
                 statuses[i] = new StatusEffect(type, keep);
             LogicMatchLogger.Active?.EmitStatus(this, type, "apply");
+            if (type == StatusType.Burning)
+                BreakStealthFromBurning();
             RefreshVisual();
             return;
         }
         statuses.Add(next);
         LogicMatchLogger.Active?.EmitStatus(this, type, "apply");
+        if (type == StatusType.Burning)
+            BreakStealthFromBurning();
         RefreshVisual();
+    }
+
+    private void BreakStealthFromBurning()
+    {
+        if (!HasStatus(StatusType.Hidden))
+            return;
+        ClearStatus(StatusType.Hidden, "break_burning");
+        TurnManager.Instance?.Log(
+            $"{RoleInfo.GetDisplayName(Role)} 获得【着火】，【隐匿】解除");
     }
 
     /// <summary>中毒可叠加，最多 <see cref="MaxPoisonStacks"/> 层；满层时新施加不生效（不覆盖已有层）。</summary>
@@ -596,7 +646,7 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
-    /// <summary>隐匿：直到攻击解除或其它效果清除，不按回合倒数。</summary>
+    /// <summary>隐匿：直到攻击/被攻击/着火或其它效果清除，不按回合倒数。</summary>
     public void ApplyHiddenStatus(string logOp = "skill")
     {
         if (IsDead || IsDying)
@@ -672,10 +722,6 @@ public class UnitActor : MonoBehaviour
                 PermMove += 1;
                 detail = "移动+1";
                 break;
-            case StatBoost.Draw:
-                DeckManager.Instance?.DrawFor(this);
-                detail = "摸1张牌";
-                break;
             default:
                 detail = "无效果";
                 break;
@@ -734,7 +780,7 @@ public class UnitActor : MonoBehaviour
 
         IsDying = false;
         IsDead = false;
-        DyingRoundsLeft = 0;
+        DyingActionsLeft = 0;
 
         if (!MatchConfig.IsLogicSim)
             EnsureVisuals();
@@ -898,7 +944,7 @@ public class UnitActor : MonoBehaviour
         if (wasDying && Hp >= 1)
         {
             IsDying = false;
-            DyingRoundsLeft = 0;
+            DyingActionsLeft = 0;
             // 恢复基础值 + 永久强化；玩偶/甲若已掉落则不生效
             RefreshVisual();
         }
@@ -1230,7 +1276,7 @@ public class UnitActor : MonoBehaviour
             return;
 
         IsDying = true;
-        DyingRoundsLeft = 3; // 含当回合起算，每过完 1 回合 -1
+        DyingActionsLeft = 12; // 3 回合×4 行动，含进入当次行动；每次行动结束 −1
         Hp = 0;
         // 其余属性与已有状态保留；仅强制移速口径见 CurrentMove
         DropAllItems();
@@ -1238,14 +1284,14 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
-    // 每回合推进时调用（四人都行动完）
-    public void TickDyingOnFullRound()
+    // 每次行动结束推进（含晕眩跳过 / 红牛额外行动）
+    public void TickDyingOnActionEnd()
     {
         if (!IsDying || IsDead)
             return;
 
-        DyingRoundsLeft--;
-        if (DyingRoundsLeft <= 0)
+        DyingActionsLeft--;
+        if (DyingActionsLeft <= 0)
             Die();
         else
             RefreshVisual();
@@ -1360,7 +1406,7 @@ public class UnitActor : MonoBehaviour
     public string GetStatusText()
     {
         if (IsDead) return "已死亡";
-        if (IsDying) return $"濒死(剩余{DyingRoundsLeft}回合) 能见度1";
+        if (IsDying) return $"濒死(剩余{DyingActionsLeft}行动) 能见度1";
         return $"移{CurrentMove} 血{Hp}/{MaxHp} 攻{CurrentAtk} 防{CurrentDef} 法抗{MagicResist}% 视{CurrentVisibility} 包{Inventory.UsedWeight:0.##}/{CurrentBagCapacity:0.##} 偶{Inventory.CountDolls()} 技{SkillInfo.GetSkillName(Role)}Lv{SkillLevel}";
     }
 
@@ -1369,7 +1415,7 @@ public class UnitActor : MonoBehaviour
         if (IsDead)
             return $"{RoleInfo.GetDisplayName(Role)}  ·  已死亡";
         if (IsDying)
-            return $"{RoleInfo.GetDisplayName(Role)}  ·  濒死（剩余{DyingRoundsLeft}回合）  能见度1  移{CurrentMove}";
+            return $"{RoleInfo.GetDisplayName(Role)}  ·  濒死（剩余{DyingActionsLeft}行动）  能见度1  移{CurrentMove}";
 
         return $"{RoleInfo.GetDisplayName(Role)}  ·  " +
                $"移 {CurrentMove}   血 {Hp}/{MaxHp}   攻 {CurrentAtk}   防 {CurrentDef}   法抗 {MagicResist}%   视 {CurrentVisibility}   " +
