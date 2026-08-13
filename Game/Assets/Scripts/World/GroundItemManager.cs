@@ -272,11 +272,12 @@ public class GroundItemManager : MonoBehaviour
     public int TryPickupAround(Vector2Int center, Inventory inventory)
     {
         int total = 0;
-        for (int dx = -1; dx <= 1; dx++)
+        int radius = GameRulesConfig.PickupRange;
+        for (int dx = -radius; dx <= radius; dx++)
         {
-            for (int dy = -1; dy <= 1; dy++)
+            for (int dy = -radius; dy <= radius; dy++)
             {
-                if (Mathf.Abs(dx) + Mathf.Abs(dy) > 1)
+                if (Mathf.Abs(dx) + Mathf.Abs(dy) > radius)
                     continue;
                 total += TryPickupAll(center + new Vector2Int(dx, dy), inventory);
             }

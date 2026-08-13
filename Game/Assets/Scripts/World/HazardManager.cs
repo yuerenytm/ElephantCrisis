@@ -107,7 +107,7 @@ public class HazardManager : MonoBehaviour
 
     public void PlaceTimedBomb(Vector2Int cell, int rounds, RoleType owner)
     {
-        int actions = Mathf.Clamp(rounds, 1, 5) * 4;
+        int actions = Mathf.Clamp(rounds, GameRulesConfig.TimedBombMinRounds, GameRulesConfig.TimedBombMaxRounds) * GameRulesConfig.ActionsPerRound;
         var bomb = new TimedBombHazard { Cell = cell, ActionsLeft = actions, Owner = owner };
         bomb.Visual = CreateRedMarker(cell, "TimedBomb");
         var labelGo = new GameObject("Label");
@@ -148,7 +148,7 @@ public class HazardManager : MonoBehaviour
         if (grid == null || rounds <= 0)
             return;
 
-        int actions = rounds * 4;
+        int actions = rounds * GameRulesConfig.ActionsPerRound;
         for (int x = 0; x < grid.gridWidth; x++)
         {
             for (int y = 0; y < grid.gridHeight; y++)
@@ -179,7 +179,7 @@ public class HazardManager : MonoBehaviour
         if (stepDir == Vector2Int.zero)
             return;
 
-        int actions = rounds * 4;
+        int actions = rounds * GameRulesConfig.ActionsPerRound;
         for (int step = 1; step <= maxSteps; step++)
         {
             var cell = origin + stepDir * step;
@@ -361,13 +361,13 @@ public class HazardManager : MonoBehaviour
             if (bomb.Cell != cell) continue;
             if (viewer == null || bomb.Owner != viewer.Role)
                 continue;
-            lines.Add($"定时炸弹（你放置）：{bomb.ActionsLeft} 个行动后爆炸（半径4）");
+            lines.Add($"定时炸弹（你放置）：{bomb.ActionsLeft} 个行动后爆炸（半径{GameRulesConfig.TimedBombRadius}）");
         }
 
         foreach (var mine in mines)
         {
             if (mine.Cell != cell) continue;
-            lines.Add("武装地雷：踩上受到 15 点法伤");
+            lines.Add($"武装地雷：踩上受到 {GameRulesConfig.MineDamage} 点法伤");
         }
 
         foreach (var b in bananas)
@@ -424,7 +424,7 @@ public class HazardManager : MonoBehaviour
             return;
         if (unit.HasStatus(StatusType.Burning))
             return;
-        unit.ApplyStatus(StatusType.Burning, 1, unit);
+        unit.ApplyStatus(StatusType.Burning, GameRulesConfig.BurningRounds, unit);
         TurnManager.Instance?.Log(
             $"🔥 {RoleInfo.GetDisplayName(unit.Role)} 身处火焰，获得「着火」");
     }
@@ -449,7 +449,7 @@ public class HazardManager : MonoBehaviour
             TurnManager.Instance?.Log(
                 $"⚠ {RoleInfo.GetDisplayName(unit.Role)} 踩到了香蕉皮！");
             // 施加者=踩到者自己，持续按本人行动开始倒数
-            unit.ApplyStatus(StatusType.Trip, 3, unit);
+            unit.ApplyStatus(StatusType.Trip, GameRulesConfig.TripRounds, unit);
             DeckManager.Instance?.AddToDiscard(ItemKind.BananaPeel);
             if (bananas[i].Visual != null)
                 Destroy(bananas[i].Visual);
@@ -467,7 +467,7 @@ public class HazardManager : MonoBehaviour
             if (mines[i].Cell != unit.Cell)
                 continue;
 
-            int dealt = unit.TakeDamage(15, magicDamage: true, fromBombOrMine: true);
+            int dealt = unit.TakeDamage(GameRulesConfig.MineDamage, magicDamage: true, fromBombOrMine: true);
             TurnManager.Instance?.Log(
                 $"⚠ {RoleInfo.GetDisplayName(unit.Role)} 踩到地雷，受到 {dealt} 点法伤");
             DeckManager.Instance?.AddToDiscard(ItemKind.Mine);
@@ -537,10 +537,10 @@ public class HazardManager : MonoBehaviour
         {
             if (other == null || other.IsDead)
                 continue;
-            if (grid.GetManhattanDistance(bomb.Cell, other.Cell) <= 4)
+            if (grid.GetManhattanDistance(bomb.Cell, other.Cell) <= GameRulesConfig.TimedBombRadius)
             {
                 hits++;
-                if (other.TakeDamage(15, magicDamage: false) > 0)
+                if (other.TakeDamage(GameRulesConfig.TimedBombDamage, magicDamage: false) > 0)
                     damaged++;
             }
         }

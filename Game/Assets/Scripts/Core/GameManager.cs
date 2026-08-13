@@ -60,7 +60,7 @@ public class GameManager : MonoBehaviour
                 }
             }
             TurnManager.Instance?.Log($"熔岩收缩！新增 {changed.Count} 格熔岩，吞噬掉落物 {swallowed} 件入弃牌堆");
-            if (LogicMatchLogger.IsRecording)
+            if (LogicMatchLogger.IsRecordingEvents)
             {
                 LogicMatchLogger.Active.EmitLavaShrink(GridManager.Instance.LavaInset);
                 LogicMatchLogger.Active.EmitSnapshot();

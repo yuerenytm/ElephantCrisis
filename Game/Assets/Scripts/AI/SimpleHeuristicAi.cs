@@ -30,8 +30,8 @@ public static class SimpleHeuristicAi
             return true;
 
         if (unit.Inventory != null
-            && unit.Inventory.CountOf(ItemKind.SkillUpgrade) >= 3
-            && unit.SkillLevel < 3
+            && unit.Inventory.CountOf(ItemKind.SkillUpgrade) >= GameRulesConfig.SkillUpgradeCards
+            && unit.SkillLevel < GameRulesConfig.SkillLevelMax
             && ActionService.TryUseSkillUpgrade(unit))
             return true;
 
@@ -402,8 +402,8 @@ public static class SimpleHeuristicAi
             return false;
 
         int cursedX = cursed ? ItemInfo.GetCursedBladeTimesUsed(unit) + 1 : 0;
-        int cursedTargetDmg = cursed ? 2 * cursedX : 0;
-        int cursedSelfDmg = cursed ? cursedX : 0;
+        int cursedTargetDmg = cursed ? GameRulesConfig.CursedBladeTargetMult * cursedX : 0;
+        int cursedSelfDmg = cursed ? GameRulesConfig.CursedBladeSelfMult * cursedX : 0;
 
         UnitActor best = null;
         float bestScore = float.MinValue;
@@ -509,17 +509,18 @@ public static class SimpleHeuristicAi
 
         int blast = ItemInfo.GetBombBlastRadius(bombKind);
         int damage = ItemInfo.GetBombDamage(bombKind);
+        int throwRange = GameRulesConfig.BombRange;
         var grid = GridManager.Instance;
 
         Vector2Int bestCell = unit.Cell;
         float bestScore = 0f;
         bool found = false;
 
-        for (int dx = -5; dx <= 5; dx++)
+        for (int dx = -throwRange; dx <= throwRange; dx++)
         {
-            for (int dy = -5; dy <= 5; dy++)
+            for (int dy = -throwRange; dy <= throwRange; dy++)
             {
-                if (Mathf.Abs(dx) + Mathf.Abs(dy) > 5)
+                if (Mathf.Abs(dx) + Mathf.Abs(dy) > throwRange)
                     continue;
                 var cell = unit.Cell + new Vector2Int(dx, dy);
                 if (!grid.IsValidCell(cell))
@@ -566,18 +567,19 @@ public static class SimpleHeuristicAi
         if (gasIndex < 0)
             return false;
 
-        const int blast = 2;
-        const int damage = 10;
+        int blast = GameRulesConfig.MolotovRadius;
+        int damage = GameRulesConfig.MolotovDamage;
+        int throwRange = GameRulesConfig.MolotovRange;
         var grid = GridManager.Instance;
         Vector2Int bestCell = unit.Cell;
         float bestScore = 0f;
         bool found = false;
 
-        for (int dx = -5; dx <= 5; dx++)
+        for (int dx = -throwRange; dx <= throwRange; dx++)
         {
-            for (int dy = -5; dy <= 5; dy++)
+            for (int dy = -throwRange; dy <= throwRange; dy++)
             {
-                if (Mathf.Abs(dx) + Mathf.Abs(dy) > 5)
+                if (Mathf.Abs(dx) + Mathf.Abs(dy) > throwRange)
                     continue;
                 var cell = unit.Cell + new Vector2Int(dx, dy);
                 if (!grid.IsValidCell(cell))
@@ -622,7 +624,7 @@ public static class SimpleHeuristicAi
         if (unit.Inventory == null || !unit.Inventory.HasSpace)
             return false;
 
-        var loot = GroundItemManager.Instance?.GetLootInRange(unit.Cell, 1);
+        var loot = GroundItemManager.Instance?.GetLootInRange(unit.Cell, GameRulesConfig.PickupRange);
         if (loot == null || loot.Count == 0)
             return false;
 

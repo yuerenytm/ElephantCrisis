@@ -28,7 +28,7 @@ from preprocess import (  # noqa: E402
 
 st.set_page_config(page_title="象群危机 · 数值平衡顾问", layout="wide", page_icon="⚖️")
 
-DEFAULT_REPORT = SIM / "reports" / "balance_report.json"
+DEFAULT_REPORT = ROOT / "reports" / "balance_report.json"
 DEFAULT_SIM_OUT = SIM / "output"
 DEFAULT_ADV_OUT = ROOT / "reports"
 
@@ -86,10 +86,10 @@ def render_stats_tab(report_path: Path, sim_out: Path) -> None:
     load_clicked = b2.button("仅加载已有报告", use_container_width=True)
 
     if run_clicked:
-        with st.spinner("正在运行 sim/scripts/run_balance.py …"):
+        with st.spinner("正在运行 balance_analysis/scripts/run_balance.py …"):
             cmd = [
                 sys.executable,
-                str(SIM / "scripts" / "run_balance.py"),
+                str(ROOT / "scripts" / "run_balance.py"),
                 "--input",
                 str(sim_out),
                 "--out",
@@ -99,7 +99,7 @@ def render_stats_tab(report_path: Path, sim_out: Path) -> None:
             ]
             if matches and matches > 0:
                 cmd.extend(["--matches", str(int(matches))])
-            proc = subprocess.run(cmd, cwd=str(SIM), capture_output=True, text=True)
+            proc = subprocess.run(cmd, cwd=str(ROOT), capture_output=True, text=True)
             if proc.returncode != 0:
                 st.error("统计失败")
                 st.code(proc.stderr or proc.stdout or "(no output)")

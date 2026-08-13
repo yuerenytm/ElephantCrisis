@@ -1,5 +1,5 @@
 /// <summary>
-/// 虚拟时钟：第 1 回合 6:00，每完整回合推进 2 小时；按时段提供基础能见度。
+/// 虚拟时钟：第 1 回合 start_hour，每完整回合推进 hours_per_round（见 game_rules.yaml）；按时段提供基础能见度。
 /// 管理员模式可覆盖时段（不影响回合推进与熔岩等其它逻辑）。
 /// </summary>
 public static class GameClock
@@ -12,8 +12,6 @@ public static class GameClock
         Night   // 黑夜 20–3
     }
 
-    public const int NightVisionVisibility = 8;
-
     private static bool adminOverride;
     private static int adminHour;
 
@@ -22,7 +20,7 @@ public static class GameClock
     public static void ClearAdminOverride()
     {
         adminOverride = false;
-        adminHour = 6;
+        adminHour = GameRulesConfig.ClockStartHour;
     }
 
     /// <summary>管理员：任选时段。写入代表时刻（清晨6/白天12/黄昏18/黑夜0）。</summary>
@@ -43,10 +41,10 @@ public static class GameClock
     {
         switch (period)
         {
-            case Period.Dawn: return 6;
-            case Period.Day: return 12;
-            case Period.Dusk: return 18;
-            default: return 0;
+            case Period.Dawn: return GameRulesConfig.DawnRepHour;
+            case Period.Day: return GameRulesConfig.DayRepHour;
+            case Period.Dusk: return GameRulesConfig.DuskRepHour;
+            default: return GameRulesConfig.NightRepHour;
         }
     }
 
@@ -55,7 +53,9 @@ public static class GameClock
         if (HasAdminOverride)
             return adminHour;
         int r = UnityEngine.Mathf.Max(1, roundNumber);
-        return (6 + (r - 1) * 2) % 24;
+        int start = GameRulesConfig.ClockStartHour;
+        int step = GameRulesConfig.HoursPerRound;
+        return (start + (r - 1) * step) % 24;
     }
 
     public static Period GetPeriod(int roundNumber)
@@ -64,11 +64,11 @@ public static class GameClock
     public static Period GetPeriodForHour(int hour)
     {
         hour = ((hour % 24) + 24) % 24;
-        if (hour >= 8 && hour <= 15)
+        if (hour >= GameRulesConfig.PeriodDayStart && hour < GameRulesConfig.PeriodDuskStart)
             return Period.Day;
-        if (hour >= 16 && hour <= 19)
+        if (hour >= GameRulesConfig.PeriodDuskStart && hour < GameRulesConfig.PeriodNightStart)
             return Period.Dusk;
-        if (hour >= 4 && hour <= 7)
+        if (hour >= GameRulesConfig.PeriodDawnStart && hour < GameRulesConfig.PeriodDayStart)
             return Period.Dawn;
         return Period.Night; // 20–23, 0–3
     }
@@ -84,7 +84,7 @@ public static class GameClock
             case Period.Day: return ItemInfo.FullMapVisibilityRadius;
             case Period.Dawn:
             case Period.Dusk: return ItemInfo.FullMapVisibilityRadius;
-            default: return 5; // Night clear
+            default: return GameRulesConfig.NightClearVisibility; // Night clear
         }
     }
 

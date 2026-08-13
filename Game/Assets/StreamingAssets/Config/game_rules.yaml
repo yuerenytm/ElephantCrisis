@@ -1,6 +1,7 @@
-# 本体与仿真共用：角色基础属性等。
-# Unity 从 StreamingAssets 加载；Tools/sim 默认也读本文件（路径：Game/Assets/...）。
+# 本体与 LogicSim 共用（唯一数值真源）。
+# Unity：GameRulesConfig 加载；改印数/节奏/基础伤后无需改 C#。
 
+# 网格尺寸与出生点
 grid:
   width: 18
   height: 18
@@ -10,83 +11,270 @@ grid:
     monkey: [2, 15]
     cat: [15, 15]
 
+# 四角色基础五维 + 法抗
 roles:
   elephant: { move: 3, hp: 100, atk: 9, def: 10, bag: 30, magic_resist: 0 }
   human: { move: 5, hp: 90, atk: 10, def: 8, bag: 48, magic_resist: 20 }
   monkey: { move: 6, hp: 90, atk: 8, def: 6, bag: 36, magic_resist: 20 }
   cat: { move: 8, hp: 60, atk: 6, def: 4, bag: 30, magic_resist: 50 }
 
+# 近战射程、熔岩真伤、着火法伤、诅咒之刃倍率、移动力下限
 combat:
-  melee_range: 1
+  melee_range: 1          # 角色默认近战射程
   lava_true_damage: 20
   burning_magic_damage: 10
-  poison_visibility: 1
-  dying_visibility: 1
+  cursed_blade_target_mult: 2   # 第 x 次使用：目标 2x 真伤
+  cursed_blade_self_mult: 1     # 自身 x 真伤
+  move_min_alive: 1             # 存活时移动力下限（濒死/满层中毒亦不可压到 0）
 
+# 起始时刻、每小时推进、四个时段边界与代表时刻
 clock:
   start_hour: 6
   hours_per_round: 2
-  visibility:
-    dawn: 8
-    day: 10
-    dusk: 7
-    night: 5
+  # 时段边界（小时，含左不含右）；代表时刻供管理员切换显示
+  period_dawn_start: 4
+  period_day_start: 8
+  period_dusk_start: 16
+  period_night_start: 20
+  dawn_rep_hour: 6
+  day_rep_hour: 12
+  dusk_rep_hour: 18
+  night_rep_hour: 0
 
+# 能见度矩阵（全图/夜晴/夜雨/夜雾/雾昼/雾晨昏）
+visibility:
+  full_map: 40            # 「无限」的曼哈顿半径代理（覆盖 18×18）
+  night_clear: 5
+  night_rain: 4
+  night_fog: 3
+  fog_day: 8
+  fog_dawn_dusk: 6
+
+# 雨天防/法抗、雾天法抗、变更锁定区间
 weather:
   rain_def_mod: -3
-  rain_vis_mod: -1
-  fog_vis_mod: -2
-  # 变更后第 6–10 完整回合内再变
+  rain_magic_resist: 25
+  fog_magic_resist: 10
+  # 变更后第 lock_min～lock_max 完整回合内再变（含两端）
   lock_min: 6
   lock_max: 10
 
+# 熔岩缩圈周期
 lava:
   shrink_every_rounds: 5
 
+# 最大回合、摸牌、每回合行动数、拾取半径
 match:
   max_full_rounds: 80
   draw_per_turn: 1
+  actions_per_round: 4
+  pickup_range: 1          # 拾取/弃置等邻接操作半径
 
+# 每种卡的印数（牌组构成）；键须与 ItemKind 蛇形名一致，未列出的卡默认 0
 deck:
-  small_potion: 5
-  large_potion: 2
-  bomb: 5
-  bow: 3
-  arrow: 12
-  wood_armor: 3
-  energy_shield: 3
-  banana_peel: 4
+  small_potion: 10
+  large_potion: 4
+  bomb: 10
+  mega_bomb: 4
+  timed_bomb: 6
+  reinforce: 10
+  bow: 6
+  crossbow: 2
+  dagger: 6
+  longsword: 4
+  armor_piercing_blade: 8
+  cursed_blade: 2
+  arrow: 30
+  poison_arrow: 12
+  fire_rocket: 12
+  banana_peel: 10
+  mine: 10
+  flamethrower: 2
+  wood_armor: 6
+  iron_armor: 2
+  rubber_raincoat: 6
+  thorns_armor: 6
+  tactical_vest: 6
+  energy_shield: 6
+  adrenaline: 10
+  night_vision: 4
+  telescope: 4
+  skateboard: 6
+  motorcycle: 2
+  ice_skates: 4
+  grapple_hook: 6
+  amulet: 2
+  flashbang: 6
+  boomerang: 6
+  milk: 8
+  weather_clear: 6
+  weather_rain: 6
+  weather_fog: 6
+  red_bull: 12
+  gasoline_bottle: 20
+  lighter: 8
+  skill_upgrade: 24
   doll_elephant: 1
   doll_human: 1
   doll_monkey: 1
   doll_cat: 1
 
+# 所有卡牌数值（伤害/射程/耐久/充能/移速等）；键 = ItemKind 蛇形名 + 字段后缀
 items:
-  small_potion_heal: 30
-  large_potion_heal: 60
-  bomb_damage: 24
+  small_potion_heal: 9
+  large_potion_heal: 15
+  bomb_damage: 15
   bomb_radius: 2
   bomb_range: 5
+  mega_bomb_damage: 24
+  mega_bomb_radius: 2
+  timed_bomb_damage: 15
+  timed_bomb_radius: 4
+  timed_bomb_min_rounds: 1
+  timed_bomb_max_rounds: 5
+  boomerang_range: 4
+  boomerang_damage: 15
+  molotov_damage: 10
+  molotov_radius: 2
+  molotov_range: 5
+  molotov_flame_rounds: 2
+  flamethrower_damage: 10
+  flamethrower_range: 5
+  flamethrower_flame_rounds: 2
+  flashbang_radius: 2
+  flashbang_range: 5
+  flashbang_blind_rounds: 1
+  mine_damage: 15
   bow_atk: 2
   bow_range: 3
+  crossbow_atk: 10
+  crossbow_range: 5
+  dagger_atk: 6
+  dagger_range: 1
+  longsword_atk: 8
+  longsword_range: 2
+  armor_piercing_blade_atk: 6
+  armor_piercing_blade_range: 1
+  cursed_blade_range: 1
   wood_armor_def: 4
-  elephant_doll_def: 3
-  human_doll_atk: 3
-  human_doll_bag: 3
-  monkey_doll_move: 1
-  cat_doll_move: 1
+  wood_armor_charges: 5
+  iron_armor_def: 8
+  iron_armor_charges: 8
+  rubber_raincoat_def: 3
+  rubber_raincoat_charges: 3
+  thorns_armor_def: 2
+  thorns_armor_charges: 4
+  thorns_reflect_pct: 50
+  tactical_vest_def: 2
+  tactical_vest_charges: 6
+  tactical_vest_bag: 5
+  tactical_vest_extra_mitigation: 2
+  energy_shield_charges: 3
+  skateboard_move: 2
+  ice_skates_ice_move: 2
+  motorcycle_move: 3
+  motorcycle_ram_damage: 10
+  motorcycle_ram_min: 6
+  motorcycle_ram_max: 10
+  motorcycle_ram_width: 3
+  motorcycle_duration: 3
+  night_vision_clear: 3
+  night_vision_rain: 2
+  night_vision_fog: 1
+  telescope_fog: 2
+  grapple_hook_range: 3
+  ammo_per_card: 1
+  shoot_ammo_cost: 1
+  fuel_cost: 1
+  armor_durability_loss: 1   # 每次受物伤/着火消耗的护甲耐久
+  amulet_shield_charges: 1   # 护身符触发后给予的临时护盾层数
+  doll_elephant_def: 3
+  doll_human_atk: 3
+  doll_human_bag: 3
+  doll_monkey_move: 1
+  doll_monkey_atk: 3
+  doll_cat_move: 2
+  skill_upgrade_cards: 3
+  skill_level_base: 1
+  skill_level_max: 3
+  reinforce_amount: 1
+  red_bull_extra_actions: 1
+  weight_per_card: 1
 
+# 状态数值（中毒/着火/跌倒/领袖/濒死/致盲等）；见 Docs/规则_卡牌与状态.md §6
+status:
+  trip_def: -3
+  trip_move: -1
+  trip_rounds: 3
+  poison_per_stack_atk: -2
+  poison_per_stack_def: -2
+  poison_per_stack_move: -2
+  poison_end_damage_per_stack: 2
+  poison_visibility: 2
+  poison_max_stacks: 3
+  leader_atk: 9
+  leader_def: 9
+  leader_move: 3
+  leader_start_damage: 6
+  adrenaline_move: 2
+  adrenaline_atk: 3
+  adrenaline_duration: 3
+  adrenaline_hp_threshold_pct: 30
+  dying_visibility: 1
+  dying_actions: 12
+  blind_visibility: 0
+  hidden_reveal_range: 1
+  # 状态默认持续回合（角色/地形施加，如毒 1 回合、着火 1 回合等）
+  poison_rounds: 1
+  burning_rounds: 1
+  stun_rounds: 1
+  blind_rounds: 1
+
+# 四角色技能冷却/半径/惩罚（按等级）；见 Docs/规则_角色与基础属性.md
+skills:
+  human_cooldown_lv1: 8
+  human_cooldown_lv2: 6
+  human_cooldown_lv3: 5
+  human_reinforce_amount: 1
+  monkey_cooldown_lv1: 5
+  monkey_cooldown_lv2: 4
+  monkey_cooldown_lv3: 3
+  monkey_radius_lv1: 2
+  monkey_radius_lv2: 3
+  monkey_radius_lv3: 4
+  cat_cooldown_lv1: 5
+  cat_cooldown_lv2: 4
+  cat_cooldown_lv3: 3
+  deterrence_outer_lv1: 3
+  deterrence_outer_lv2: 5
+  deterrence_outer_lv3: 7
+  deterrence_inner_radius: 2
+  deterrence_inner_penalty: 2
+  deterrence_outer_penalty: 1
+
+# 领袖宣言持续/抽牌/所需玩偶数；见 Docs/规则_游戏概述与规则.md §5
+leader:
+  duration: 10
+  random_draw: 5
+  doll_required: 3
+
+# 地形修正（移/攻防/法抗/冰滑概率/生物群系生成参数）
 terrain:
   sand_move: -1
-  swamp_move: -2
-  swamp_def: -3
   ice_move: 1
   ice_trip_chance: 0.2
   highland_atk: 3
   highland_def: 3
   highland_range: 1
-
-deter:
-  # 象威慑：半径 -> 移动惩罚（对自己无效）
-  lv1_radius: 3
-  lv1_penalty: 1
+  jungle_magic_resist: 20
+  sand_magic_resist: -10
+  swamp_magic_resist: -20
+  # 种子生成参数（每种特殊地形约 10%，1～2 个连通斑块）
+  biome_ratio: 0.10
+  biome_min_cells: 8
+  biome_blob_min: 1
+  biome_blob_max: 2
+  biome_split_min_ratio: 0.30
+  biome_split_min_cells: 4
+  spawn_protect_radius: 2
+  biome_seed_spacing: 4

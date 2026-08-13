@@ -3,7 +3,7 @@
 `logic_qa/anomaly_analysis`：只做**规则对不对 / 状态像不像正常**（微观）。
 
 - 造数：[`../../sim/`](../../sim/README.md) Game LogicSim  
-- 宏观胜率等：[`../../sim/balance_analysis`](../../sim/README.md)  
+- 宏观胜率等：[`../../balance_analysis`](../../balance_analysis/README.md)  
 - 实机帧率：[`../../perf_analysis/`](../../perf_analysis/README.md)
 
 ```text

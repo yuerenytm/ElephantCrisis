@@ -150,11 +150,12 @@ public class TurnManager : MonoBehaviour
             // 3) 熔岩：真伤后对受伤者施加着火（着火本身仍为法伤）
             if (GridManager.Instance.GetTileType(unit.Cell) == TileType.Lava)
             {
-                int dealt = unit.TakeDamage(20, trueDamage: true);
-                LogicMatchLogger.Active?.EmitDamage("lava", LogicSimNaming.Role(unit.Role), "true", 20, dealt, "lava");
+                int lavaDmg = GameRulesConfig.LavaTrueDamage;
+                int dealt = unit.TakeDamage(lavaDmg, trueDamage: true);
+                LogicMatchLogger.Active?.EmitDamage("lava", LogicSimNaming.Role(unit.Role), "true", lavaDmg, dealt, "lava");
                 Log($"{RoleInfo.GetDisplayName(unit.Role)} 站在熔岩上，受到 {dealt} 点真伤");
                 if (dealt > 0 && !unit.IsDead)
-                    unit.ApplyStatus(StatusType.Burning, 1, unit);
+                    unit.ApplyStatus(StatusType.Burning, GameRulesConfig.BurningRounds, unit);
                 if (unit.IsDead)
                 {
                     OnStateChanged?.Invoke();
@@ -407,7 +408,7 @@ public class TurnManager : MonoBehaviour
                 u?.TickDyingOnActionEnd();
         }
 
-        if (LogicMatchLogger.IsRecording && endingUnit != null)
+        if (LogicMatchLogger.IsRecordingEvents && endingUnit != null)
         {
             LogicMatchLogger.Active.EmitTurnEnd(endingUnit, skipped: skipped);
             if (endingUnit.Inventory != null && endingUnit.Inventory.IsOverCapacity)
@@ -443,7 +444,7 @@ public class TurnManager : MonoBehaviour
                     u?.TickSkillCooldownOnFullRound();
                 }
 
-                if (RoundNumber % 5 == 0)
+                if (RoundNumber % GameRulesConfig.LavaShrinkEveryRounds == 0)
                     GameManager.Instance?.ApplyLavaShrink();
 
                 WeatherService.OnFullRoundAdvanced(RoundNumber);
@@ -452,7 +453,7 @@ public class TurnManager : MonoBehaviour
                 if (!MatchConfig.IsLogicSim)
                     VisibilityService.RefreshWorld();
 
-                if (LogicMatchLogger.IsRecording)
+                if (LogicMatchLogger.IsRecordingEvents)
                 {
                     LogicMatchLogger.Active.EmitClock(GameClock.GetHour(RoundNumber), RoundNumber - 1);
                     LogicMatchLogger.Active.EmitWeather();
@@ -521,7 +522,9 @@ public class TurnManager : MonoBehaviour
 
     public void Log(string msg)
     {
-        Debug.Log(msg);
+        // LogicSim 无头跑局：战报已完整写入 events.jsonl，跳过 Debug.Log（否则批量跑局会刷出带堆栈的巨量日志）
+        if (!MatchConfig.IsLogicSim)
+            Debug.Log(msg);
         OnLog?.Invoke(msg);
     }
 
@@ -530,7 +533,8 @@ public class TurnManager : MonoBehaviour
     /// </summary>
     public void LogFor(UnitActor subject, string msg)
     {
-        Debug.Log(msg);
+        if (!MatchConfig.IsLogicSim)
+            Debug.Log(msg);
         // 管理员模式可见全部战报；普通 AI 对战隐藏对手私密行动
         if (MatchConfig.IsAiBattle && !MatchConfig.IsAdminMode && !MatchConfig.IsHumanControlled(subject))
             return;

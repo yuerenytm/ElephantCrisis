@@ -65,7 +65,7 @@ public class UnitActor : MonoBehaviour
     public int DyingActionsLeft { get; private set; }
 
     /// <summary>角色默认近战射程（不计入远程武器叠加）。</summary>
-    public int BaseAttackRange => 1;
+    public int BaseAttackRange => GameRulesConfig.MeleeRange;
 
     /// <summary>时段×天气矩阵能见度（未叠挂件/状态）；夜视镜在 CurrentVisibility 中另计。</summary>
     public int BaseVisibility
@@ -87,9 +87,9 @@ public class UnitActor : MonoBehaviour
         get
         {
             if (IsDead) return 0;
-            if (HasStatus(StatusType.Blind)) return 0;
-            if (IsDying) return 1;
-            if (HasStatus(StatusType.Poison)) return 2;
+            if (HasStatus(StatusType.Blind)) return GameRulesConfig.BlindVisibility;
+            if (IsDying) return GameRulesConfig.DyingVisibility;
+            if (HasStatus(StatusType.Poison)) return GameRulesConfig.PoisonVisibility;
 
             int round = TurnManager.Instance != null ? TurnManager.Instance.RoundNumber : 1;
             var period = GameClock.GetPeriod(round);
@@ -187,7 +187,7 @@ public class UnitActor : MonoBehaviour
         }
     }
 
-    public const int MaxPoisonStacks = 3;
+    public static int MaxPoisonStacks => GameRulesConfig.PoisonMaxStacks;
 
     /// <summary>存活时移动力下限恒为 1（含濒死、满层中毒等）；死亡为 0。</summary>
     public int CurrentMove
@@ -195,11 +195,11 @@ public class UnitActor : MonoBehaviour
         get
         {
             if (IsDead) return 0;
-            if (IsDying) return 1;
+            if (IsDying) return GameRulesConfig.MoveMinAlive;
             int m = BaseMove + PermMove + TempMove + GetDollMoveBonus() + GetStatusMoveMod()
                 + GetTerrainMoveMod() + GetVehicleMoveBonus();
             m -= GetDeterrencePenalty();
-            return Mathf.Max(1, m);
+            return Mathf.Max(GameRulesConfig.MoveMinAlive, m);
         }
     }
 
@@ -231,7 +231,7 @@ public class UnitActor : MonoBehaviour
             if (item.Kind == ItemKind.IceSkates)
             {
                 if (CurrentTile == TileType.Ice)
-                    best = Mathf.Max(best, 2);
+                    best = Mathf.Max(best, GameRulesConfig.IceSkatesIceMove);
                 continue;
             }
             best = Mathf.Max(best, ItemInfo.GetVehicleMoveBonus(item.Kind));
@@ -260,10 +260,10 @@ public class UnitActor : MonoBehaviour
     {
         get
         {
-            int lv = 1 + SkillUpgradeBonus;
+            int lv = GameRulesConfig.SkillLevelBase + SkillUpgradeBonus;
             if (Inventory != null && Inventory.Contains(RoleInfo.GetOwnDoll(Role)))
                 lv++;
-            return Mathf.Clamp(lv, 1, 3);
+            return Mathf.Clamp(lv, GameRulesConfig.SkillLevelBase, GameRulesConfig.SkillLevelMax);
         }
     }
 
@@ -320,30 +320,30 @@ public class UnitActor : MonoBehaviour
     {
         if (Inventory == null) return 0;
         int m = 0;
-        if (Inventory.Contains(ItemKind.DollHuman)) m += 3;
-        if (Inventory.Contains(ItemKind.DollMonkey)) m += 3;
+        if (Inventory.Contains(ItemKind.DollHuman)) m += GameRulesConfig.DollHumanAtk;
+        if (Inventory.Contains(ItemKind.DollMonkey)) m += GameRulesConfig.DollMonkeyAtk;
         return m;
     }
 
     public int GetDollDefBonus()
     {
         if (Inventory == null) return 0;
-        return Inventory.Contains(ItemKind.DollElephant) ? 3 : 0;
+        return Inventory.Contains(ItemKind.DollElephant) ? GameRulesConfig.DollElephantDef : 0;
     }
 
     public int GetDollMoveBonus()
     {
         if (Inventory == null) return 0;
         int m = 0;
-        if (Inventory.Contains(ItemKind.DollMonkey)) m += 1;
-        if (Inventory.Contains(ItemKind.DollCat)) m += 2;
+        if (Inventory.Contains(ItemKind.DollMonkey)) m += GameRulesConfig.DollMonkeyMove;
+        if (Inventory.Contains(ItemKind.DollCat)) m += GameRulesConfig.DollCatMove;
         return m;
     }
 
     public int GetDollBagBonus()
     {
         if (Inventory == null) return 0;
-        return Inventory.Contains(ItemKind.DollHuman) ? 3 : 0;
+        return Inventory.Contains(ItemKind.DollHuman) ? GameRulesConfig.DollHumanBag : 0;
     }
 
     public void RefreshBagCapacity()
@@ -371,9 +371,9 @@ public class UnitActor : MonoBehaviour
             int inner = SkillInfo.GetDeterrenceInnerRadius(lv);
             int outer = SkillInfo.GetDeterrenceOuterRadius(lv);
             if (inner > 0 && dist <= inner)
-                penalty += 2;
+                penalty += GameRulesConfig.DeterrenceInnerPenalty;
             else if (dist <= outer)
-                penalty += 1;
+                penalty += GameRulesConfig.DeterrenceOuterPenalty;
         }
         return penalty;
     }
@@ -383,8 +383,8 @@ public class UnitActor : MonoBehaviour
         int m = 0;
         foreach (var s in statuses)
         {
-            if (s.Type == StatusType.Poison) m -= 2;
-            if (s.Type == StatusType.Leader) m += 9;
+            if (s.Type == StatusType.Poison) m += GameRulesConfig.PoisonPerStackAtk;
+            if (s.Type == StatusType.Leader) m += GameRulesConfig.LeaderAtk;
         }
         return m;
     }
@@ -394,9 +394,9 @@ public class UnitActor : MonoBehaviour
         int m = 0;
         foreach (var s in statuses)
         {
-            if (s.Type == StatusType.Trip) m -= 3;
-            if (s.Type == StatusType.Poison) m -= 2;
-            if (s.Type == StatusType.Leader) m += 9;
+            if (s.Type == StatusType.Trip) m += GameRulesConfig.TripDef;
+            if (s.Type == StatusType.Poison) m += GameRulesConfig.PoisonPerStackDef;
+            if (s.Type == StatusType.Leader) m += GameRulesConfig.LeaderDef;
         }
         return m;
     }
@@ -406,9 +406,9 @@ public class UnitActor : MonoBehaviour
         int m = 0;
         foreach (var s in statuses)
         {
-            if (s.Type == StatusType.Trip) m -= 1;
-            if (s.Type == StatusType.Poison) m -= 2;
-            if (s.Type == StatusType.Leader) m += 3;
+            if (s.Type == StatusType.Trip) m += GameRulesConfig.TripMove;
+            if (s.Type == StatusType.Poison) m += GameRulesConfig.PoisonPerStackMove;
+            if (s.Type == StatusType.Leader) m += GameRulesConfig.LeaderMove;
         }
         return m;
     }
@@ -539,7 +539,7 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
-    /// <summary>行动开始：冰地 20% 跌倒（装备滑行靴时免疫）。</summary>
+    /// <summary>行动开始：冰地跌倒（概率见 game_rules.yaml terrain.ice_trip_chance；滑行靴免疫）。</summary>
     public void TickIceTerrainOnTurnStart()
     {
         if (IsDead || IsDying)
@@ -548,11 +548,11 @@ public class UnitActor : MonoBehaviour
             return;
         if (ItemInfo.HasEquippedIceSkates(this))
             return;
-        if (Random.value >= 0.2f)
+        if (Random.value >= GameRulesConfig.IceTripChance)
             return;
-        ApplyStatus(StatusType.Trip, 3, this);
+        ApplyStatus(StatusType.Trip, GameRulesConfig.TripRounds, this);
         TurnManager.Instance?.Log(
-            $"{RoleInfo.GetDisplayName(Role)} 在冰地上滑倒，获得【跌倒】3回合");
+            $"{RoleInfo.GetDisplayName(Role)} 在冰地上滑倒，获得【跌倒】{GameRulesConfig.TripRounds}回合");
     }
 
     public bool HasStatus(StatusType type)
@@ -677,18 +677,18 @@ public class UnitActor : MonoBehaviour
             reason = "无法使用技能升级卡";
             return false;
         }
-        if (Inventory == null || Inventory.CountOf(ItemKind.SkillUpgrade) < 3)
+        if (Inventory == null || Inventory.CountOf(ItemKind.SkillUpgrade) < GameRulesConfig.SkillUpgradeCards)
         {
-            reason = "需集齐 3 张技能升级卡";
+            reason = $"需集齐 {GameRulesConfig.SkillUpgradeCards} 张技能升级卡";
             return false;
         }
-        if (SkillLevel >= 3)
+        if (SkillLevel >= GameRulesConfig.SkillLevelMax)
         {
             reason = "技能等级已达上限";
             return false;
         }
 
-        for (int i = 0; i < 3; i++)
+        for (int i = 0; i < GameRulesConfig.SkillUpgradeCards; i++)
         {
             if (!Inventory.Remove(ItemKind.SkillUpgrade))
             {
@@ -711,22 +711,22 @@ public class UnitActor : MonoBehaviour
         switch (boost)
         {
             case StatBoost.Attack:
-                PermAtk += 1;
-                detail = "攻击+1";
+                PermAtk += GameRulesConfig.HumanReinforceAmount;
+                detail = $"攻击+{GameRulesConfig.HumanReinforceAmount}";
                 break;
             case StatBoost.Defense:
-                PermDef += 1;
-                detail = "防御+1";
+                PermDef += GameRulesConfig.HumanReinforceAmount;
+                detail = $"防御+{GameRulesConfig.HumanReinforceAmount}";
                 break;
             case StatBoost.Move:
-                PermMove += 1;
-                detail = "移动+1";
+                PermMove += GameRulesConfig.HumanReinforceAmount;
+                detail = $"移动+{GameRulesConfig.HumanReinforceAmount}";
                 break;
             default:
                 detail = "无效果";
                 break;
         }
-        if (SkillLevel >= 3)
+        if (SkillLevel >= GameRulesConfig.SkillLevelMax)
             SkillShieldCharges = Mathf.Max(SkillShieldCharges, 1);
         RefreshVisual();
         return detail;
@@ -1008,7 +1008,7 @@ public class UnitActor : MonoBehaviour
         else
             applied = Mathf.Max(0, amount - GetDefenseForPhysicalHit(ignoreArmorDefense));
         if (fromBombOrMine && !trueDamage && ItemInfo.HasEquippedTacticalVest(this))
-            applied = Mathf.Max(0, applied - 2);
+            applied = Mathf.Max(0, applied - GameRulesConfig.TacticalVestExtraMitigation);
 
         if (applied <= 0)
             return 0;
@@ -1049,7 +1049,7 @@ public class UnitActor : MonoBehaviour
 
         Inventory.RemoveAt(idx);
         DeckManager.Instance?.AddToDiscard(ItemKind.Amulet);
-        AmuletShieldCharges = 1;
+        AmuletShieldCharges = GameRulesConfig.AmuletShieldCharges;
         AmuletBuffActive = true;
         ApplyHiddenStatus("amulet");
         TurnManager.Instance?.Log(
@@ -1162,7 +1162,7 @@ public class UnitActor : MonoBehaviour
             if (Inventory.Items[i].Kind != ItemKind.RubberRaincoat || !Inventory.Items[i].Equipped)
                 continue;
             var entry = Inventory.Items[i];
-            entry.Charges--;
+            entry.Charges -= GameRulesConfig.ArmorDurabilityLoss;
             if (entry.Charges <= 0)
             {
                 Inventory.Items.RemoveAt(i);
@@ -1185,8 +1185,9 @@ public class UnitActor : MonoBehaviour
     {
         if (!HasStatus(StatusType.Burning) || IsDead)
             return;
-        int dealt = TakeDamage(10, magicDamage: true);
-        LogicMatchLogger.Active?.EmitDamage("burning", LogicSimNaming.Role(Role), "magic", 10, dealt, "burning");
+        int burnDmg = GameRulesConfig.BurningMagicDamage;
+        int dealt = TakeDamage(burnDmg, magicDamage: true);
+        LogicMatchLogger.Active?.EmitDamage("burning", LogicSimNaming.Role(Role), "magic", burnDmg, dealt, "burning");
         TurnManager.Instance?.Log(
             $"{RoleInfo.GetDisplayName(Role)} 处于着火，受到 {dealt} 点法伤（火焰）");
 
@@ -1215,7 +1216,7 @@ public class UnitActor : MonoBehaviour
         int stacks = PoisonStacks;
         if (stacks <= 0 || IsDead)
             return;
-        int raw = 2 * stacks;
+        int raw = GameRulesConfig.PoisonEndDamagePerStack * stacks;
         int dealt = TakeDamage(raw, magicDamage: true);
         LogicMatchLogger.Active?.EmitDamage("poison", LogicSimNaming.Role(Role), "magic", raw, dealt, "poison");
         TurnManager.Instance?.Log(
@@ -1232,8 +1233,9 @@ public class UnitActor : MonoBehaviour
     {
         if (!HasStatus(StatusType.Leader) || IsDead)
             return;
-        int dealt = TakeDamage(6, trueDamage: true);
-        LogicMatchLogger.Active?.EmitDamage("leader", LogicSimNaming.Role(Role), "true", 6, dealt, "leader");
+        int leaderDmg = GameRulesConfig.LeaderStartDamage;
+        int dealt = TakeDamage(leaderDmg, trueDamage: true);
+        LogicMatchLogger.Active?.EmitDamage("leader", LogicSimNaming.Role(Role), "true", leaderDmg, dealt, "leader");
         TurnManager.Instance?.Log(
             $"{RoleInfo.GetDisplayName(Role)} 处于领袖，受到 {dealt} 点真伤");
 
@@ -1260,12 +1262,12 @@ public class UnitActor : MonoBehaviour
     {
         if (IsDead || IsDying)
             return false;
-        if (Hp * 10 >= MaxHp * 3)
+        if (Hp * 100 >= MaxHp * GameRulesConfig.AdrenalineHpThresholdPct)
             return false;
 
-        TempMove = 2;
-        TempAtk = 3;
-        AdrenalineRoundsLeft = 3;
+        TempMove = GameRulesConfig.AdrenalineMove;
+        TempAtk = GameRulesConfig.AdrenalineAtk;
+        AdrenalineRoundsLeft = GameRulesConfig.AdrenalineDuration;
         RefreshVisual();
         return true;
     }
@@ -1276,7 +1278,7 @@ public class UnitActor : MonoBehaviour
             return;
 
         IsDying = true;
-        DyingActionsLeft = 12; // 3 回合×4 行动，含进入当次行动；每次行动结束 −1
+        DyingActionsLeft = GameRulesConfig.DyingActions; // 3 回合×4 行动，含进入当次行动；每次行动结束 −1
         Hp = 0;
         // 其余属性与已有状态保留；仅强制移速口径见 CurrentMove
         DropAllItems();
@@ -1406,7 +1408,7 @@ public class UnitActor : MonoBehaviour
     public string GetStatusText()
     {
         if (IsDead) return "已死亡";
-        if (IsDying) return $"濒死(剩余{DyingActionsLeft}行动) 能见度1";
+        if (IsDying) return $"濒死(剩余{DyingActionsLeft}行动) 能见度{GameRulesConfig.DyingVisibility}";
         return $"移{CurrentMove} 血{Hp}/{MaxHp} 攻{CurrentAtk} 防{CurrentDef} 法抗{MagicResist}% 视{CurrentVisibility} 包{Inventory.UsedWeight:0.##}/{CurrentBagCapacity:0.##} 偶{Inventory.CountDolls()} 技{SkillInfo.GetSkillName(Role)}Lv{SkillLevel}";
     }
 
@@ -1415,7 +1417,7 @@ public class UnitActor : MonoBehaviour
         if (IsDead)
             return $"{RoleInfo.GetDisplayName(Role)}  ·  已死亡";
         if (IsDying)
-            return $"{RoleInfo.GetDisplayName(Role)}  ·  濒死（剩余{DyingActionsLeft}行动）  能见度1  移{CurrentMove}";
+            return $"{RoleInfo.GetDisplayName(Role)}  ·  濒死（剩余{DyingActionsLeft}行动）  能见度{GameRulesConfig.DyingVisibility}  移{CurrentMove}";
 
         return $"{RoleInfo.GetDisplayName(Role)}  ·  " +
                $"移 {CurrentMove}   血 {Hp}/{MaxHp}   攻 {CurrentAtk}   防 {CurrentDef}   法抗 {MagicResist}%   视 {CurrentVisibility}   " +

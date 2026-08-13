@@ -33,12 +33,12 @@ public static class TerrainInfo
     {
         switch (type)
         {
-            case TileType.Sand: return "移动力-1；法抗-10";
-            case TileType.Swamp: return "中毒；每行动始叠层；离开清地形层；法抗-20";
-            case TileType.Ice: return "移动力+1；行动开始20%跌倒；不铺火焰";
-            case TileType.Jungle: return "进入获得隐匿（有火除外）；法抗+20";
-            case TileType.Highland: return "攻击+3 防御+3 射程+1";
-            case TileType.Lava: return "行动开始20真伤";
+            case TileType.Sand: return $"移动力{GameRulesConfig.SandMove}；法抗{GameRulesConfig.SandMagicResist}";
+            case TileType.Swamp: return $"中毒；每行动始叠层；离开清地形层；法抗{GameRulesConfig.SwampMagicResist}";
+            case TileType.Ice: return $"移动力+{GameRulesConfig.IceMove}；行动开始{Mathf.RoundToInt(GameRulesConfig.IceTripChance * 100)}%跌倒；不铺火焰";
+            case TileType.Jungle: return $"进入获得隐匿（有火除外）；法抗+{GameRulesConfig.JungleMagicResist}";
+            case TileType.Highland: return $"攻击+{GameRulesConfig.HighlandAtk} 防御+{GameRulesConfig.HighlandDef} 射程+{GameRulesConfig.HighlandRange}";
+            case TileType.Lava: return $"行动开始{GameRulesConfig.LavaTrueDamage}真伤";
             default: return "无修正";
         }
     }
@@ -99,38 +99,38 @@ public static class TerrainInfo
     {
         switch (type)
         {
-            case TileType.Sand: return -1;
-            case TileType.Ice: return 1;
+            case TileType.Sand: return GameRulesConfig.SandMove;
+            case TileType.Ice: return GameRulesConfig.IceMove;
             default: return 0; // 沼泽不再直接改移速（经中毒状态）
         }
     }
 
     public static int GetAtkMod(TileType type)
-        => type == TileType.Highland ? 3 : 0;
+        => type == TileType.Highland ? GameRulesConfig.HighlandAtk : 0;
 
     public static int GetDefMod(TileType type)
     {
         switch (type)
         {
-            case TileType.Highland: return 3;
+            case TileType.Highland: return GameRulesConfig.HighlandDef;
             default: return 0; // 沼泽不再直接改防御（经中毒状态）
         }
     }
 
-    /// <summary>地形法抗修正（百分比，平值相加，下限 0 由 UnitActor.MagicResist 统一夹取）。丛林 +20、沙地 −10、沼泽 −20。</summary>
+    /// <summary>地形法抗修正（百分比，平值相加，下限 0 由 UnitActor.MagicResist 统一夹取）。数值见 game_rules.yaml terrain。</summary>
     public static int GetMagicResistMod(TileType type)
     {
         switch (type)
         {
-            case TileType.Jungle: return 20;
-            case TileType.Sand: return -10;
-            case TileType.Swamp: return -20;
+            case TileType.Jungle: return GameRulesConfig.JungleMagicResist;
+            case TileType.Sand: return GameRulesConfig.SandMagicResist;
+            case TileType.Swamp: return GameRulesConfig.SwampMagicResist;
             default: return 0;
         }
     }
 
     public static int GetRangeBonus(TileType type)
-        => type == TileType.Highland ? 1 : 0;
+        => type == TileType.Highland ? GameRulesConfig.HighlandRange : 0;
 
     /// <summary>世界 Y 抬升（仅高地；单位/掉落跟随 CellToWorld）。</summary>
     public static float GetElevation(TileType type)

@@ -308,7 +308,7 @@ public class Inventory
                 continue;
 
             var entry = Items[i];
-            entry.Charges--;
+            entry.Charges -= GameRulesConfig.ArmorDurabilityLoss;
             if (entry.Charges <= 0)
             {
                 broken = true;

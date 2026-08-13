@@ -372,16 +372,25 @@ public class RulesScrollBootstrap : MonoBehaviour
     }
 }
 
-/// <summary>面向玩家的可读规则（与当前 Demo 能力对齐，略去未实装系统）。</summary>
+/// <summary>面向玩家的可读规则（与当前 Demo 能力对齐，略去未实装系统）。数值来自 game_rules.yaml。</summary>
 public static class PlayerRulesText
 {
-    public const string Content =
-@"【故事】
+    public static string Content => Build();
+
+    private static string Build()
+    {
+        var ele = GameRulesConfig.GetRoleStats(RoleType.Elephant);
+        var hum = GameRulesConfig.GetRoleStats(RoleType.Human);
+        var mon = GameRulesConfig.GetRoleStats(RoleType.Monkey);
+        var cat = GameRulesConfig.GetRoleStats(RoleType.Cat);
+        int iceTripPct = Mathf.RoundToInt(GameRulesConfig.IceTripChance * 100);
+
+        return $@"【故事】
 有一天我做了个梦：猴子、猫，还有一群大象。大象身上挂着玩偶——我抢走一只，大象就被激怒了，追着我跑。
 然后我醒了。
 
 【怎么赢】
-四人各自为战（象、人、猴、猫）。四只玩偶各 1 张开局随牌组散落在地图上（背面朝上、与普通散落同色）；拾取入手后持有，界面以金色标识。
+四人各自为战（象、人、猴、猫）。四只玩偶各 {GameRulesConfig.GetDeckCount(ItemKind.DollElephant)} 张开局随牌组散落在地图上（背面朝上、与普通散落同色）；拾取入手后持有，界面以金色标识。
 满足任一条件即获胜：
 · 集齐四种玩偶（象 / 人 / 猴 / 猫各一）
 · 成为场上唯一存活者
@@ -420,76 +429,77 @@ AI 对战 / 管理员模式下镜头锁定你的角色，不会跟着 AI 切走�
 · 移动一次（蓝格为可走范围；不可走到自身能见度之外）
 · 普通近战攻击一次（邻格左键）；弓 / 弩 / 炸弹等可多次使用（受弹药与手牌限制）
 · 不限次数弃置物品；使用血瓶、强化剂等非攻击牌
-· 拾取：点「拾取」，在半径 0～1 的掉落物中挑选（可超重拾取，但超重时无法结束行动）
+· 拾取：点「拾取」，在半径 0～{GameRulesConfig.PickupRange} 的掉落物中挑选（可超重拾取，但超重时无法结束行动）
 热座：轮到谁谁操作。AI 对战：仅操控你所选角色。
 
 【伤害】
-· 物伤（普攻、多数炸弹与箭矢等）：扣血 = max(0, 伤害 − 防御)。破不开防（扣 0）不算「打中」，但木甲 / 铁甲 / 橡胶雨衣仍耗 1 耐久
+· 物伤（普攻、多数炸弹与箭矢等）：扣血 = max(0, 伤害 − 防御)。破不开防（扣 0）不算「打中」，但木甲 / 铁甲 / 橡胶雨衣仍耗 {GameRulesConfig.ArmorDurabilityLoss} 耐久
 · 法伤（着火、地雷、毒伤、喷火、猫近战等）：扣血 = ⌊伤害 × (1 − 法抗%)⌋，不减防、不耗甲耐久。能量护盾可吸收法伤
 · 真伤（熔岩站立、领袖耗损、诅咒之刃等）：不减防、不耗甲、护盾不可吸收；真伤为无来源伤害
 
 【濒死】
-血量 < 1 进入濒死：移 1、能见度 1，其余属性不变，不清除其他状态；所有物品（含装备）掉落一地。
+血量 < 1 进入濒死：移 {GameRulesConfig.MoveMinAlive}、能见度 {GameRulesConfig.DyingVisibility}，其余属性不变，不清除其他状态；所有物品（含装备）掉落一地。
 不可拾取、不可放技能、不可使用卡牌。仍可移动与近战。
-轮到自己行动时，若脚下有血瓶可直接使用自救（无需拾取）；再受伤或 3 回合（12 个行动，含进入当次）无人救治则会死亡。
+轮到自己行动时，若脚下有血瓶可直接使用自救（无需拾取）；再受伤或 {GameRulesConfig.DyingActions / GameRulesConfig.ActionsPerRound} 回合（{GameRulesConfig.DyingActions} 个行动，含进入当次）无人救治则会死亡。
 
 【角色基础】
-· 象：移 3 · 血 100 · 攻 9 · 防 10 · 法抗 0% · 包 30
-· 人：移 5 · 血 90 · 攻 10 · 防 8 · 法抗 20% · 包 48
-· 猴：移 6 · 血 90 · 攻 8 · 防 6 · 法抗 20% · 包 36
-· 猫：移 8 · 血 60 · 攻 6 · 防 4 · 法抗 50% · 包 30
+· 象：移 {ele.Move} · 血 {ele.Hp} · 攻 {ele.Atk} · 防 {ele.Def} · 法抗 {ele.MagicResist}% · 包 {ele.Bag}
+· 人：移 {hum.Move} · 血 {hum.Hp} · 攻 {hum.Atk} · 防 {hum.Def} · 法抗 {hum.MagicResist}% · 包 {hum.Bag}
+· 猴：移 {mon.Move} · 血 {mon.Hp} · 攻 {mon.Atk} · 防 {mon.Def} · 法抗 {mon.MagicResist}% · 包 {mon.Bag}
+· 猫：移 {cat.Move} · 血 {cat.Hp} · 攻 {cat.Atk} · 防 {cat.Def} · 法抗 {cat.MagicResist}% · 包 {cat.Bag}
 猫的近战普攻按法伤结算（不减防、受法抗减免；装备近战武器加攻仍计入法伤）。
-技能：象·威慑（被动，半径内减速他人）、人·强化（永久提升攻/防/移）、猴·抢夺（抢走他人非玩偶物品）、猫·隐匿（获得隐匿状态）。本命玩偶与技能升级卡可提升技能等级（上限 3）。
-「领袖宣言」：每局限一次；持有任意三只玩偶且缺的一只在其他玩家身上时可发动：领袖状态 10 回合、从场上随机取至多 5 张牌、得知缺偶位置。
+技能：象·威慑（被动，半径内减速他人）、人·强化（永久提升攻/防/移）、猴·抢夺（抢走他人非玩偶物品）、猫·隐匿（获得隐匿状态）。本命玩偶与技能升级卡可提升技能等级（上限 {GameRulesConfig.SkillLevelMax}）。
+「领袖宣言」：每局限一次；持有任意 {GameRulesConfig.LeaderDollRequired} 只玩偶且缺的一只在其他玩家身上时可发动：领袖状态 {GameRulesConfig.LeaderDuration} 回合、从场上随机取至多 {GameRulesConfig.LeaderRandomDraw} 张牌、得知缺偶位置。
 
 【昼夜与能见度】
-第 1 回合虚拟时刻 6:00，每完整回合 +2 小时。时段×天气矩阵：
+第 1 回合虚拟时刻 {GameRulesConfig.ClockStartHour}:00，每完整回合 +{GameRulesConfig.HoursPerRound} 小时。时段×天气矩阵：
 · 清晨/白天/黄昏 × 晴或雨：无限
-· 白天雾：8；清晨/黄昏雾：6
-· 黑夜晴：5；黑夜雨：4；黑夜雾：3
-视野外为不透明迷雾；不可移出自身能见度。濒死能见度下限为 1；至少一层中毒时为 2；致盲为 0。
-夜视镜（挂件）：仅黑夜——晴+3（→8）/雨+2（→6）/雾+1（→4）。
-望远镜（挂件）：非黑夜——雾天能见度+2；晴/雨/雾可看见隐匿并可窥视可见角色背包；黑夜无效。
-护身符（挂件，2 张）：装备中受致命伤时免伤一次，弃置自身，获 1 层临时能量护盾与隐匿；下次行动开始失去护盾与隐匿。
+· 白天雾：{GameRulesConfig.FogDayVisibility}；清晨/黄昏雾：{GameRulesConfig.FogDawnDuskVisibility}
+· 黑夜晴：{GameRulesConfig.NightClearVisibility}；黑夜雨：{GameRulesConfig.NightRainVisibility}；黑夜雾：{GameRulesConfig.NightFogVisibility}
+视野外为不透明迷雾；不可移出自身能见度。濒死能见度下限为 {GameRulesConfig.DyingVisibility}；至少一层中毒时为 {GameRulesConfig.PoisonVisibility}；致盲为 {GameRulesConfig.BlindVisibility}。
+夜视镜（挂件）：仅黑夜——晴+{GameRulesConfig.NightVisionClear}（→{GameRulesConfig.NightClearVisibility + GameRulesConfig.NightVisionClear}）/雨+{GameRulesConfig.NightVisionRain}（→{GameRulesConfig.NightRainVisibility + GameRulesConfig.NightVisionRain}）/雾+{GameRulesConfig.NightVisionFog}（→{GameRulesConfig.NightFogVisibility + GameRulesConfig.NightVisionFog}）。
+望远镜（挂件）：非黑夜——雾天能见度+{GameRulesConfig.TelescopeFog}；晴/雨/雾可看见隐匿并可窥视可见角色背包；黑夜无效。
+护身符（挂件，{GameRulesConfig.GetDeckCount(ItemKind.Amulet)} 张）：装备中受致命伤时免伤一次，弃置自身，获 {GameRulesConfig.AmuletShieldCharges} 层临时能量护盾与隐匿；下次行动开始失去护盾与隐匿。
 
 【天气】
-开局晴天。变更后 5 回合内不变，第 6～10 回合内必再变一次；晴天下次必转为雨或雾。
+开局晴天。变更后 {GameRulesConfig.WeatherLockMin - 1} 回合内不变，第 {GameRulesConfig.WeatherLockMin}～{GameRulesConfig.WeatherLockMax} 回合内必再变一次；晴天下次必转为雨或雾。
 · 晴天：能见度见矩阵；无额外攻防
-· 雨天：全员防 −3；能见度见矩阵；法抗 +25%；立刻浇灭格子火焰与着火，雨天不可再燃
-· 雾天：能见度见矩阵；法抗 +10%
+· 雨天：全员防 {GameRulesConfig.RainDefMod}；能见度见矩阵；法抗 +{GameRulesConfig.RainMagicResist}%；立刻浇灭格子火焰与着火，雨天不可再燃
+· 雾天：能见度见矩阵；法抗 +{GameRulesConfig.FogMagicResist}%
 天气同时影响法抗与时段氛围表现。
-晴天弹 / 雨天弹 / 雾天弹（各 6）：立刻将天气转为对应天气（已是该天气不可用），重置下次自动变更。
+晴天弹 / 雨天弹 / 雾天弹（各 {GameRulesConfig.GetDeckCount(ItemKind.WeatherClear)}）：立刻将天气转为对应天气（已是该天气不可用），重置下次自动变更。
 
 【地图与熔岩】
-地图 18×18；沙地 / 沼泽 / 冰地 / 丛林 / 高地斑块散布，四角出生附近多为普通地。
-· 沙地：移 −1，法抗 −10%
-· 沼泽：移 −1（不叠加其他移速惩罚），进入/每行动始站于其上叠 1 层中毒（最多 3 层），法抗 −20%；离开清除地形毒层
-· 冰地：移 +1，行动开始 20% 跌倒（滑行靴免疫）；不铺火焰
-· 丛林：进入无火丛林获得隐匿（离开或格上着火解除），法抗 +20%
-· 高地：攻/防 +3、射程 +1（台地抬升）
-每 5 个完整回合最外圈变为熔岩并向内收缩。站在熔岩上：行动开始先结算着火等状态，再受 20 真伤并可能再次着火。熔岩吞格时地上掉落物进弃牌堆。
+地图 {GameRulesConfig.GridWidth}×{GameRulesConfig.GridHeight}；沙地 / 沼泽 / 冰地 / 丛林 / 高地斑块散布，四角出生附近多为普通地。
+· 沙地：移 {GameRulesConfig.SandMove}，法抗 {GameRulesConfig.SandMagicResist}%
+· 沼泽：进入/每行动始站于其上叠 1 层中毒（最多 {GameRulesConfig.PoisonMaxStacks} 层），法抗 {GameRulesConfig.SwampMagicResist}%；离开清除地形毒层
+· 冰地：移 +{GameRulesConfig.IceMove}，行动开始 {iceTripPct}% 跌倒（滑行靴免疫）；不铺火焰
+· 丛林：进入无火丛林获得隐匿（离开或格上着火解除），法抗 +{GameRulesConfig.JungleMagicResist}%
+· 高地：攻/防 +{GameRulesConfig.HighlandAtk}、射程 +{GameRulesConfig.HighlandRange}（台地抬升）
+每 {GameRulesConfig.LavaShrinkEveryRounds} 个完整回合最外圈变为熔岩并向内收缩。站在熔岩上：行动开始先结算着火等状态，再受 {GameRulesConfig.LavaTrueDamage} 真伤并可能再次着火。熔岩吞格时地上掉落物进弃牌堆。
 
 【卡牌与装备（摘要）】
-共用限量牌组（324 张）；开局每格随机散落 1 张（背面朝上，只知有牌不知种类），靠拾取补给。背包有容量；弹药一张一支占 1 点。行动中可超重，但超重无法结束行动。弃置留在地上可被捡起（正面可见，配色异于开局散落；掉落玩偶仍金色）；熔岩吞格时地上掉落物进弃牌堆。濒死时装备与物品掉落。
-· 小 / 大血瓶：回 9 / 15，可救濒死
+共用限量牌组（{GameRulesConfig.DeckTotal} 张）；开局每格随机散落 1 张（背面朝上，只知有牌不知种类），靠拾取补给。背包有容量；弹药一张一支占 {GameRulesConfig.ItemWeight:0} 点。行动中可超重，但超重无法结束行动。弃置留在地上可被捡起（正面可见，配色异于开局散落；掉落玩偶仍金色）；熔岩吞格时地上掉落物进弃牌堆。濒死时装备与物品掉落。
+· 小 / 大血瓶：回 {GameRulesConfig.SmallPotionHeal} / {GameRulesConfig.LargePotionHeal}，可救濒死
 · 牛奶：清除自身中毒 / 着火 / 跌倒
 · 晴 / 雨 / 雾天弹：立刻切换天气
-· 炸弹 / 高爆炸弹：投掷 15 / 24 物伤（悬停可预览范围）
-· 定时炸弹：安在脚下，选 1–5 回合（实际×4 行动，含本次）后爆，半径 4，仅自己可见
-· 闪光弹：投掷 5 格，半径 2 内致盲 1 回合
-· 回旋镖：射程 4，15 物伤；若使目标死亡则返回背包
-· 汽油瓶 + 打火机：同时持有时可用打火机点燃汽油瓶投向 5 格内，半径 2 内 10 法伤 + 着火
+· 炸弹 / 高爆炸弹：投掷 {GameRulesConfig.BombDamage} / {GameRulesConfig.MegaBombDamage} 物伤（悬停可预览范围）
+· 定时炸弹：安在脚下，选 {GameRulesConfig.TimedBombMinRounds}–{GameRulesConfig.TimedBombMaxRounds} 回合（实际×{GameRulesConfig.ActionsPerRound} 行动，含本次）后爆，半径 {GameRulesConfig.TimedBombRadius}，仅自己可见
+· 闪光弹：投掷 {GameRulesConfig.FlashbangRange} 格，半径 {GameRulesConfig.FlashbangRadius} 内致盲 {GameRulesConfig.FlashbangBlindRounds} 回合
+· 回旋镖：射程 {GameRulesConfig.BoomerangRange}，{GameRulesConfig.BoomerangDamage} 物伤；若使目标死亡则返回背包
+· 汽油瓶 + 打火机：同时持有时可用打火机点燃汽油瓶投向 {GameRulesConfig.MolotovRange} 格内，半径 {GameRulesConfig.MolotovRadius} 内 {GameRulesConfig.MolotovDamage} 法伤 + 着火
 · 香蕉皮：投到攻击距离内（仅你可见）；别人踩到跌倒；弃置后可见且不触发
-· 地雷：放置红角标全员可见；踩上 15 法伤；弃置变为可捡掉落物
+· 地雷：放置红角标全员可见；踩上 {GameRulesConfig.MineDamage} 法伤；弃置变为可捡掉落物
 · 毒箭 / 火箭 / 弓箭：弹药类；弓 / 弩须装备后使用
 · 匕首 / 破甲刃 / 诅咒之刃 / 长剑：近战武器；诅咒之刃按次数真伤（已移动不可用）；普攻每行动至多 1 次
-· 火焰喷射器：直线 5 格 10 法伤 + 着火；须耗汽油瓶；路径火焰 2 回合（8 行动）
-· 强化剂：攻 / 防 / 移永久 +1（三选一，无上限）
-· 红牛：行动结束后额外行动一次（不结算行动开始效果）
+· 火焰喷射器：直线 {GameRulesConfig.FlamethrowerRange} 格 {GameRulesConfig.FlamethrowerDamage} 法伤 + 着火；须耗汽油瓶；路径火焰 {GameRulesConfig.FlamethrowerFlameRounds} 回合（{GameRulesConfig.FlamethrowerFlameRounds * GameRulesConfig.ActionsPerRound} 行动）
+· 强化剂：攻 / 防 / 移永久 +{GameRulesConfig.ReinforceAmount}（三选一，无上限）
+· 红牛：行动结束后额外行动 {GameRulesConfig.RedBullExtraActions} 次（不结算行动开始效果）
 · 木甲 / 铁甲 / 橡胶雨衣 / 荆棘护甲 / 战术背心 / 能量护盾：防具槽
-· 滑板 / 摩托车 / 滑行靴：载具；摩托耗汽油发动 3 回合（移+3 / 冲击 6–10 宽3）；滑行靴冰地移+2且不跌倒
+· 滑板 / 摩托车 / 滑行靴：载具；摩托耗汽油发动 {GameRulesConfig.MotorcycleDuration} 回合（移+{GameRulesConfig.MotorcycleMove} / 冲击 {GameRulesConfig.MotorcycleRamMin}–{GameRulesConfig.MotorcycleRamMax} 宽{GameRulesConfig.MotorcycleRamWidth}）；滑行靴冰地移+{GameRulesConfig.IceSkatesIceMove}且不跌倒
 · 抢夺勾爪、护身符、肾上腺素、技能升级卡等：见牌面说明
 
 【距离】
 移动、攻击、投掷、爆炸、技能、拾取等一律用曼哈顿距离：|Δx| + |Δy|。";
+    }
 }

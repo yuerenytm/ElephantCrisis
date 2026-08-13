@@ -96,7 +96,7 @@ public class AiController : MonoBehaviour
 
     private void PumpLogicSim()
     {
-        int maxFull = LogicSimRunner.GetIntArg("-maxRounds", 80);
+        int maxFull = LogicSimRunner.GetIntArg("-maxRounds", GameRulesConfig.MaxFullRounds);
         int guard = 0;
         while (guard++ < 50000)
         {

@@ -14,43 +14,23 @@ public static class SkillInfo
 
     public static bool IsPassive(RoleType role) => role == RoleType.Elephant;
 
-    public static int GetHumanCooldownRounds(int skillLevel) => skillLevel switch
-    {
-        3 => 5,
-        2 => 6,
-        _ => 8
-    };
+    public static int GetHumanCooldownRounds(int skillLevel)
+        => GameRulesConfig.HumanCooldown(skillLevel);
 
-    public static int GetMonkeyCooldownRounds(int skillLevel) => skillLevel switch
-    {
-        3 => 3,
-        2 => 4,
-        _ => 5
-    };
+    public static int GetMonkeyCooldownRounds(int skillLevel)
+        => GameRulesConfig.MonkeyCooldown(skillLevel);
 
-    public static int GetCatCooldownRounds(int skillLevel) => skillLevel switch
-    {
-        3 => 3,
-        2 => 4,
-        _ => 5
-    };
+    public static int GetCatCooldownRounds(int skillLevel)
+        => GameRulesConfig.CatCooldown(skillLevel);
 
-    public static int GetMonkeyRadius(int skillLevel) => skillLevel switch
-    {
-        3 => 4,
-        2 => 3,
-        _ => 2
-    };
+    public static int GetMonkeyRadius(int skillLevel)
+        => GameRulesConfig.MonkeyRadius(skillLevel);
 
-    public static int GetDeterrenceOuterRadius(int skillLevel) => skillLevel switch
-    {
-        3 => 7,
-        2 => 5,
-        _ => 3
-    };
+    public static int GetDeterrenceOuterRadius(int skillLevel)
+        => GameRulesConfig.DeterrenceOuterRadius(skillLevel);
 
     public static int GetDeterrenceInnerRadius(int skillLevel)
-        => skillLevel >= 3 ? 2 : 0;
+        => skillLevel >= GameRulesConfig.SkillLevelMax ? GameRulesConfig.DeterrenceInnerRadius : 0;
 }
 
 /// <summary>旧版猴标记已废弃；保留空实现以免残留引用编译失败。</summary>

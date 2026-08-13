@@ -41,12 +41,11 @@ def load_meta(match_dir: Path) -> Dict[str, Any]:
 
 def load_match(match_dir: Path) -> MatchLog:
     events_path = match_dir / "events.jsonl"
-    if not events_path.is_file():
-        raise FileNotFoundError(f"missing events.jsonl: {match_dir}")
+    events = load_events(events_path) if events_path.is_file() else []
     return MatchLog(
         match_id=match_dir.name,
         path=match_dir,
-        events=load_events(events_path),
+        events=events,
         meta=load_meta(match_dir),
     )
 
@@ -55,7 +54,11 @@ def iter_match_dirs(input_dir: Path) -> Iterator[Path]:
     if not input_dir.is_dir():
         return
     for p in sorted(input_dir.iterdir()):
-        if p.is_dir() and p.name.startswith("match_") and (p / "events.jsonl").is_file():
+        if not (p.is_dir() and p.name.startswith("match_")):
+            continue
+        # meta.json 每局必有（sim 无条件写）；events.jsonl 仅 logic/both 写。
+        # 兼容旧数据：只要二者其一存在即算一局。
+        if (p / "meta.json").is_file() or (p / "events.jsonl").is_file():
             yield p
 
 

@@ -9,7 +9,7 @@ from typing import Any, Dict, Iterable, List, Optional, Sequence
 from elephant_sim.log_io import iter_matches
 from elephant_sim.models import ROLE_ORDER
 
-from .extract import ROLES, extract_match
+from extract import ROLES, extract_match
 
 
 def _percentile(sorted_vals: Sequence[float], p: float) -> Optional[float]:

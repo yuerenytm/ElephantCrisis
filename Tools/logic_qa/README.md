@@ -2,16 +2,31 @@
 
 对 **逻辑对局** 日志做微观检测：基线硬断言 + Isolation Forest 可疑状态 + Streamlit 工作台。
 
-造数与平衡共用 [`../sim/`](../sim/README.md) 的 Game LogicSim 输出；本工具只负责「事件合不合法 / 状态像不像 bug」，不做胜率统计。
+造数用 [`../sim/`](../sim/README.md) 的 Game LogicSim；本工具只负责「事件合不合法 / 状态像不像 bug」，不做胜率统计。
 
-实际对局的帧率 / 美术加载见 [`../perf_analysis/`](../perf_analysis/README.md)（另一套采集，勿混用 JSONL）。
+- 宏观胜率 / 调参建议：[`../balance_analysis/`](../balance_analysis/README.md)（另一套，读 `meta.json`，勿混用）
+- 实机帧率 / 美术加载：[`../perf_analysis/`](../perf_analysis/README.md)（另一套采集，勿混用 JSONL）
+
+## 与上下游的关系
+
+```text
+sim（只造数，只认 -collect 开关）
+  └─ match_*/events.jsonl ──► logic_qa（本目录：微观规则校验）
+  └─ match_*/meta.json    ──► balance_analysis（宏观胜率 + LLM 建议）
+
+perf_analysis（实机性能，独立采集，不用 sim 的日志）
+```
+
+本目录只 import `elephant_sim`（sim 对外 SDK：`log_io` / `models` / `unity_batch`），不 import `balance_analysis`。
 
 ## 目录
 
 ```text
 logic_qa/
-  anomaly_analysis/   # 基线 + IF
-  app/                # Streamlit
+  anomaly_analysis/   # 微观检测实现（核心）
+    baseline/         #   硬性规则基线（确定性断言）
+    detection/        #   Isolation Forest 无监督异常
+  app/                # Streamlit 工作台
   scripts/
   config/runtime/
   models/ reports/
@@ -27,30 +42,36 @@ pip install -r requirements.txt
 ## 用法
 
 ```bash
-# 造数（与 balance 同一套）
+# 1) 造数（collect=logic 只写 meta + events；需先关闭已打开的 Game 工程 Editor）
 cd ../sim
-python scripts/run_batch.py --matches 30 --seed 1 --out output
+python scripts/run_batch.py --matches 30 --seed 1 --collect logic --out output
 
-# 微观基线
+# 2) 微观基线（确定性规则校验）
 cd ../logic_qa
 python scripts/run_baseline.py --input ../sim/output --out reports
 
-# 一键造数 + 基线 +（可选）异常
+# 3) 训练 Isolation Forest（只用基线通过的「干净局」）
+python scripts/train_anomaly.py --input ../sim/output --out models
+
+# 4) 异常扫描（IF 打分）
+python scripts/run_anomaly.py --input ../sim/output --model models --out reports
+
+# 或一键：造数 + 基线 +（可选）训练 + 异常
 python scripts/run_qa_pipeline.py --matches 30 --train
 
 # 工作台
 python scripts/run_workbench.py
 ```
 
-或资源管理器中双击 [`打开工作台.bat`](打开工作台.bat)（会开浏览器，**http://localhost:8502**；勿与 RL 的 8501 混淆）。
+或资源管理器中双击 [`打开工作台.bat`](打开工作台.bat)（会开浏览器，**http://localhost:8502**；勿与 RL 的 8501、balance_analysis 的 8503 混淆）。
 
 测试：`pytest -q`
 
 ## 怎么读结果
 
-- **基线失败**（`baseline_bug`）：优先当真违规查  
-- **`ai_suspect`**：软告警，抽查用  
-- **`clean`**：两边都没报警  
+- **基线失败**（`baseline_bug`）：优先当真违规查
+- **`ai_suspect`**：软告警，抽查用
+- **`clean`**：两边都没报警
 
 缺陷故事请用真实跑批自行沉淀。
 

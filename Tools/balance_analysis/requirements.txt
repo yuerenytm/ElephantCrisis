@@ -1,0 +1,6 @@
+# 数值平衡分析 + 顾问
+# 造数/日志依赖见 ../sim/requirements.txt（需能 import elephant_sim）
+-r ../sim/requirements.txt
+pytest>=7.0
+streamlit>=1.28
+pandas>=2.0

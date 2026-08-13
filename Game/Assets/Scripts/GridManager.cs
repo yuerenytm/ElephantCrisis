@@ -7,8 +7,8 @@ public class GridManager : MonoBehaviour
     public static GridManager Instance;
 
     [Header("网格设置")]
-    public int gridWidth = 18;
-    public int gridHeight = 18;
+    public int gridWidth = GameRulesConfig.GridWidth;
+    public int gridHeight = GameRulesConfig.GridHeight;
     public float cellSize = 1.25f;
     public Vector3 originPosition = Vector3.zero;
 
@@ -28,6 +28,10 @@ public class GridManager : MonoBehaviour
             Destroy(gameObject);
             return;
         }
+
+        // 网格尺寸以 game_rules.yaml 为唯一真源（Inspector 默认值仅作回退）
+        gridWidth = GameRulesConfig.GridWidth;
+        gridHeight = GameRulesConfig.GridHeight;
 
         InitTiles();
     }

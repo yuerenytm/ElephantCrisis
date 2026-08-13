@@ -35,7 +35,11 @@ def main() -> int:
     if args.matches > 0:
         print(f"[1/4] batch {args.matches} matches engine=unity")
         code = run_unity_logic_sim(
-            matches=args.matches, out_dir=input_dir, base_seed=args.seed, clean=True
+            matches=args.matches,
+            out_dir=input_dir,
+            base_seed=args.seed,
+            clean=True,
+            collect="logic",
         )
         if code != 0:
             print(f"Unity LogicSim failed: exit {code}", file=sys.stderr)

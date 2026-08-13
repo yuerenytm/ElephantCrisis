@@ -38,7 +38,11 @@ def main() -> int:
     if args.matches and args.matches > 0:
         print(f"generating {args.matches} Game LogicSim matches → {input_dir}")
         code = run_unity_logic_sim(
-            matches=args.matches, out_dir=input_dir, base_seed=args.seed, clean=True
+            matches=args.matches,
+            out_dir=input_dir,
+            base_seed=args.seed,
+            clean=True,
+            collect="logic",
         )
         if code != 0:
             return code

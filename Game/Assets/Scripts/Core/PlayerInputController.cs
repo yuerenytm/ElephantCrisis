@@ -198,7 +198,7 @@ public class PlayerInputController : MonoBehaviour
         {
             case TurnPhase.SelectingDiscardTarget:
                 if (!ActionService.TryDiscard(unit, turn.PendingItemIndex, cell))
-                    turn.LogFor(unit, "弃置失败（需落在自己半径1内）");
+                    turn.LogFor(unit, $"弃置失败（需落在自己半径{GameRulesConfig.PickupRange}内）");
                 RefreshHints();
                 return;
 
@@ -216,7 +216,7 @@ public class PlayerInputController : MonoBehaviour
                 else if (ItemInfo.IsMolotovKit(aimKind))
                 {
                     if (!ActionService.TryThrowMolotov(unit, cell))
-                        turn.LogFor(unit, "汽油瓶投掷失败（需打火机+汽油瓶，且在半径5内）");
+                        turn.LogFor(unit, $"汽油瓶投掷失败（需打火机+汽油瓶，且在半径{GameRulesConfig.MolotovRange}内）");
                 }
                 else if (!ActionService.TryThrowBomb(unit, cell))
                     turn.LogFor(unit, "炸弹投放失败（超距或无效）");
@@ -226,7 +226,7 @@ public class PlayerInputController : MonoBehaviour
 
             case TurnPhase.SelectingMotorcycleRam:
                 if (!ActionService.TryMotorcycleRam(unit, cell))
-                    turn.LogFor(unit, "冲击失败（需已发动；四向直线 6–10 格且终点可站）");
+                    turn.LogFor(unit, $"冲击失败（需已发动；四向直线 {GameRulesConfig.MotorcycleRamMin}–{GameRulesConfig.MotorcycleRamMax} 格且终点可站）");
                 RefreshHints();
                 return;
 
@@ -236,7 +236,7 @@ public class PlayerInputController : MonoBehaviour
                 var target = occ != null ? occ.GetComponent<UnitActor>() : null;
                 if (target == null || target == unit || target.IsDead)
                 {
-                    turn.LogFor(unit, "请点击半径 3 内可见的其他角色");
+                    turn.LogFor(unit, $"请点击半径 {GameRulesConfig.GrappleHookRange} 内可见的其他角色");
                     return;
                 }
                 if (!ActionService.TryHookSelectTarget(unit, target))
@@ -351,8 +351,8 @@ public class PlayerInputController : MonoBehaviour
             return;
 
         turn.EnterBombTargeting(itemIndex);
-        MapVisual.Instance?.ShowBombHints(unit, 5, ItemInfo.GetBombBlastRadius(kind));
-        turn.LogFor(unit, $"选择【{ItemInfo.GetDisplayName(kind)}】落点（射程5，悬停预览爆炸范围，右键取消）");
+        MapVisual.Instance?.ShowBombHints(unit, GameRulesConfig.BombRange, ItemInfo.GetBombBlastRadius(kind));
+        turn.LogFor(unit, $"选择【{ItemInfo.GetDisplayName(kind)}】落点（射程{GameRulesConfig.BombRange}，悬停预览爆炸范围，右键取消）");
     }
 
     public void StartBananaMode(int itemIndex)
@@ -387,8 +387,8 @@ public class PlayerInputController : MonoBehaviour
             || unit.Inventory.Items[itemIndex].Kind != ItemKind.Flashbang)
             return;
         turn.EnterBombTargeting(itemIndex);
-        MapVisual.Instance?.ShowBombHints(unit, 5, 2);
-        turn.LogFor(unit, "选择闪光弹落点（射程5，爆点半径2致盲，右键取消）");
+        MapVisual.Instance?.ShowBombHints(unit, GameRulesConfig.FlashbangRange, GameRulesConfig.FlashbangRadius);
+        turn.LogFor(unit, $"选择闪光弹落点（射程{GameRulesConfig.FlashbangRange}，爆点半径{GameRulesConfig.FlashbangRadius}致盲，右键取消）");
     }
 
     public void StartMolotovMode(int itemIndex)
@@ -406,8 +406,8 @@ public class PlayerInputController : MonoBehaviour
             return;
         }
         turn.EnterBombTargeting(itemIndex);
-        MapVisual.Instance?.ShowBombHints(unit, 5, 2);
-        turn.LogFor(unit, "点燃汽油瓶：选择落点（射程5，爆点半径2：10法伤+火焰2回合，右键取消）");
+        MapVisual.Instance?.ShowBombHints(unit, GameRulesConfig.MolotovRange, GameRulesConfig.MolotovRadius);
+        turn.LogFor(unit, $"点燃汽油瓶：选择落点（射程{GameRulesConfig.MolotovRange}，爆点半径{GameRulesConfig.MolotovRadius}：{GameRulesConfig.MolotovDamage}法伤+火焰{GameRulesConfig.MolotovFlameRounds}回合，右键取消）");
     }
 
     public void StartMotorcycleRamMode(int itemIndex)
@@ -418,12 +418,12 @@ public class PlayerInputController : MonoBehaviour
             return;
         if (unit.MotorcycleActiveRounds <= 0)
         {
-            turn.LogFor(unit, "请先发动摩托车（耗1汽油瓶，持续3回合）");
+            turn.LogFor(unit, $"请先发动摩托车（耗{GameRulesConfig.FuelCost}汽油瓶，持续{GameRulesConfig.MotorcycleDuration}回合）");
             return;
         }
         turn.EnterMotorcycleRam(itemIndex);
         MapVisual.Instance?.ShowMotorcycleRamHints(unit);
-        turn.LogFor(unit, "选择冲击终点（四向 6–10 格，宽3矩形10物伤+晕眩，占移动，右键取消）");
+        turn.LogFor(unit, $"选择冲击终点（四向 {GameRulesConfig.MotorcycleRamMin}–{GameRulesConfig.MotorcycleRamMax} 格，宽{GameRulesConfig.MotorcycleRamWidth}矩形{GameRulesConfig.MotorcycleRamDamage}物伤+晕眩，占移动，右键取消）");
     }
 
     public void StartHookMode(int itemIndex)
@@ -434,7 +434,7 @@ public class PlayerInputController : MonoBehaviour
             return;
         turn.EnterHookTarget(itemIndex);
         MapVisual.Instance?.ShowHookHints(unit);
-        turn.LogFor(unit, "选择抢夺目标（半径3，用后勾爪损毁，右键取消）");
+        turn.LogFor(unit, $"选择抢夺目标（半径{GameRulesConfig.GrappleHookRange}，用后勾爪损毁，右键取消）");
     }
 
     public void StartFlameMode(int itemIndex)
@@ -450,7 +450,7 @@ public class PlayerInputController : MonoBehaviour
         }
         turn.EnterFlameDirection(itemIndex);
         MapVisual.Instance?.ShowFlameHints(unit);
-        turn.LogFor(unit, "点击相邻四向之一确定火焰喷射方向（耗1汽油瓶，右键取消）");
+        turn.LogFor(unit, $"点击相邻四向之一确定火焰喷射方向（耗{GameRulesConfig.FuelCost}汽油瓶，右键取消）");
     }
 
     public void StartBoomerangMode(int itemIndex)
@@ -465,7 +465,7 @@ public class PlayerInputController : MonoBehaviour
         turn.EnterShootTargeting(itemIndex, ItemKind.Arrow); // 弹药槽占位，回旋镖不耗箭
         MapVisual.Instance?.ShowShootHints(unit, ItemInfo.BoomerangRange);
         turn.LogFor(unit,
-            $"选择【回旋镖】目标（射程 {ItemInfo.BoomerangRange}，15 物伤；击杀回手，否则弃牌；右键取消）");
+            $"选择【回旋镖】目标（射程 {ItemInfo.BoomerangRange}，{GameRulesConfig.BoomerangDamage} 物伤；击杀回手，否则弃牌；右键取消）");
         GameUI.Instance?.RequestRefresh();
     }
 
@@ -560,10 +560,24 @@ public class PlayerInputController : MonoBehaviour
                 var kind = turn.PendingItemIndex >= 0 && turn.PendingItemIndex < unit.Inventory.Count
                     ? unit.Inventory.Items[turn.PendingItemIndex].Kind
                     : ItemKind.Bomb;
-                int blast = kind == ItemKind.Flashbang || ItemInfo.IsMolotovKit(kind)
-                    ? 2
-                    : ItemInfo.GetBombBlastRadius(kind);
-                MapVisual.Instance?.ShowBombHints(unit, 5, blast);
+                int range;
+                int blast;
+                if (kind == ItemKind.Flashbang)
+                {
+                    range = GameRulesConfig.FlashbangRange;
+                    blast = GameRulesConfig.FlashbangRadius;
+                }
+                else if (ItemInfo.IsMolotovKit(kind))
+                {
+                    range = GameRulesConfig.MolotovRange;
+                    blast = GameRulesConfig.MolotovRadius;
+                }
+                else
+                {
+                    range = GameRulesConfig.BombRange;
+                    blast = ItemInfo.GetBombBlastRadius(kind);
+                }
+                MapVisual.Instance?.ShowBombHints(unit, range, blast);
                 return;
             }
             case TurnPhase.SelectingBananaTarget:

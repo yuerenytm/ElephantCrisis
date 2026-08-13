@@ -9,7 +9,7 @@ public enum WeatherType
 }
 
 /// <summary>
-/// 天气：开局晴天；变更后前 5 回合锁定，第 6～10 完整回合内必再变一次。
+/// 天气：开局晴天；变更后 lock_min～lock_max 完整回合内必再变（game_rules.yaml）。
 /// 管理员模式不自动变更，可自由切换。天气弹可强制切换并重置自动变更日程。
 /// </summary>
 public static class WeatherService
@@ -42,15 +42,17 @@ public static class WeatherService
     {
         switch (weather)
         {
-            case WeatherType.Rain: return "防-3 法抗+25；浇灭格火/着火且不可再燃；能见度见时段×天气表";
-            case WeatherType.Fog: return "法抗+10；能见度见时段×天气表";
-            default: return "能见度见时段×天气表";
+            case WeatherType.Rain:
+                return $"防{GameRulesConfig.RainDefMod} 法抗+{GameRulesConfig.RainMagicResist}；浇灭格火/着火且不可再燃；能见度见时段×天气表";
+            case WeatherType.Fog:
+                return $"法抗+{GameRulesConfig.FogMagicResist}；能见度见时段×天气表";
+            default:
+                return "能见度见时段×天气表";
         }
     }
 
     /// <summary>
-    /// 时段×天气能见度矩阵（曼哈顿半径；无限=FullMapVisibilityRadius）。
-    /// 清晨/白天/黄昏 × 晴/雨 → 无限；白天雾 8；清晨/黄昏雾 6；黑夜晴 5 / 雨 4 / 雾 3。
+    /// 时段×天气能见度矩阵（曼哈顿半径；无限=FullMapVisibility）。数值见 game_rules.yaml visibility。
     /// </summary>
     public static int GetPeriodWeatherVisibility(GameClock.Period period, WeatherType weather)
     {
@@ -58,16 +60,16 @@ public static class WeatherService
         {
             switch (weather)
             {
-                case WeatherType.Rain: return 4;
-                case WeatherType.Fog: return 3;
-                default: return 5;
+                case WeatherType.Rain: return GameRulesConfig.NightRainVisibility;
+                case WeatherType.Fog: return GameRulesConfig.NightFogVisibility;
+                default: return GameRulesConfig.NightClearVisibility;
             }
         }
 
         // 清晨 / 白天 / 黄昏
         if (weather == WeatherType.Fog)
-            return period == GameClock.Period.Day ? 8 : 6;
-        return ItemInfo.FullMapVisibilityRadius;
+            return period == GameClock.Period.Day ? GameRulesConfig.FogDayVisibility : GameRulesConfig.FogDawnDuskVisibility;
+        return GameRulesConfig.FullMapVisibility;
     }
 
     public static int GetVisibilityAfterWeather(int periodBaseVisibility, UnitActor unit = null)
@@ -129,16 +131,16 @@ public static class WeatherService
             return 0;
         if (ItemInfo.HasEquippedRubberRaincoat(unit))
             return 0;
-        return -3;
+        return GameRulesConfig.RainDefMod;
     }
 
-    /// <summary>天气法抗修正（百分比，平值相加，下限 0 由 UnitActor.MagicResist 统一夹取）。雨天 +25、雾天 +10。</summary>
+    /// <summary>天气法抗修正（百分比，平值相加，下限 0 由 UnitActor.MagicResist 统一夹取）。数值见 game_rules.yaml。</summary>
     public static int GetMagicResistMod(UnitActor unit = null)
     {
         switch (Current)
         {
-            case WeatherType.Rain: return 25;
-            case WeatherType.Fog: return 10;
+            case WeatherType.Rain: return GameRulesConfig.RainMagicResist;
+            case WeatherType.Fog: return GameRulesConfig.FogMagicResist;
             default: return 0;
         }
     }
@@ -150,8 +152,10 @@ public static class WeatherService
 
     private static void ScheduleNextChange(int fromRound)
     {
-        // 变更后第 6～10 回合（含）内必变一次；第 5 回合仍锁定
-        nextChangeRound = fromRound + Random.Range(6, 11);
+        // 变更后第 lock_min～lock_max 回合（含）内必变一次；见 game_rules.yaml weather
+        int min = GameRulesConfig.WeatherLockMin;
+        int max = GameRulesConfig.WeatherLockMax;
+        nextChangeRound = fromRound + Random.Range(min, max + 1);
     }
 
     private static void ChangeToRandom(int round)

@@ -6,7 +6,7 @@ using UnityEngine;
 public static class VisibilityService
 {
     /// <summary>白天基础能见度（兼容旧引用）。</summary>
-    public const int DefaultVisibility = 10;
+    public static int DefaultVisibility => GameRulesConfig.FullMapVisibility;
 
     public static UnitActor GetFogViewer()
     {
@@ -66,7 +66,7 @@ public static class VisibilityService
         if (!CanSeeCell(viewer, target.Cell))
             return false;
         if (target.HasStatus(StatusType.Hidden)
-            && GridManager.Instance.GetManhattanDistance(viewer.Cell, target.Cell) > 1
+            && GridManager.Instance.GetManhattanDistance(viewer.Cell, target.Cell) > GameRulesConfig.HiddenRevealRange
             && !ItemInfo.CanRevealHidden(viewer))
             return false;
         return true;

@@ -55,8 +55,8 @@ public class MapVisual : MonoBehaviour
     private SpriteRenderer[] fogWispRenderers;
     private Sprite fogWispSprite;
     private Vector2Int? bombHoverCell;
-    private int bombThrowRange = 5;
-    private int bombBlastRadius = 2;
+    private int bombThrowRange = GameRulesConfig.BombRange;
+    private int bombBlastRadius = GameRulesConfig.BombBlastRadius;
     private Vector2Int bombThrowerCell;
     private Material highlandMaterial;
     private Transform decorRoot;
@@ -1023,8 +1023,10 @@ public class MapVisual : MonoBehaviour
         }
     }
 
-    public void ShowBombHints(UnitActor unit, int throwRange, int blastRadius = 2)
+    public void ShowBombHints(UnitActor unit, int throwRange, int blastRadius = -1)
     {
+        if (blastRadius < 0)
+            blastRadius = GameRulesConfig.BombBlastRadius;
         bombThrowRange = throwRange;
         bombBlastRadius = blastRadius;
         bombHoverCell = null;

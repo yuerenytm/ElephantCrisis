@@ -69,7 +69,7 @@ public static class SkillService
         int cd = SkillInfo.GetHumanCooldownRounds(unit.SkillLevel);
         unit.SetSkillCooldown(cd);
         TurnManager.Instance.CancelTargeting();
-        string shield = unit.SkillLevel >= 3 ? "；获得一层技能护盾" : "";
+        string shield = unit.SkillLevel >= GameRulesConfig.SkillLevelMax ? "；获得一层技能护盾" : "";
         TurnManager.Instance.LogFor(unit,
             $"{RoleInfo.GetDisplayName(unit.Role)} 发动【强化】：{detail}（冷却{cd}回合）{shield}");
         TurnManager.Instance.NotifyActionDone();
@@ -203,7 +203,7 @@ public static class StealthService
             return false;
         if (ItemInfo.CanRevealHidden(attacker))
             return true;
-        return GridManager.Instance.GetManhattanDistance(attacker.Cell, defender.Cell) <= 1;
+        return GridManager.Instance.GetManhattanDistance(attacker.Cell, defender.Cell) <= GameRulesConfig.HiddenRevealRange;
     }
 
     public static UnitActor GetOccupantUnit(Vector2Int cell)

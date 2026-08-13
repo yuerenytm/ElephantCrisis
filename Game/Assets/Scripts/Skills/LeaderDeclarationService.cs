@@ -50,17 +50,17 @@ public static class LeaderDeclarationService
         }
 
         unit.HasUsedLeaderDeclaration = true;
-        unit.ApplyStatus(StatusType.Leader, 10, unit);
+        unit.ApplyStatus(StatusType.Leader, GameRulesConfig.LeaderDuration, unit);
 
         int got = GroundItemManager.Instance != null
-            ? GroundItemManager.Instance.CollectRandom(unit.Inventory, 5)
+            ? GroundItemManager.Instance.CollectRandom(unit.Inventory, GameRulesConfig.LeaderRandomDraw)
             : 0;
 
         string loc = holder != null
             ? $"{RoleInfo.GetDisplayName(holder.Role)} 位于 ({holder.Cell.x},{holder.Cell.y})"
             : "未知";
         TurnManager.Instance.LogFor(unit,
-            $"{RoleInfo.GetDisplayName(unit.Role)} 发动【领袖宣言】：获得领袖状态10回合、从场上随机取{got}张；" +
+            $"{RoleInfo.GetDisplayName(unit.Role)} 发动【领袖宣言】：获得领袖状态{GameRulesConfig.LeaderDuration}回合、从场上随机取{got}张；" +
             $"剩余【{ItemInfo.GetDisplayName(missing)}】在 {loc}");
         TurnManager.Instance.NotifyActionDone();
         GameManager.Instance?.CheckWinConditions();
@@ -93,7 +93,7 @@ public static class LeaderDeclarationService
                 lack = all[i];
         }
 
-        if (held != 3 || !lack.HasValue)
+        if (held != GameRulesConfig.LeaderDollRequired || !lack.HasValue)
         {
             reason = "需持有任意三只玩偶，且缺的一只在其他玩家身上";
             return false;

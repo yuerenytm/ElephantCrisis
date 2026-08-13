@@ -122,54 +122,54 @@ public static class ItemInfo
     {
         switch (kind)
         {
-            case ItemKind.SmallPotion: return "+9血";
-            case ItemKind.LargePotion: return "+15血";
-            case ItemKind.Bomb: return "掷地，15物伤，半径2";
-            case ItemKind.MegaBomb: return "掷地，24物伤，半径2";
-            case ItemKind.TimedBomb: return "安放，1–5回合(×4行动)后爆半径4，仅自己可见";
-            case ItemKind.Reinforce: return "攻/防/移 永久+1（三选一）";
-            case ItemKind.Bow: return "攻+2 射距3，耗1弹药（须装备）";
-            case ItemKind.Crossbow: return "攻+10 射距5，耗1；须蓄力，同行动不可射";
-            case ItemKind.Arrow: return "弹药，1支/张，重1，可合并";
-            case ItemKind.PoisonArrow: return "1支/张，命中中毒1回合";
-            case ItemKind.FireRocket: return "1支/张，命中着火1回合";
+            case ItemKind.SmallPotion: return $"+{GameRulesConfig.SmallPotionHeal}血";
+            case ItemKind.LargePotion: return $"+{GameRulesConfig.LargePotionHeal}血";
+            case ItemKind.Bomb: return $"掷地，{GameRulesConfig.BombDamage}物伤，半径{GameRulesConfig.BombBlastRadius}";
+            case ItemKind.MegaBomb: return $"掷地，{GameRulesConfig.MegaBombDamage}物伤，半径{GameRulesConfig.BombBlastRadius}";
+            case ItemKind.TimedBomb: return $"安放，{GameRulesConfig.TimedBombMinRounds}–{GameRulesConfig.TimedBombMaxRounds}回合(×{GameRulesConfig.ActionsPerRound}行动)后爆半径{GameRulesConfig.TimedBombRadius}，仅自己可见";
+            case ItemKind.Reinforce: return $"攻/防/移 永久+{GameRulesConfig.ReinforceAmount}（三选一）";
+            case ItemKind.Bow: return $"攻+{GameRulesConfig.BowAtk} 射距{GameRulesConfig.BowRange}，耗{GameRulesConfig.ShootAmmoCost}弹药（须装备）";
+            case ItemKind.Crossbow: return $"攻+{GameRulesConfig.CrossbowAtk} 射距{GameRulesConfig.CrossbowRange}，耗{GameRulesConfig.ShootAmmoCost}；须蓄力，同行动不可射";
+            case ItemKind.Arrow: return $"弹药，{GameRulesConfig.AmmoPerCard}支/张，重{GameRulesConfig.ItemWeight:0}，可合并";
+            case ItemKind.PoisonArrow: return $"{GameRulesConfig.AmmoPerCard}支/张，命中中毒{GameRulesConfig.PoisonRounds}回合";
+            case ItemKind.FireRocket: return $"{GameRulesConfig.AmmoPerCard}支/张，命中着火{GameRulesConfig.BurningRounds}回合";
             case ItemKind.BananaPeel: return "投掷隐身陷阱，踩踏跌倒";
-            case ItemKind.Flamethrower: return "须装备+耗1汽油；直线5格10法伤+着火；路径火焰2回合(×4行动)";
-            case ItemKind.WoodArmor: return "装备防+4；物伤即耗耐久";
-            case ItemKind.IronArmor: return "装备防+8；物伤即耗耐久";
-            case ItemKind.RubberRaincoat: return "装备防+3；免雨天减益；免着火耗耐久；耐久3";
+            case ItemKind.Flamethrower: return $"须装备+耗{GameRulesConfig.FuelCost}汽油；直线{GameRulesConfig.FlamethrowerRange}格{GameRulesConfig.FlamethrowerDamage}法伤+着火；路径火焰{GameRulesConfig.FlamethrowerFlameRounds}回合(×{GameRulesConfig.ActionsPerRound}行动)";
+            case ItemKind.WoodArmor: return $"装备防+{GameRulesConfig.WoodArmorDef}；物伤即耗耐久";
+            case ItemKind.IronArmor: return $"装备防+{GameRulesConfig.IronArmorDef}；物伤即耗耐久";
+            case ItemKind.RubberRaincoat: return $"装备防+{GameRulesConfig.RubberRaincoatDef}；免雨天减益；免着火耗耐久；耐久{GameRulesConfig.RubberRaincoatCharges}";
             case ItemKind.EnergyShield: return "装备，吸收物伤/法伤（不挡真伤）";
-            case ItemKind.ThornsArmor: return "装备防+2；近战反伤实际伤害50%真伤";
-            case ItemKind.TacticalVest: return "装备防+2 包+5；炸/雷额外-2；耐久6";
-            case ItemKind.Adrenaline: return "HP低于30%：移+2攻+3，3回合";
-            case ItemKind.Mine: return "放置陷阱，踩中15法伤；弃置可捡";
-            case ItemKind.SkillUpgrade: return "集齐3张：技能等级+1";
-            case ItemKind.NightVision: return "装备；黑夜晴+3/雨+2/雾+1 能见度";
-            case ItemKind.Telescope: return "装备；昼间雾+2；非黑夜窥隐匿与背包";
-            case ItemKind.Skateboard: return "装备；移动力+2";
-            case ItemKind.Motorcycle: return "装备；耗1油发动3回合：移+3/冲击6–10宽3";
-            case ItemKind.IceSkates: return "装备；冰地移+2且不跌倒";
-            case ItemKind.GrappleHook: return "装备；半径3抢一件，用后毁";
+            case ItemKind.ThornsArmor: return $"装备防+{GameRulesConfig.ThornsArmorDef}；近战反伤实际伤害{GameRulesConfig.ThornsReflectPct}%真伤";
+            case ItemKind.TacticalVest: return $"装备防+{GameRulesConfig.TacticalVestDef} 包+{GameRulesConfig.TacticalVestBag}；炸/雷额外-{GameRulesConfig.TacticalVestExtraMitigation}；耐久{GameRulesConfig.TacticalVestCharges}";
+            case ItemKind.Adrenaline: return $"HP低于{GameRulesConfig.AdrenalineHpThresholdPct}%：移+{GameRulesConfig.AdrenalineMove}攻+{GameRulesConfig.AdrenalineAtk}，{GameRulesConfig.AdrenalineDuration}回合";
+            case ItemKind.Mine: return $"放置陷阱，踩中{GameRulesConfig.MineDamage}法伤；弃置可捡";
+            case ItemKind.SkillUpgrade: return $"集齐{GameRulesConfig.SkillUpgradeCards}张：技能等级+{GameRulesConfig.SkillLevelBase}";
+            case ItemKind.NightVision: return $"装备；黑夜晴+{GameRulesConfig.NightVisionClear}/雨+{GameRulesConfig.NightVisionRain}/雾+{GameRulesConfig.NightVisionFog} 能见度";
+            case ItemKind.Telescope: return $"装备；昼间雾+{GameRulesConfig.TelescopeFog}；非黑夜窥隐匿与背包";
+            case ItemKind.Skateboard: return $"装备；移动力+{GameRulesConfig.SkateboardMove}";
+            case ItemKind.Motorcycle: return $"装备；耗{GameRulesConfig.FuelCost}油发动{GameRulesConfig.MotorcycleDuration}回合：移+{GameRulesConfig.MotorcycleMove}/冲击{GameRulesConfig.MotorcycleRamMin}–{GameRulesConfig.MotorcycleRamMax}宽{GameRulesConfig.MotorcycleRamWidth}";
+            case ItemKind.IceSkates: return $"装备；冰地移+{GameRulesConfig.IceSkatesIceMove}且不跌倒";
+            case ItemKind.GrappleHook: return $"装备；半径{GameRulesConfig.GrappleHookRange}抢一件，用后毁";
             case ItemKind.Amulet: return "装备；致命伤免伤一次+护盾+隐匿";
-            case ItemKind.Flashbang: return "投掷；爆点半径2致盲1回合";
-            case ItemKind.Dagger: return "装备；近战距1 伤害+6";
-            case ItemKind.Longsword: return "装备；近战距2 伤害+8";
-            case ItemKind.ArmorPiercingBlade: return "装备；近战距1 伤害+6；无视防具";
-            case ItemKind.CursedBlade: return "装备；第x次：己x/敌2x真伤；移动后不可用";
-            case ItemKind.GasolineBottle: return "弹药：喷火耗1；或+打火机投掷燃瓶";
+            case ItemKind.Flashbang: return $"投掷；爆点半径{GameRulesConfig.FlashbangRadius}致盲{GameRulesConfig.BlindRounds}回合";
+            case ItemKind.Dagger: return $"装备；近战距{GameRulesConfig.DaggerRange} 伤害+{GameRulesConfig.DaggerAtk}";
+            case ItemKind.Longsword: return $"装备；近战距{GameRulesConfig.LongswordRange} 伤害+{GameRulesConfig.LongswordAtk}";
+            case ItemKind.ArmorPiercingBlade: return $"装备；近战距{GameRulesConfig.ArmorPiercingBladeRange} 伤害+{GameRulesConfig.ArmorPiercingBladeAtk}；无视防具";
+            case ItemKind.CursedBlade: return $"装备；第x次：己{GameRulesConfig.CursedBladeSelfMult}x/敌{GameRulesConfig.CursedBladeTargetMult}x真伤；移动后不可用";
+            case ItemKind.GasolineBottle: return $"弹药：喷火耗{GameRulesConfig.FuelCost}；或+打火机投掷燃瓶";
             case ItemKind.Lighter: return "点燃汽油瓶投掷（保留打火机）";
-            case ItemKind.Boomerang: return "射程4，15物伤；击杀回手否则弃牌";
+            case ItemKind.Boomerang: return $"射程{GameRulesConfig.BoomerangRange}，{GameRulesConfig.BoomerangDamage}物伤；击杀回手否则弃牌";
             case ItemKind.Milk: return "清除自身中毒/着火/跌倒";
             case ItemKind.WeatherClear: return "立刻将天气转为晴天";
             case ItemKind.WeatherRain: return "立刻将天气转为雨天";
             case ItemKind.WeatherFog: return "立刻将天气转为雾天";
-            case ItemKind.RedBull: return "行动结束后额外行动一次";
+            case ItemKind.RedBull: return $"行动结束后额外行动{GameRulesConfig.RedBullExtraActions}次";
             default: return IsDoll(kind) ? "金色·持有增益/集齐获胜" : "";
         }
     }
 
-    public const int BoomerangRange = 4;
-    public const int BoomerangDamage = 15;
+    public static int BoomerangRange => GameRulesConfig.BoomerangRange;
+    public static int BoomerangDamage => GameRulesConfig.BoomerangDamage;
 
     /// <summary>玩偶卡 UI / 掉落角标用金色。</summary>
     public static Color GetDollGoldFill() => new Color(0.92f, 0.72f, 0.18f, 1f);
@@ -185,17 +185,17 @@ public static class ItemInfo
     public static int GetAmmoPerCard(ItemKind kind)
     {
         if (IsStackableAmmo(kind))
-            return 1;
+            return GameRulesConfig.AmmoPerCard;
         return 0;
     }
 
-    public static float GetWeight(ItemKind kind) => 1f;
+    public static float GetWeight(ItemKind kind) => GameRulesConfig.ItemWeight;
 
     public static float GetWeight(InventoryItem item)
     {
         if (IsStackableAmmo(item.Kind))
-            return Mathf.Max(1, item.Charges);
-        return 1f;
+            return Mathf.Max(GameRulesConfig.ItemWeight, item.Charges * GameRulesConfig.ItemWeight);
+        return GameRulesConfig.ItemWeight;
     }
 
     /// <summary>支数 = 牌数（一张一支）。</summary>
@@ -258,8 +258,8 @@ public static class ItemInfo
     {
         switch (kind)
         {
-            case ItemKind.SmallPotion: return 9;
-            case ItemKind.LargePotion: return 15;
+            case ItemKind.SmallPotion: return GameRulesConfig.SmallPotionHeal;
+            case ItemKind.LargePotion: return GameRulesConfig.LargePotionHeal;
             default: return 0;
         }
     }
@@ -288,11 +288,11 @@ public static class ItemInfo
     {
         switch (kind)
         {
-            case ItemKind.Dagger: return 1;
-            case ItemKind.Longsword: return 2;
-            case ItemKind.ArmorPiercingBlade: return 1;
-            case ItemKind.CursedBlade: return 1;
-            default: return 1;
+            case ItemKind.Dagger: return GameRulesConfig.DaggerRange;
+            case ItemKind.Longsword: return GameRulesConfig.LongswordRange;
+            case ItemKind.ArmorPiercingBlade: return GameRulesConfig.ArmorPiercingBladeRange;
+            case ItemKind.CursedBlade: return GameRulesConfig.CursedBladeRange;
+            default: return GameRulesConfig.MeleeRange;
         }
     }
 
@@ -300,9 +300,9 @@ public static class ItemInfo
     {
         switch (kind)
         {
-            case ItemKind.Dagger: return 6;
-            case ItemKind.Longsword: return 8;
-            case ItemKind.ArmorPiercingBlade: return 6;
+            case ItemKind.Dagger: return GameRulesConfig.DaggerAtk;
+            case ItemKind.Longsword: return GameRulesConfig.LongswordAtk;
+            case ItemKind.ArmorPiercingBlade: return GameRulesConfig.ArmorPiercingBladeAtk;
             case ItemKind.CursedBlade: return 0; // 伤害为按次数真伤，不走物伤加成
             default: return 0;
         }
@@ -383,8 +383,8 @@ public static class ItemInfo
     {
         switch (kind)
         {
-            case ItemKind.Skateboard: return 2;
-            case ItemKind.Motorcycle: return 3;
+            case ItemKind.Skateboard: return GameRulesConfig.SkateboardMove;
+            case ItemKind.Motorcycle: return GameRulesConfig.MotorcycleMove;
             case ItemKind.IceSkates: return 0; // 仅在冰地由 UnitActor 额外 +2
             default: return 0;
         }
@@ -419,7 +419,7 @@ public static class ItemInfo
     }
 
     public static int GetTacticalVestBagBonus(UnitActor unit)
-        => HasEquippedTacticalVest(unit) ? 5 : 0;
+        => HasEquippedTacticalVest(unit) ? GameRulesConfig.TacticalVestBag : 0;
 
     public static bool HasEquippedThornsArmor(UnitActor unit)
     {
@@ -447,7 +447,7 @@ public static class ItemInfo
     }
 
     /// <summary>全图视野用曼哈顿半径（覆盖 18×18）。</summary>
-    public const int FullMapVisibilityRadius = 40;
+    public static int FullMapVisibilityRadius => GameRulesConfig.FullMapVisibility;
 
     public static bool HasEquippedNightVision(UnitActor unit)
     {
@@ -496,9 +496,9 @@ public static class ItemInfo
     {
         switch (weather)
         {
-            case WeatherType.Rain: return 2;
-            case WeatherType.Fog: return 1;
-            default: return 3; // Clear
+            case WeatherType.Rain: return GameRulesConfig.NightVisionRain;
+            case WeatherType.Fog: return GameRulesConfig.NightVisionFog;
+            default: return GameRulesConfig.NightVisionClear; // Clear
         }
     }
 
@@ -507,7 +507,7 @@ public static class ItemInfo
     {
         if (period == GameClock.Period.Night)
             return 0;
-        return weather == WeatherType.Fog ? 2 : 0;
+        return weather == WeatherType.Fog ? GameRulesConfig.TelescopeFog : 0;
     }
 
     /// <summary>望远镜：非黑夜可看见隐匿单位（仍须在能见度内）。</summary>
@@ -522,23 +522,23 @@ public static class ItemInfo
     {
         switch (kind)
         {
-            case ItemKind.Bomb: return 15;
-            case ItemKind.MegaBomb: return 24;
+            case ItemKind.Bomb: return GameRulesConfig.BombDamage;
+            case ItemKind.MegaBomb: return GameRulesConfig.MegaBombDamage;
             default: return 0;
         }
     }
 
-    public static int GetBombBlastRadius(ItemKind kind) => 2;
+    public static int GetBombBlastRadius(ItemKind kind) => GameRulesConfig.BombBlastRadius;
 
     public static int GetArmorDefense(ItemKind kind)
     {
         switch (kind)
         {
-            case ItemKind.WoodArmor: return 4;
-            case ItemKind.IronArmor: return 8;
-            case ItemKind.RubberRaincoat: return 3;
-            case ItemKind.ThornsArmor: return 2;
-            case ItemKind.TacticalVest: return 2;
+            case ItemKind.WoodArmor: return GameRulesConfig.WoodArmorDef;
+            case ItemKind.IronArmor: return GameRulesConfig.IronArmorDef;
+            case ItemKind.RubberRaincoat: return GameRulesConfig.RubberRaincoatDef;
+            case ItemKind.ThornsArmor: return GameRulesConfig.ThornsArmorDef;
+            case ItemKind.TacticalVest: return GameRulesConfig.TacticalVestDef;
             default: return 0;
         }
     }
@@ -547,12 +547,12 @@ public static class ItemInfo
     {
         switch (kind)
         {
-            case ItemKind.WoodArmor: return 5;
-            case ItemKind.IronArmor: return 8;
-            case ItemKind.RubberRaincoat: return 3;
-            case ItemKind.ThornsArmor: return 4;
-            case ItemKind.TacticalVest: return 6;
-            case ItemKind.EnergyShield: return 3;
+            case ItemKind.WoodArmor: return GameRulesConfig.WoodArmorCharges;
+            case ItemKind.IronArmor: return GameRulesConfig.IronArmorCharges;
+            case ItemKind.RubberRaincoat: return GameRulesConfig.RubberRaincoatCharges;
+            case ItemKind.ThornsArmor: return GameRulesConfig.ThornsArmorCharges;
+            case ItemKind.TacticalVest: return GameRulesConfig.TacticalVestCharges;
+            case ItemKind.EnergyShield: return GameRulesConfig.EnergyShieldCharges;
             default: return 0;
         }
     }
@@ -561,8 +561,8 @@ public static class ItemInfo
     {
         switch (weapon)
         {
-            case ItemKind.Bow: return 2;
-            case ItemKind.Crossbow: return 10;
+            case ItemKind.Bow: return GameRulesConfig.BowAtk;
+            case ItemKind.Crossbow: return GameRulesConfig.CrossbowAtk;
             default: return 0;
         }
     }
@@ -571,8 +571,8 @@ public static class ItemInfo
     {
         switch (weapon)
         {
-            case ItemKind.Bow: return 3;
-            case ItemKind.Crossbow: return 5;
+            case ItemKind.Bow: return GameRulesConfig.BowRange;
+            case ItemKind.Crossbow: return GameRulesConfig.CrossbowRange;
             default: return 0;
         }
     }
@@ -581,8 +581,8 @@ public static class ItemInfo
     {
         switch (weapon)
         {
-            case ItemKind.Bow: return 1;
-            case ItemKind.Crossbow: return 1;
+            case ItemKind.Bow: return GameRulesConfig.ShootAmmoCost;
+            case ItemKind.Crossbow: return GameRulesConfig.ShootAmmoCost;
             default: return 0;
         }
     }

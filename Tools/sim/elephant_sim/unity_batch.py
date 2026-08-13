@@ -77,6 +77,34 @@ def find_unity_editor() -> Optional[Path]:
     return uniq[0] if uniq else None
 
 
+def find_running_unity() -> List[int]:
+    """返回正在运行的 Unity.exe 进程 PID 列表（Windows）。空列表 = 没有 Unity 在跑。"""
+    pids: List[int] = []
+    if os.name != "nt":
+        return pids
+    try:
+        out = subprocess.run(
+            ["tasklist", "/FI", "IMAGENAME eq Unity.exe", "/FO", "CSV", "/NH"],
+            capture_output=True,
+            text=True,
+            timeout=15,
+        )
+    except Exception:
+        return pids
+    for line in out.stdout.splitlines():
+        line = line.strip()
+        if not line or line.lower().startswith("info"):
+            continue
+        # CSV: "Unity.exe","1234","Console","1","1,234,567 K"
+        parts = [p.strip().strip('"') for p in line.split(",")]
+        if len(parts) >= 2 and parts[0].lower() == "unity.exe":
+            try:
+                pids.append(int(parts[1]))
+            except ValueError:
+                continue
+    return pids
+
+
 def clear_match_outputs(out_dir: Path) -> int:
     if not out_dir.is_dir():
         return 0
@@ -98,6 +126,7 @@ def run_unity_logic_sim(
     max_rounds: int = 80,
     unity_exe: Optional[Path] = None,
     clean: bool = True,
+    collect: str = "both",
 ) -> int:
     """
     Run Game LogicSim via Unity Editor batchmode.
@@ -115,6 +144,21 @@ def run_unity_logic_sim(
     if not (project / "ProjectSettings").is_dir():
         print(f"ERROR: Game project not found at {project}", file=sys.stderr)
         return 127
+
+    # 启动 batchmode 前先检测：已打开的 Unity Editor 会让 batchmode 直接失败。
+    allow_running = os.environ.get("ELEPHANT_ALLOW_RUNNING_UNITY", "") in ("1", "true", "yes")
+    running = find_running_unity()
+    if running and not allow_running:
+        print(
+            "\n" + "=" * 72 + "\n"
+            "!! 检测到 Unity Editor 正在运行，请先关闭后再跑批量仿真。\n"
+            f"!! 正在运行的 Unity.exe 进程 PID: {running}\n"
+            "!! 若不关闭，Unity -batchmode 会报 'another Unity instance is running' 并直接失败。\n"
+            "!! 如果确定这些是别的工程、不影响本工程，可设环境变量 ELEPHANT_ALLOW_RUNNING_UNITY=1 跳过此检查。\n"
+            + "=" * 72 + "\n",
+            file=sys.stderr,
+        )
+        return 128
 
     out_dir = out_dir.resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -141,13 +185,14 @@ def run_unity_logic_sim(
         str(base_seed),
         "-maxRounds",
         str(max_rounds),
+        "-collect",
+        str(collect),
         "-out",
         str(out_dir),
     ]
 
     print("Launching Unity LogicSim:")
     print(" ", " ".join(cmd))
-    print("NOTE: 请先关闭已打开该 Game 工程的 Unity Editor，否则 batchmode 会直接失败（exit 1）。")
     proc = subprocess.run(cmd, check=False)
     print(f"Unity exit code: {proc.returncode} (log: {log_file})")
     if proc.returncode != 0 and log_file.is_file():

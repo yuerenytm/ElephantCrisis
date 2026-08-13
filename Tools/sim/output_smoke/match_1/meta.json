@@ -1,9 +1,0 @@
-{
-  "seed": 1,
-  "strategies": {"elephant":"game_heuristic","human":"game_heuristic","monkey":"game_heuristic","cat":"game_heuristic"},
-  "winner": "human",
-  "reason": "last_standing",
-  "full_rounds": 30,
-  "events": 481,
-  "source": "game_logic_sim"
-}

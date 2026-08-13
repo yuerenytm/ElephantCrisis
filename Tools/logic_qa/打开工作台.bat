@@ -6,7 +6,7 @@ if errorlevel 1 goto :no_python
 
 echo Starting logic_qa workbench...
 echo Browser: http://localhost:8502
-echo NOTE: Port 8502 = logic_qa. RL uses 8501; balance_advisor uses 8503.
+echo NOTE: Port 8502 = logic_qa. RL uses 8501; balance_analysis uses 8503.
 echo Close this window to stop.
 echo.
 

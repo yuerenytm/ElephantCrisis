@@ -3,32 +3,39 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
-ROOT = Path(__file__).resolve().parents[2]
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
+ROOT = Path(__file__).resolve().parents[1]  # balance_analysis
+SIM = ROOT.parent / "sim"  # Tools/sim
+for p in (ROOT, SIM):
+    s = str(p)
+    if s not in sys.path:
+        sys.path.insert(0, s)
 
-from balance_analysis.aggregate import aggregate_records
-from balance_analysis.extract import extract_from_events
+from elephant_sim.log_io import MatchLog  # noqa: E402
+
+from aggregate import aggregate_records  # noqa: E402
+from extract import extract_match  # noqa: E402
 
 
-def test_extract_survival_and_winner():
-    events = [
-        {"t": 1, "type": "match_start", "seed": 1},
-        {"t": 2, "type": "clock", "hour": 8, "full_round": 1},
-        {"t": 3, "type": "clock", "hour": 10, "full_round": 2},
-        {"t": 4, "type": "death", "actor": "cat"},
-        {"t": 5, "type": "clock", "hour": 12, "full_round": 3},
-        {"t": 6, "type": "death", "actor": "human"},
-        {"t": 7, "type": "match_end", "reason": "last_standing", "winner": "elephant"},
-    ]
-    meta = {"winner": "elephant", "reason": "last_standing", "full_rounds": 3}
-    row = extract_from_events(events, meta=meta, match_id="m1")
+def test_extract_from_meta_per_role():
+    meta = {
+        "winner": "elephant",
+        "reason": "last_standing",
+        "full_rounds": 12,
+        "per_role": {
+            "elephant": {"death_round": None, "survived": True},
+            "human": {"death_round": 5, "survived": False},
+            "monkey": {"death_round": 9, "survived": False},
+            "cat": {"death_round": 3, "survived": False},
+        },
+    }
+    log = MatchLog(match_id="m1", path=Path("."), events=[], meta=meta)
+    row = extract_match(log)
     assert row["winner"] == "elephant"
     assert row["per_role"]["cat"]["died"] is True
-    assert row["per_role"]["cat"]["survival_rounds"] == 2
-    assert row["per_role"]["human"]["survival_rounds"] == 3
+    assert row["per_role"]["cat"]["survival_rounds"] == 3
+    assert row["per_role"]["human"]["survival_rounds"] == 5
     assert row["per_role"]["elephant"]["survived_to_end"] is True
-    assert row["per_role"]["elephant"]["survival_rounds"] == 3
+    assert row["per_role"]["elephant"]["survival_rounds"] == 12
 
 
 def test_aggregate_win_death_rates():

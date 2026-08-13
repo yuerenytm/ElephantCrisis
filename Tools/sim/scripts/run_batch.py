@@ -54,7 +54,14 @@ def main() -> int:
     p.add_argument("--matches", type=int, default=100, help="对局数量")
     p.add_argument("--out", type=str, default="output", help="输出目录")
     p.add_argument("--seed", type=int, default=1, help="起始 seed（逐局 +1）")
-    p.add_argument("--max-rounds", type=int, default=80, help="LogicSim 单局完整回合上限")
+    p.add_argument("--max-rounds", type=int, default=100, help="LogicSim 单局完整回合上限")
+    p.add_argument(
+        "--collect",
+        type=str,
+        default="both",
+        choices=["balance", "logic", "both"],
+        help="采集模式：balance=仅宏观(meta)，logic=仅日志(events)，both=两者",
+    )
     p.add_argument("--unity", type=str, default=None, help="Unity.exe 路径（默认自动探测 / UNITY_EDITOR）")
     p.add_argument(
         "--no-clean",
@@ -75,6 +82,7 @@ def main() -> int:
         max_rounds=args.max_rounds,
         unity_exe=unity,
         clean=not args.no_clean,
+        collect=args.collect,
     )
     payload = _summarize_from_disk(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)

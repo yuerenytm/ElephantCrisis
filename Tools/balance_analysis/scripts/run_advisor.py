@@ -29,8 +29,8 @@ def main() -> int:
     p.add_argument(
         "--balance-report",
         type=str,
-        default=str(SIM / "reports" / "balance_report.json"),
-        help="sim 产出的 balance_report.json",
+        default=str(ROOT / "reports" / "balance_report.json"),
+        help="balance_analysis 产出的 balance_report.json",
     )
     p.add_argument("--out", type=str, default=str(ROOT / "reports"))
     p.add_argument("--config", type=str, default=str(ROOT / "config" / "advisor.yaml"))
@@ -59,7 +59,7 @@ def main() -> int:
             sim_out = (Path.cwd() / sim_out).resolve()
         cmd = [
             sys.executable,
-            str(SIM / "scripts" / "run_balance.py"),
+            str(ROOT / "scripts" / "run_balance.py"),
             "--matches",
             str(args.matches),
             "--seed",
@@ -69,7 +69,7 @@ def main() -> int:
             "--out",
             str(report_path.parent),
         ]
-        rc = subprocess.call(cmd, cwd=str(SIM))
+        rc = subprocess.call(cmd, cwd=str(ROOT))
         if rc != 0:
             print("run_balance failed", file=sys.stderr)
             return rc
@@ -78,7 +78,7 @@ def main() -> int:
     if not report_path.is_file():
         print(
             f"找不到平衡报告: {report_path}\n"
-            "请先: cd Tools/sim && python scripts/run_balance.py --matches 100",
+            "请先: cd Tools/balance_analysis && python scripts/run_balance.py --matches 100",
             file=sys.stderr,
         )
         return 1

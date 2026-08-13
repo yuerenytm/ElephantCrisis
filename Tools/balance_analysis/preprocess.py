@@ -9,7 +9,7 @@ try:
 except ImportError:  # pragma: no cover
     yaml = None
 
-TOOLS = Path(__file__).resolve().parent.parent  # tools/balance_advisor → tools
+TOOLS = Path(__file__).resolve().parent.parent  # tools/balance_analysis → tools
 REPO = TOOLS.parent
 DEFAULT_RULES = REPO / "Game" / "Assets" / "StreamingAssets" / "Config" / "game_rules.yaml"
 DEFAULT_ROLE_DOC = REPO / "Docs" / "规则_角色与基础属性.md"

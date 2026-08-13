@@ -3,11 +3,11 @@ using UnityEngine;
 
 public enum StatusType
 {
-    Trip,     // 跌倒：防-3 移-1
-    Poison,   // 中毒：每层攻防移-2；视=2；行动结束每层 2 法伤；最多 3 层
-    Burning,  // 着火：行动开始 10 法伤（火焰），持续按自身行动开始倒数
+    Trip,     // 跌倒：防/移减益
+    Poison,   // 中毒：可叠层，每层攻防移减益；视缩减；行动结束每层法伤
+    Burning,  // 着火：行动开始火焰法伤，持续按自身行动开始倒数
     Hidden,   // 隐匿：攻击/被攻击/着火解除；丛林来源另计离林/着火格
-    Leader,   // 领袖：攻防+9 移+3；行动开始 6 真伤
+    Leader,   // 领袖：攻防/移增益；行动开始真伤
     Stun,     // 晕眩：行动开始跳过本次行动
     Blind     // 致盲：能见度 0
 }
@@ -58,13 +58,13 @@ public static class StatusInfo
     {
         switch (type)
         {
-            case StatusType.Trip: return "防-3 移-1";
-            case StatusType.Poison: return "每层攻防移-2 视2；终每层2毒伤；最多3层";
-            case StatusType.Burning: return "行动开始10火焰法伤";
+            case StatusType.Trip: return $"防{GameRulesConfig.TripDef} 移{GameRulesConfig.TripMove}";
+            case StatusType.Poison: return $"每层攻防移{GameRulesConfig.PoisonPerStackAtk} 视{GameRulesConfig.PoisonVisibility}；终每层{GameRulesConfig.PoisonEndDamagePerStack}毒伤；最多{GameRulesConfig.PoisonMaxStacks}层";
+            case StatusType.Burning: return $"行动开始{GameRulesConfig.BurningMagicDamage}火焰法伤";
             case StatusType.Hidden: return "非邻接不可被攻";
-            case StatusType.Leader: return "攻防+9 移+3；行动开始6真伤";
+            case StatusType.Leader: return $"攻防+{GameRulesConfig.LeaderAtk} 移+{GameRulesConfig.LeaderMove}；行动开始{GameRulesConfig.LeaderStartDamage}真伤";
             case StatusType.Stun: return "跳过本次行动";
-            case StatusType.Blind: return "能见度0";
+            case StatusType.Blind: return $"能见度{GameRulesConfig.BlindVisibility}";
             default: return "";
         }
     }

@@ -15,14 +15,6 @@ public static class TerrainGenerator
         TileType.Highland
     };
 
-    private static readonly Vector2Int[] SpawnCenters =
-    {
-        new Vector2Int(2, 2),
-        new Vector2Int(15, 2),
-        new Vector2Int(2, 15),
-        new Vector2Int(15, 15)
-    };
-
     private static readonly Vector2Int[] Ortho =
     {
         new Vector2Int(1, 0),
@@ -46,13 +38,13 @@ public static class TerrainGenerator
                 grid.SetTileType(new Vector2Int(x, y), TileType.Normal);
 
         var protectedCells = BuildProtectedSet(w, h);
-        // 各特殊地形约 10%；余下为普通（约 50%）
-        int perBiome = Mathf.Max(8, Mathf.RoundToInt(total * 0.10f));
+        // 各特殊地形比例接近 biome_ratio；余下为普通
+        int perBiome = Mathf.Max(GameRulesConfig.BiomeMinCells, Mathf.RoundToInt(total * GameRulesConfig.BiomeRatio));
 
         var usedSeeds = new List<Vector2Int>();
         foreach (var biome in Biomes)
         {
-            int blobCount = Random.Range(1, 3); // 1 或 2
+            int blobCount = Random.Range(GameRulesConfig.BiomeBlobMin, GameRulesConfig.BiomeBlobMax + 1);
             int[] sizes = SplitSize(perBiome, blobCount);
             for (int b = 0; b < blobCount; b++)
             {
@@ -77,11 +69,13 @@ public static class TerrainGenerator
     private static HashSet<Vector2Int> BuildProtectedSet(int w, int h)
     {
         var set = new HashSet<Vector2Int>();
-        foreach (var center in SpawnCenters)
+        int radius = GameRulesConfig.SpawnProtectRadius;
+        foreach (RoleType role in System.Enum.GetValues(typeof(RoleType)))
         {
-            for (int dx = -2; dx <= 2; dx++)
+            var center = GameRulesConfig.SpawnCell(role);
+            for (int dx = -radius; dx <= radius; dx++)
             {
-                for (int dy = -2; dy <= 2; dy++)
+                for (int dy = -radius; dy <= radius; dy++)
                 {
                     var c = new Vector2Int(center.x + dx, center.y + dy);
                     if (c.x >= 0 && c.x < w && c.y >= 0 && c.y < h)
@@ -101,8 +95,8 @@ public static class TerrainGenerator
             return sizes;
         }
 
-        // 两块：随机切分，每块至少约 30%
-        int min = Mathf.Max(4, Mathf.RoundToInt(total * 0.3f));
+        // 两块：随机切分，每块至少约 biome_split_min_ratio
+        int min = Mathf.Max(GameRulesConfig.BiomeSplitMinCells, Mathf.RoundToInt(total * GameRulesConfig.BiomeSplitMinRatio));
         int max = total - min;
         if (max < min)
         {
@@ -132,7 +126,7 @@ public static class TerrainGenerator
                 bool far = true;
                 for (int i = 0; i < usedSeeds.Count; i++)
                 {
-                    if (grid.GetManhattanDistance(c, usedSeeds[i]) < 4)
+                    if (grid.GetManhattanDistance(c, usedSeeds[i]) < GameRulesConfig.BiomeSeedSpacing)
                     {
                         far = false;
                         break;

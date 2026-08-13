@@ -65,20 +65,20 @@ public static class ItemUseService
             }
         }
 
-        if (kind == ItemKind.Adrenaline && unit.Hp * 10 >= unit.MaxHp * 3)
+        if (kind == ItemKind.Adrenaline && unit.Hp * 100 >= unit.MaxHp * GameRulesConfig.AdrenalineHpThresholdPct)
         {
-            reason = "仅当 HP < 30% 时可使用肾上腺素";
+            reason = $"仅当 HP < {GameRulesConfig.AdrenalineHpThresholdPct}% 时可使用肾上腺素";
             return false;
         }
 
         if (kind == ItemKind.SkillUpgrade)
         {
-            if (unit.Inventory.CountOf(ItemKind.SkillUpgrade) < 3)
+            if (unit.Inventory.CountOf(ItemKind.SkillUpgrade) < GameRulesConfig.SkillUpgradeCards)
             {
-                reason = "需集齐 3 张技能升级卡才能使用";
+                reason = $"需集齐 {GameRulesConfig.SkillUpgradeCards} 张技能升级卡才能使用";
                 return false;
             }
-            if (unit.SkillLevel >= 3)
+            if (unit.SkillLevel >= GameRulesConfig.SkillLevelMax)
             {
                 reason = "技能等级已达上限";
                 return false;
@@ -156,7 +156,7 @@ public static class ItemUseService
 
             case ItemUseKind.ChooseDelay:
                 TurnManager.Instance.EnterTimedBombDelay(itemIndex);
-                TurnManager.Instance.LogFor(unit, "选择定时炸弹延时：1～5 回合（×4 行动，含本次）后爆炸");
+                TurnManager.Instance.LogFor(unit, $"选择定时炸弹延时：{GameRulesConfig.TimedBombMinRounds}～{GameRulesConfig.TimedBombMaxRounds} 回合（×{GameRulesConfig.ActionsPerRound} 行动，含本次）后爆炸");
                 return true;
 
             case ItemUseKind.ChooseDirection:
@@ -296,8 +296,8 @@ public static class ActionService
             return false;
 
         int x = Mathf.Max(0, attacker.Inventory.Items[idx].Charges) + 1;
-        int targetRaw = 2 * x;
-        int selfRaw = x;
+        int targetRaw = GameRulesConfig.CursedBladeTargetMult * x;
+        int selfRaw = GameRulesConfig.CursedBladeSelfMult * x;
 
         BreakStealthIfAttacking(attacker, defender);
 
@@ -339,7 +339,7 @@ public static class ActionService
         if (attacker == null || defender == null || attacker.IsDead || dealt <= 0)
             return;
 
-        int reflect = dealt / 2;
+        int reflect = dealt * GameRulesConfig.ThornsReflectPct / 100;
         if (reflect <= 0)
             return;
 
@@ -360,10 +360,10 @@ public static class ActionService
             attacker.ClearStatus(StatusType.Hidden, "break_attack");
             TurnManager.Instance?.Log(
                 $"{RoleInfo.GetDisplayName(attacker.Role)} 进行攻击，【隐匿】解除");
-            // 猫 Lv3：攻击破隐时，被攻击者获得中毒 1 回合
-            if (attacker.Role == RoleType.Cat && attacker.SkillLevel >= 3 && defender != null && !defender.IsDead)
+            // 猫技能满级：攻击破隐时，被攻击者获得中毒（回合数见 game_rules.yaml）
+            if (attacker.Role == RoleType.Cat && attacker.SkillLevel >= GameRulesConfig.SkillLevelMax && defender != null && !defender.IsDead)
             {
-                defender.ApplyStatus(StatusType.Poison, 1, attacker);
+                defender.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, attacker);
                 TurnManager.Instance?.Log(
                     $"{RoleInfo.GetDisplayName(defender.Role)} 因破隐攻击获得【中毒】");
             }
@@ -444,9 +444,9 @@ public static class ActionService
             "physical", power, dealt, "shoot");
 
         if (ammo == ItemKind.PoisonArrow)
-            defender.ApplyStatus(StatusType.Poison, 1, attacker);
+            defender.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, attacker);
         else if (ammo == ItemKind.FireRocket)
-            defender.ApplyStatus(StatusType.Burning, 1, attacker);
+            defender.ApplyStatus(StatusType.Burning, GameRulesConfig.BurningRounds, attacker);
 
         TurnManager.Instance.CancelTargeting();
         if (MatchConfig.IsAiBattle && !MatchConfig.IsHumanControlled(attacker))
@@ -546,9 +546,9 @@ public static class ActionService
         }
 
         var grid = GridManager.Instance;
-        if (grid.GetManhattanDistance(unit.Cell, cell) > 1)
+        if (grid.GetManhattanDistance(unit.Cell, cell) > GameRulesConfig.PickupRange)
         {
-            TurnManager.Instance.LogFor(unit, "只能拾取半径 0 或 1 的物品");
+            TurnManager.Instance.LogFor(unit, $"只能拾取半径 0 或 {GameRulesConfig.PickupRange} 的物品");
             return false;
         }
 
@@ -578,7 +578,7 @@ public static class ActionService
         unit.RefreshBagCapacity();
         GameManager.Instance?.CheckWinConditions();
 
-        var remaining = GroundItemManager.Instance.GetLootInRange(unit.Cell, 1);
+        var remaining = GroundItemManager.Instance.GetLootInRange(unit.Cell, GameRulesConfig.PickupRange);
         if (remaining.Count == 0)
             TurnManager.Instance.CancelTargeting();
         else
@@ -600,7 +600,7 @@ public static class ActionService
         var grid = GridManager.Instance;
         if (!grid.IsValidCell(cell))
             return false;
-        if (grid.GetManhattanDistance(unit.Cell, cell) > 1)
+        if (grid.GetManhattanDistance(unit.Cell, cell) > GameRulesConfig.PickupRange)
             return false;
 
         var item = unit.Inventory.Items[itemIndex];
@@ -955,9 +955,9 @@ public static class ActionService
             return false;
         if (unit.IsDying)
             return false;
-        if (unit.Hp * 10 >= unit.MaxHp * 3)
+        if (unit.Hp * 100 >= unit.MaxHp * GameRulesConfig.AdrenalineHpThresholdPct)
         {
-            TurnManager.Instance.LogFor(unit, "仅当 HP < 30% 时可使用肾上腺素");
+            TurnManager.Instance.LogFor(unit, $"仅当 HP < {GameRulesConfig.AdrenalineHpThresholdPct}% 时可使用肾上腺素");
             return false;
         }
 
@@ -966,7 +966,7 @@ public static class ActionService
         unit.TryApplyAdrenaline();
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.LogFor(unit,
-            $"{RoleInfo.GetDisplayName(unit.Role)} 使用肾上腺素：移+2 攻+3，持续 3 回合");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 使用肾上腺素：移+{GameRulesConfig.AdrenalineMove} 攻+{GameRulesConfig.AdrenalineAtk}，持续 {GameRulesConfig.AdrenalineDuration} 回合");
         TurnManager.Instance.NotifyActionDone();
         return true;
     }
@@ -987,7 +987,7 @@ public static class ActionService
 
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.LogFor(unit,
-            $"{RoleInfo.GetDisplayName(unit.Role)} 使用 3 张技能升级卡，技能升至 Lv{unit.SkillLevel}");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 使用 {GameRulesConfig.SkillUpgradeCards} 张技能升级卡，技能升至 Lv{unit.SkillLevel}");
         TurnManager.Instance.NotifyActionDone();
         return true;
     }
@@ -1003,7 +1003,7 @@ public static class ActionService
 
         unit.Inventory.Remove(ItemKind.Reinforce);
         DeckManager.Instance?.AddToDiscard(ItemKind.Reinforce);
-        int amount = 1; // 攻/防/移均为永久 +1
+        int amount = GameRulesConfig.ReinforceAmount; // 攻/防/移永久加成，见 game_rules.yaml
         unit.ApplyPermanentBoost(boost, amount);
 
         string name = boost == StatBoost.Attack ? "攻击" : boost == StatBoost.Defense ? "防御" : "移动";
@@ -1045,7 +1045,7 @@ public static class ActionService
         unit.Inventory.RemoveAt(idx);
         BreakStealthIfAttacking(unit, defender);
 
-        const int damage = ItemInfo.BoomerangDamage;
+        int damage = ItemInfo.BoomerangDamage;
         int dealt = defender.TakeDamage(damage, magicDamage: false);
         LogicMatchLogger.Active?.EmitDamage(
             LogicSimNaming.Role(unit.Role),
@@ -1090,7 +1090,7 @@ public static class ActionService
             return false;
 
         var grid = GridManager.Instance;
-        if (grid.GetManhattanDistance(unit.Cell, target) > 5)
+        if (grid.GetManhattanDistance(unit.Cell, target) > GameRulesConfig.BombRange)
             return false;
 
         int damage = ItemInfo.GetBombDamage(kind);
@@ -1105,7 +1105,7 @@ public static class ActionService
         {
             if (other == null || other.IsDead)
                 continue;
-            if (grid.GetManhattanDistance(target, other.Cell) <= 2)
+            if (grid.GetManhattanDistance(target, other.Cell) <= GameRulesConfig.BombBlastRadius)
             {
                 hits++;
                 BreakStealthIfAttacked(other);
@@ -1117,8 +1117,8 @@ public static class ActionService
                 if (dealt > 0)
                 {
                     damaged++;
-                    if (wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= 3)
-                        other.ApplyStatus(StatusType.Poison, 1, unit);
+                    if (wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= GameRulesConfig.SkillLevelMax)
+                        other.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, unit);
                 }
             }
         }
@@ -1136,7 +1136,7 @@ public static class ActionService
     }
 
     /// <summary>
-    /// 打火机点燃汽油瓶投掷：耗 1 汽油瓶，保留打火机；爆点半径 2 内 10 法伤（火焰），铺 2 回合火焰并立刻着火。
+    /// 打火机点燃汽油瓶投掷：耗汽油瓶，保留打火机；爆点范围内法伤（火焰），铺火焰并立刻着火（数值见 game_rules.yaml）。
     /// </summary>
     public static bool TryThrowMolotov(UnitActor unit, Vector2Int target)
     {
@@ -1154,7 +1154,7 @@ public static class ActionService
             return false;
 
         var grid = GridManager.Instance;
-        if (grid.GetManhattanDistance(unit.Cell, target) > 5)
+        if (grid.GetManhattanDistance(unit.Cell, target) > GameRulesConfig.MolotovRange)
             return false;
 
         unit.Inventory.RemoveAt(gasIdx);
@@ -1162,8 +1162,8 @@ public static class ActionService
         bool wasHidden = unit.HasStatus(StatusType.Hidden);
         BreakStealthIfAttacking(unit);
 
-        const int blast = 2;
-        const int damage = 10;
+        int blast = GameRulesConfig.MolotovRadius;
+        int damage = GameRulesConfig.MolotovDamage;
         int hits = 0;
         int damaged = 0;
         foreach (var other in GameManager.Instance.Units)
@@ -1182,10 +1182,10 @@ public static class ActionService
             if (dealt > 0)
             {
                 damaged++;
-                if (wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= 3)
-                    other.ApplyStatus(StatusType.Poison, 1, unit);
+                if (wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= GameRulesConfig.SkillLevelMax)
+                    other.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, unit);
             }
-            other.ApplyStatus(StatusType.Burning, 1, unit);
+            other.ApplyStatus(StatusType.Burning, GameRulesConfig.BurningRounds, unit);
         }
 
         HazardManager.Instance?.PlaceFlameArea(target, blast, 2);
@@ -1201,7 +1201,7 @@ public static class ActionService
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.Log(
             $"{RoleInfo.GetDisplayName(unit.Role)} 点燃【汽油瓶】投于 ({target.x},{target.y})，" +
-            $"覆盖 {hits} 人，{damaged} 人扣血；爆点半径 {blast} 留下火焰 2 回合");
+            $"覆盖 {hits} 人，{damaged} 人扣血；爆点半径 {blast} 留下火焰 {GameRulesConfig.MolotovFlameRounds} 回合");
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
         ClientPerfMark.Action("aoe_molotov", "gasoline");
@@ -1270,7 +1270,7 @@ public static class ActionService
     {
         if (unit == null || unit.IsDead || unit.IsDying)
             return false;
-        if (rounds < 1 || rounds > 5)
+        if (rounds < GameRulesConfig.TimedBombMinRounds || rounds > GameRulesConfig.TimedBombMaxRounds)
             return false;
         if (!CanUseOwned(unit, ItemKind.TimedBomb))
             return false;
@@ -1279,7 +1279,7 @@ public static class ActionService
         HazardManager.Instance?.PlaceTimedBomb(unit.Cell, rounds, unit.Role);
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.LogFor(unit,
-            $"{RoleInfo.GetDisplayName(unit.Role)} 在脚下安置定时炸弹，{rounds} 回合（{rounds * 4} 个行动，含本次）后爆炸（仅你可见）");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 在脚下安置定时炸弹，{rounds} 回合（{rounds * GameRulesConfig.ActionsPerRound} 个行动，含本次）后爆炸（仅你可见）");
         TurnManager.Instance.NotifyActionDone();
         ClientPerfMark.Action("place_hazard", "timed_bomb");
         return true;
@@ -1320,8 +1320,8 @@ public static class ActionService
         DeckManager.Instance?.AddToDiscard(ItemKind.GasolineBottle);
 
         var stepDir = new Vector2Int(dx, dy);
-        const int flameLen = 5;
-        const int flameRounds = 2;
+        int flameLen = GameRulesConfig.FlamethrowerRange;
+        int flameRounds = GameRulesConfig.FlamethrowerFlameRounds;
 
         int hits = 0, damaged = 0;
         bool wasHidden = unit.HasStatus(StatusType.Hidden);
@@ -1336,14 +1336,14 @@ public static class ActionService
             if (other == null || other.IsDead || other == unit) continue;
             hits++;
             BreakStealthIfAttacked(other);
-            int dealt = other.TakeDamage(10, magicDamage: true);
+            int dealt = other.TakeDamage(GameRulesConfig.FlamethrowerDamage, magicDamage: true);
             if (dealt > 0 && !other.IsDead)
-                other.ApplyStatus(StatusType.Burning, 1, unit);
+                other.ApplyStatus(StatusType.Burning, GameRulesConfig.BurningRounds, unit);
             if (dealt > 0)
             {
                 damaged++;
-                if (wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= 3)
-                    other.ApplyStatus(StatusType.Poison, 1, unit);
+                if (wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= GameRulesConfig.SkillLevelMax)
+                    other.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, unit);
             }
         }
 
@@ -1365,7 +1365,7 @@ public static class ActionService
         BreakStealthIfAttacking(unit);
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.Log(
-            $"{RoleInfo.GetDisplayName(unit.Role)} 使用火焰喷射器（耗【汽油瓶】×1），命中 {hits} 人，{damaged} 人扣血；路径火焰 {flameRounds} 回合（{flameRounds * 4} 行动）");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 使用火焰喷射器（耗【汽油瓶】×{GameRulesConfig.FuelCost}），命中 {hits} 人，{damaged} 人扣血；路径火焰 {flameRounds} 回合（{flameRounds * GameRulesConfig.ActionsPerRound} 行动）");
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
         ClientPerfMark.Action("aoe_flame", "flamethrower");
@@ -1386,7 +1386,7 @@ public static class ActionService
             return false;
 
         var grid = GridManager.Instance;
-        if (grid.GetManhattanDistance(unit.Cell, target) > 5)
+        if (grid.GetManhattanDistance(unit.Cell, target) > GameRulesConfig.FlashbangRange)
             return false;
 
         unit.Inventory.RemoveAt(idx);
@@ -1398,23 +1398,23 @@ public static class ActionService
         {
             if (other == null || other.IsDead)
                 continue;
-            if (grid.GetManhattanDistance(target, other.Cell) > 2)
+            if (grid.GetManhattanDistance(target, other.Cell) > GameRulesConfig.FlashbangRadius)
                 continue;
             BreakStealthIfAttacked(other);
-            other.ApplyStatus(StatusType.Blind, 1, unit);
+            other.ApplyStatus(StatusType.Blind, GameRulesConfig.BlindRounds, unit);
             hits++;
         }
 
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.Log(
-            $"{RoleInfo.GetDisplayName(unit.Role)} 投掷闪光弹于 ({target.x},{target.y})，{hits} 人获得【致盲】1回合");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 投掷闪光弹于 ({target.x},{target.y})，{hits} 人获得【致盲】{GameRulesConfig.FlashbangBlindRounds}回合");
         VisibilityService.RefreshWorld();
         TurnManager.Instance.NotifyActionDone();
         ClientPerfMark.Action("util_flash", "flashbang");
         return true;
     }
 
-    /// <summary>发动摩托车：耗 1 汽油瓶，持续 3 完整回合（期间移+3 且可冲击）。</summary>
+    /// <summary>发动摩托车：耗汽油瓶，持续若干完整回合（期间移加速且可冲击，数值见 game_rules.yaml）。</summary>
     public static bool TryStartMotorcycle(UnitActor unit, int itemIndex)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -1440,15 +1440,15 @@ public static class ActionService
         int gasIdx = unit.Inventory.Items.FindIndex(i => i.Kind == ItemKind.GasolineBottle);
         if (gasIdx < 0)
         {
-            TurnManager.Instance.LogFor(unit, "发动摩托车需要【汽油瓶】×1");
+            TurnManager.Instance.LogFor(unit, $"发动摩托车需要【汽油瓶】×{GameRulesConfig.FuelCost}");
             return false;
         }
 
         unit.Inventory.RemoveAt(gasIdx);
         DeckManager.Instance?.AddToDiscard(ItemKind.GasolineBottle);
-        unit.MotorcycleActiveRounds = 3;
+        unit.MotorcycleActiveRounds = GameRulesConfig.MotorcycleDuration;
         TurnManager.Instance.Log(
-            $"{RoleInfo.GetDisplayName(unit.Role)} 发动摩托车（耗【汽油瓶】×1），持续 3 回合：移+3 / 可冲击");
+            $"{RoleInfo.GetDisplayName(unit.Role)} 发动摩托车（耗【汽油瓶】×{GameRulesConfig.FuelCost}），持续 {GameRulesConfig.MotorcycleDuration} 回合：移+{GameRulesConfig.MotorcycleMove} / 可冲击");
         TurnManager.Instance.NotifyActionDone();
         ClientPerfMark.Action("util", "motorcycle_start");
         return true;
@@ -1483,7 +1483,7 @@ public static class ActionService
         int dx = target.x - unit.Cell.x;
         int dy = target.y - unit.Cell.y;
         int dist = Mathf.Abs(dx) + Mathf.Abs(dy);
-        if (dist < 6 || dist > 10)
+        if (dist < GameRulesConfig.MotorcycleRamMin || dist > GameRulesConfig.MotorcycleRamMax)
             return false;
         if (!((dx == 0 && dy != 0) || (dy == 0 && dx != 0)))
             return false;
@@ -1507,7 +1507,7 @@ public static class ActionService
             return false;
 
         Vector2Int from = unit.Cell;
-        const int damage = 10;
+        int damage = GameRulesConfig.MotorcycleRamDamage;
         int hits = 0;
         bool wasHidden = unit.HasStatus(StatusType.Hidden);
         var hitUnits = new System.Collections.Generic.HashSet<UnitActor>();
@@ -1530,9 +1530,9 @@ public static class ActionService
                 BreakStealthIfAttacked(occ);
                 int dealt = occ.TakeDamage(damage, magicDamage: false);
                 if (!occ.IsDead)
-                    occ.ApplyStatus(StatusType.Stun, 1, unit);
-                if (dealt > 0 && wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= 3)
-                    occ.ApplyStatus(StatusType.Poison, 1, unit);
+                    occ.ApplyStatus(StatusType.Stun, GameRulesConfig.StunRounds, unit);
+                if (dealt > 0 && wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= GameRulesConfig.SkillLevelMax)
+                    occ.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, unit);
             }
         }
 
@@ -1567,7 +1567,7 @@ public static class ActionService
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.Log(
             $"{RoleInfo.GetDisplayName(unit.Role)} 摩托车冲击至 ({unit.Cell.x},{unit.Cell.y})，" +
-            $"宽3×{dist} 矩形命中 {hits} 人（10物伤+晕眩1；发动剩{unit.MotorcycleActiveRounds}回合）");
+            $"宽{GameRulesConfig.MotorcycleRamWidth}×{dist} 矩形命中 {hits} 人（{GameRulesConfig.MotorcycleRamDamage}物伤+晕眩{GameRulesConfig.StunRounds}；发动剩{unit.MotorcycleActiveRounds}回合）");
         GameManager.Instance?.CheckWinConditions();
         VisibilityService.RefreshWorld();
         TurnManager.Instance.NotifyActionDone();
@@ -1581,9 +1581,9 @@ public static class ActionService
             return false;
         if (TurnManager.Instance.Phase != TurnPhase.SelectingHookTarget)
             return false;
-        if (GridManager.Instance.GetManhattanDistance(unit.Cell, target.Cell) > 3)
+        if (GridManager.Instance.GetManhattanDistance(unit.Cell, target.Cell) > GameRulesConfig.GrappleHookRange)
         {
-            TurnManager.Instance.LogFor(unit, "目标超出勾爪半径 3");
+            TurnManager.Instance.LogFor(unit, $"目标超出勾爪半径 {GameRulesConfig.GrappleHookRange}");
             return false;
         }
         if (!VisibilityService.CanSeeUnit(unit, target))
@@ -1641,7 +1641,7 @@ public static class ActionService
             turn.LogFor(unit, "不可抢夺玩偶");
             return false;
         }
-        if (GridManager.Instance.GetManhattanDistance(unit.Cell, target.Cell) > 3)
+        if (GridManager.Instance.GetManhattanDistance(unit.Cell, target.Cell) > GameRulesConfig.GrappleHookRange)
             return false;
 
         target.Inventory.RemoveAt(itemIndex);

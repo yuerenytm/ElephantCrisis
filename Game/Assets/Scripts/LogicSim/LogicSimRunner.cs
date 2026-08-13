@@ -18,8 +18,9 @@ public class LogicSimRunner : MonoBehaviour
 
     private int matches = 1;
     private int baseSeed = 1;
-    private int maxFullRounds = 80;
+    private int maxFullRounds = GameRulesConfig.MaxFullRounds;
     private string outRoot;
+    private string collect = "both";
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Boot()
@@ -43,7 +44,7 @@ public class LogicSimRunner : MonoBehaviour
     {
         matches = Mathf.Max(1, GetIntArg("-matches", 1));
         baseSeed = GetIntArg("-seed", 1);
-        maxFullRounds = Mathf.Max(5, GetIntArg("-maxRounds", 80));
+        maxFullRounds = Mathf.Max(5, GetIntArg("-maxRounds", GameRulesConfig.MaxFullRounds));
         outRoot = GetStringArg("-out", null);
         if (string.IsNullOrEmpty(outRoot))
         {
@@ -56,7 +57,10 @@ public class LogicSimRunner : MonoBehaviour
         }
         outRoot = Path.GetFullPath(outRoot);
         Directory.CreateDirectory(outRoot);
-        Debug.Log($"[LogicSim] out={outRoot} matches={matches} seed={baseSeed} maxRounds={maxFullRounds}");
+        collect = GetStringArg("-collect", "both").ToLowerInvariant();
+        if (collect != "balance" && collect != "logic" && collect != "both")
+            collect = "both";
+        Debug.Log($"[LogicSim] out={outRoot} matches={matches} seed={baseSeed} maxRounds={maxFullRounds} collect={collect}");
     }
 
     private IEnumerator CoRunBatch()
@@ -110,7 +114,7 @@ public class LogicSimRunner : MonoBehaviour
             { "cat", "game_heuristic" }
         };
 
-        var logger = new LogicMatchLogger(seed, strategies);
+        var logger = new LogicMatchLogger(seed, strategies, collect);
         MatchConfig.SetLogicSim();
         GameBootstrap.Instance.StartLogicSimMatch();
 

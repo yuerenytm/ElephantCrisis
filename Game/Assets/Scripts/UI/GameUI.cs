@@ -367,10 +367,10 @@ public class GameUI : MonoBehaviour
             var unit = turn?.CurrentUnit;
             if (unit == null || unit.IsDying)
                 return;
-            var loot = GroundItemManager.Instance.GetLootInRange(unit.Cell, 1);
+            var loot = GroundItemManager.Instance.GetLootInRange(unit.Cell, GameRulesConfig.PickupRange);
             if (loot.Count == 0)
             {
-                turn.LogFor(turn.CurrentUnit, "半径 0–1 内没有可拾取物品");
+                turn.LogFor(turn.CurrentUnit, $"半径 0–{GameRulesConfig.PickupRange} 内没有可拾取物品");
                 return;
             }
             turn.EnterPickupMode();
@@ -695,8 +695,8 @@ public class GameUI : MonoBehaviour
                 TurnPhase.SelectingAmmo => "选择弹药（右键取消）",
                 TurnPhase.SelectingTimedBombDelay => "选择延时（右键取消）",
                 TurnPhase.SelectingFlameDirection => "选择喷射方向（右键取消）",
-                TurnPhase.SelectingMotorcycleRam => "选择冲击终点（四向6–10格·宽3，右键取消）",
-                TurnPhase.SelectingHookTarget => "选择勾爪目标（半径3，右键取消）",
+                TurnPhase.SelectingMotorcycleRam => $"选择冲击终点（四向{GameRulesConfig.MotorcycleRamMin}–{GameRulesConfig.MotorcycleRamMax}格·宽{GameRulesConfig.MotorcycleRamWidth}，右键取消）",
+                TurnPhase.SelectingHookTarget => $"选择勾爪目标（半径{GameRulesConfig.GrappleHookRange}，右键取消）",
                 TurnPhase.SelectingPickup => "选择拾取（右键取消）",
                 _ => humanTurn ? "左键移动/近战" : "AI 行动中…"
             };
@@ -837,7 +837,7 @@ public class GameUI : MonoBehaviour
 
         if (turn.Phase == TurnPhase.SelectingPickup && canAct)
         {
-            rightTitle.text = "附近掉落（半径0–1）";
+            rightTitle.text = $"附近掉落（半径0–{GameRulesConfig.PickupRange}）";
             RebuildPickupList();
         }
         else if (turn.Phase == TurnPhase.SelectingMonkeyMarkItem && canAct)
@@ -1046,22 +1046,22 @@ public class GameUI : MonoBehaviour
 
         float y = 0.76f;
         float step = 0.09f;
-        CreateButton(adminAtmospherePanel.transform, "清晨 6:00", ref y, step, () =>
+        CreateButton(adminAtmospherePanel.transform, $"清晨 {GameRulesConfig.DawnRepHour}:00", ref y, step, () =>
         {
             if (GameClock.AdminSetPeriod(GameClock.Period.Dawn))
                 RequestRefresh();
         });
-        CreateButton(adminAtmospherePanel.transform, "白天 12:00", ref y, step, () =>
+        CreateButton(adminAtmospherePanel.transform, $"白天 {GameRulesConfig.DayRepHour}:00", ref y, step, () =>
         {
             if (GameClock.AdminSetPeriod(GameClock.Period.Day))
                 RequestRefresh();
         });
-        CreateButton(adminAtmospherePanel.transform, "黄昏 18:00", ref y, step, () =>
+        CreateButton(adminAtmospherePanel.transform, $"黄昏 {GameRulesConfig.DuskRepHour}:00", ref y, step, () =>
         {
             if (GameClock.AdminSetPeriod(GameClock.Period.Dusk))
                 RequestRefresh();
         });
-        CreateButton(adminAtmospherePanel.transform, "黑夜 0:00", ref y, step, () =>
+        CreateButton(adminAtmospherePanel.transform, $"黑夜 {GameRulesConfig.NightRepHour}:00", ref y, step, () =>
         {
             if (GameClock.AdminSetPeriod(GameClock.Period.Night))
                 RequestRefresh();
@@ -1279,7 +1279,7 @@ public class GameUI : MonoBehaviour
         if (unit == null)
             return;
 
-        var loot = GroundItemManager.Instance.GetLootInRange(unit.Cell, 1);
+        var loot = GroundItemManager.Instance.GetLootInRange(unit.Cell, GameRulesConfig.PickupRange);
         if (loot.Count == 0)
         {
             var emptyRow = CreateListRow("Empty", ItemRowHeight * 1.5f);
@@ -1414,7 +1414,7 @@ public class GameUI : MonoBehaviour
             else if (kind == ItemKind.CursedBlade)
             {
                 int next = Mathf.Max(0, entry.Charges) + 1;
-                desc = $"{desc} · 下次第{next}次(己{next}/敌{2 * next})";
+                desc = $"{desc} · 下次第{next}次(己{next}/敌{GameRulesConfig.CursedBladeTargetMult * next})";
             }
             if (entry.Equipped)
                 name = $"{name}（装备）";
@@ -1427,7 +1427,7 @@ public class GameUI : MonoBehaviour
             if (kind == ItemKind.SkillUpgrade)
             {
                 int n = unit.Inventory.CountOf(ItemKind.SkillUpgrade);
-                useLabel = n >= 3 ? "升级(3)" : $"缺{3 - n}";
+                useLabel = n >= GameRulesConfig.SkillUpgradeCards ? $"升级({GameRulesConfig.SkillUpgradeCards})" : $"缺{GameRulesConfig.SkillUpgradeCards - n}";
             }
             else if (isEquip)
             {

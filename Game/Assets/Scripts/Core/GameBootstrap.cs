@@ -372,19 +372,19 @@ public class GameBootstrap : MonoBehaviour
     private List<UnitActor> SpawnUnits()
     {
         var list = new List<UnitActor>();
-        var starts = new[]
-        {
-            new Vector2Int(2, 2),
-            new Vector2Int(15, 2),
-            new Vector2Int(2, 15),
-            new Vector2Int(15, 15)
-        };
         var roles = new[]
         {
             RoleType.Elephant,
             RoleType.Human,
             RoleType.Monkey,
             RoleType.Cat
+        };
+        var starts = new[]
+        {
+            GameRulesConfig.SpawnCell(roles[0]),
+            GameRulesConfig.SpawnCell(roles[1]),
+            GameRulesConfig.SpawnCell(roles[2]),
+            GameRulesConfig.SpawnCell(roles[3])
         };
 
         var root = new GameObject("Units").transform;

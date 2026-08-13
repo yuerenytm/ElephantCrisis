@@ -12,20 +12,28 @@ public sealed class LogicMatchLogger
 {
     public static LogicMatchLogger Active { get; private set; }
     public static bool IsRecording => Active != null;
+    /// <summary>是否在写逐事件 events.jsonl（balance 模式为 false，仅记结果）。</summary>
+    public static bool IsRecordingEvents => Active != null && Active.RecordEvents;
 
     private readonly List<string> lines = new List<string>(512);
     private int t;
     private readonly Dictionary<string, string> strategies;
+    private readonly Dictionary<string, int> deathRounds = new Dictionary<string, int>();
     private readonly int seed;
+    private readonly string collect;
     private string winner;
     private string reason = "unknown";
     private int fullRounds;
     private bool finished;
 
-    public LogicMatchLogger(int seed, Dictionary<string, string> strategies)
+    /// <summary>是否写逐事件 events.jsonl（balance 模式为 false）。</summary>
+    public bool RecordEvents => collect != "balance";
+
+    public LogicMatchLogger(int seed, Dictionary<string, string> strategies, string collect = "both")
     {
         this.seed = seed;
         this.strategies = strategies ?? new Dictionary<string, string>();
+        this.collect = collect ?? "both";
         Active = this;
         EmitRaw("match_start", Obj(
             ("seed", seed.ToString(CultureInfo.InvariantCulture)),
@@ -162,7 +170,12 @@ public sealed class LogicMatchLogger
 
     public void EmitDeath(UnitActor unit)
     {
-        Emit("death", ("actor", Q(LogicSimNaming.Role(unit.Role))));
+        string role = LogicSimNaming.Role(unit.Role);
+        int full = TurnManager.Instance != null
+            ? Mathf.Max(0, TurnManager.Instance.RoundNumber - 1)
+            : 0;
+        deathRounds[role] = full;
+        Emit("death", ("actor", Q(role)));
     }
 
     public void EmitClock(int hour, int fullRound)
@@ -237,8 +250,11 @@ public sealed class LogicMatchLogger
     public void Save(string matchDir)
     {
         Directory.CreateDirectory(matchDir);
-        var eventsPath = Path.Combine(matchDir, "events.jsonl");
-        File.WriteAllLines(eventsPath, lines, new UTF8Encoding(false));
+        if (RecordEvents)
+        {
+            var eventsPath = Path.Combine(matchDir, "events.jsonl");
+            File.WriteAllLines(eventsPath, lines, new UTF8Encoding(false));
+        }
 
         var meta = new StringBuilder();
         meta.Append("{\n");
@@ -247,7 +263,9 @@ public sealed class LogicMatchLogger
         meta.Append("  \"winner\": ").Append(winner != null ? Q(winner) : "null").Append(",\n");
         meta.Append("  \"reason\": ").Append(Q(reason)).Append(",\n");
         meta.Append("  \"full_rounds\": ").Append(fullRounds).Append(",\n");
-        meta.Append("  \"events\": ").Append(lines.Count).Append(",\n");
+        meta.Append("  \"events\": ").Append(RecordEvents ? lines.Count : 0).Append(",\n");
+        meta.Append("  \"collect\": ").Append(Q(collect)).Append(",\n");
+        meta.Append("  \"per_role\": ").Append(PerRoleJson()).Append(",\n");
         meta.Append("  \"source\": \"game_logic_sim\"\n");
         meta.Append("}\n");
         File.WriteAllText(Path.Combine(matchDir, "meta.json"), meta.ToString(), new UTF8Encoding(false));
@@ -256,8 +274,31 @@ public sealed class LogicMatchLogger
             Active = null;
     }
 
+    private string PerRoleJson()
+    {
+        var sb = new StringBuilder();
+        sb.Append('{');
+        bool first = true;
+        foreach (var kv in strategies)
+        {
+            if (!first) sb.Append(',');
+            first = false;
+            string role = kv.Key;
+            bool survived = !deathRounds.ContainsKey(role);
+            string deathRound = survived ? "null" : I(deathRounds[role]);
+            sb.Append(Q(role)).Append(":{")
+                .Append("\"death_round\":").Append(deathRound)
+                .Append(",\"survived\":").Append(B(survived))
+                .Append('}');
+        }
+        sb.Append('}');
+        return sb.ToString();
+    }
+
     private void EmitRaw(string type, string bodyFieldsObject)
     {
+        if (!RecordEvents)
+            return;
         t++;
         // bodyFieldsObject is {...} without outer type/t
         var sb = new StringBuilder(bodyFieldsObject.Length + 48);

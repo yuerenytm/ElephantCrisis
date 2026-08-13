@@ -31,56 +31,14 @@ public class DeckManager : MonoBehaviour
         drawPile.Clear();
         discardPile.Clear();
 
-        AddCopies(ItemKind.SmallPotion, 10);
-        AddCopies(ItemKind.LargePotion, 4);
-        AddCopies(ItemKind.Bomb, 10);
-        AddCopies(ItemKind.MegaBomb, 4);
-        AddCopies(ItemKind.TimedBomb, 6);
-        AddCopies(ItemKind.Reinforce, 10);
-        AddCopies(ItemKind.Bow, 6);
-        AddCopies(ItemKind.Crossbow, 2);
-        AddCopies(ItemKind.Dagger, 6);
-        AddCopies(ItemKind.Longsword, 4);
-        AddCopies(ItemKind.ArmorPiercingBlade, 8);
-        AddCopies(ItemKind.CursedBlade, 2);
-        AddCopies(ItemKind.Arrow, 30);
-        AddCopies(ItemKind.PoisonArrow, 12);
-        AddCopies(ItemKind.FireRocket, 12);
-        AddCopies(ItemKind.BananaPeel, 10);
-        AddCopies(ItemKind.Mine, 10);
-        AddCopies(ItemKind.Flamethrower, 2);
-        AddCopies(ItemKind.WoodArmor, 6);
-        AddCopies(ItemKind.IronArmor, 2);
-        AddCopies(ItemKind.RubberRaincoat, 6);
-        AddCopies(ItemKind.ThornsArmor, 6);
-        AddCopies(ItemKind.TacticalVest, 6);
-        AddCopies(ItemKind.EnergyShield, 6);
-        AddCopies(ItemKind.Adrenaline, 10);
-        AddCopies(ItemKind.NightVision, 4);
-        AddCopies(ItemKind.Telescope, 4);
-        AddCopies(ItemKind.Skateboard, 6);
-        AddCopies(ItemKind.Motorcycle, 2);
-        AddCopies(ItemKind.IceSkates, 4);
-        AddCopies(ItemKind.GrappleHook, 6);
-        AddCopies(ItemKind.Amulet, 2);
-        AddCopies(ItemKind.Flashbang, 6);
-        AddCopies(ItemKind.Boomerang, 6);
-        AddCopies(ItemKind.Milk, 8);
-        AddCopies(ItemKind.WeatherClear, 6);
-        AddCopies(ItemKind.WeatherRain, 6);
-        AddCopies(ItemKind.WeatherFog, 6);
-        AddCopies(ItemKind.RedBull, 12);
-        AddCopies(ItemKind.GasolineBottle, 20);
-        AddCopies(ItemKind.Lighter, 8);
-        AddCopies(ItemKind.SkillUpgrade, 24);
-        // 四只玩偶各 1 张，入共用牌库并与其它牌一并开局散落（印数不翻倍）
-        AddCopies(ItemKind.DollElephant, 1);
-        AddCopies(ItemKind.DollHuman, 1);
-        AddCopies(ItemKind.DollMonkey, 1);
-        AddCopies(ItemKind.DollCat, 1);
-        Shuffle(drawPile);
+        // 印数来自 game_rules.yaml → GameRulesConfig.deck
+        var counts = new List<KeyValuePair<ItemKind, int>>(48);
+        GameRulesConfig.CollectPositiveDeckCounts(counts);
+        for (int i = 0; i < counts.Count; i++)
+            AddCopies(counts[i].Key, counts[i].Value);
 
-        TurnManager.Instance?.Log($"牌库已构建：{drawPile.Count} 张");
+        Shuffle(drawPile);
+        TurnManager.Instance?.Log($"牌库已构建：{drawPile.Count} 张（读表）");
     }
 
     /// <summary>
