@@ -73,7 +73,6 @@ public static class SkillService
         TurnManager.Instance.LogFor(unit,
             $"{RoleInfo.GetDisplayName(unit.Role)} 发动【强化】：{detail}（冷却{cd}回合）{shield}");
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("skill", "human_reinforce");
         return true;
     }
 
@@ -163,7 +162,6 @@ public static class SkillService
             $"{RoleInfo.GetDisplayName(monkey.Role)} 抢夺获得 {RoleInfo.GetDisplayName(target.Role)} 的【{ItemInfo.GetDisplayName(item.Kind)}】（冷却{cd}回合）");
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("skill", "monkey_steal");
         return true;
     }
 
@@ -183,7 +181,6 @@ public static class SkillService
         TurnManager.Instance.LogFor(unit,
             $"{RoleInfo.GetDisplayName(unit.Role)} 发动【隐匿】（冷却{cd}回合）");
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("skill", "cat_stealth");
         return true;
     }
 }

@@ -6,7 +6,7 @@ using UnityEngine;
 
 /// <summary>
 /// 逻辑对局 JSONL 日志（与 Tools/sim events.jsonl / meta.json schema 对齐）。
-/// 仅 LogicSim 模式写入；与 ClientPerf 的性能 JSONL 完全隔离。
+/// 仅 LogicSim 模式写入。
 /// </summary>
 public sealed class LogicMatchLogger
 {

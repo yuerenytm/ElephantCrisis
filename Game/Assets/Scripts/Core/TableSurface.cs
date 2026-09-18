@@ -126,11 +126,11 @@ public static class TableSurface
 
     private static Sprite LoadOrBake(string resourcePath, System.Func<int, Sprite> bake, int bakeSize)
     {
-        var sprite = ClientPerfResourceProbe.Load<Sprite>(resourcePath);
+        var sprite = Resources.Load<Sprite>(resourcePath);
         if (sprite != null)
             return sprite;
 
-        var tex = ClientPerfResourceProbe.Load<Texture2D>(resourcePath);
+        var tex = Resources.Load<Texture2D>(resourcePath);
         if (tex != null)
         {
             tex.wrapMode = TextureWrapMode.Repeat;

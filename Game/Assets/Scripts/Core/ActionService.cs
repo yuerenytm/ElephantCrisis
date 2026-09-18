@@ -265,8 +265,6 @@ public static class ActionService
 
         if (thorns)
             TryThornsReflect(attacker, defender, dealt);
-
-        ClientPerfMark.Action("combat", "melee");
         GameManager.Instance?.CheckWinConditions();
         return true;
     }
@@ -327,8 +325,6 @@ public static class ActionService
             $"{RoleInfo.GetDisplayName(defender.Role)} 受 {dealt} 真伤，自身受 {selfDealt} 真伤" +
             (defender.IsDead ? "（目标死亡）" : defender.IsDying ? "（目标濒死）" : "") +
             (attacker.IsDead ? "（自身死亡）" : attacker.IsDying ? "（自身濒死）" : ""));
-
-        ClientPerfMark.Action("combat", "cursed_blade");
         GameManager.Instance?.CheckWinConditions();
         return true;
     }
@@ -465,7 +461,6 @@ public static class ActionService
 
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("combat", "shoot");
         return true;
     }
 
@@ -1068,7 +1063,6 @@ public static class ActionService
             (killed ? "（击杀，回旋镖回手）" : defender.IsDying ? "（濒死，回旋镖弃牌）" : dealt <= 0 ? "（被挡，回旋镖弃牌）" : $"（HP{defender.Hp}，回旋镖弃牌）"));
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("combat", "boomerang");
         return true;
     }
 
@@ -1131,7 +1125,6 @@ public static class ActionService
             $"覆盖 {hits} 人，{damaged} 人扣血");
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("aoe_bomb", kind.ToString());
         return true;
     }
 
@@ -1204,7 +1197,6 @@ public static class ActionService
             $"覆盖 {hits} 人，{damaged} 人扣血；爆点半径 {blast} 留下火焰 {GameRulesConfig.MolotovFlameRounds} 回合");
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("aoe_molotov", "gasoline");
         return true;
     }
 
@@ -1233,7 +1225,6 @@ public static class ActionService
         TurnManager.Instance.LogFor(unit,
             $"{RoleInfo.GetDisplayName(unit.Role)} 投掷香蕉皮于 ({target.x},{target.y})（仅你可见）");
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("place_hazard", "banana");
         return true;
     }
 
@@ -1262,7 +1253,6 @@ public static class ActionService
         TurnManager.Instance.Log(
             $"{RoleInfo.GetDisplayName(unit.Role)} 在 ({target.x},{target.y}) 安置了地雷");
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("place_hazard", "mine");
         return true;
     }
 
@@ -1281,7 +1271,6 @@ public static class ActionService
         TurnManager.Instance.LogFor(unit,
             $"{RoleInfo.GetDisplayName(unit.Role)} 在脚下安置定时炸弹，{rounds} 回合（{rounds * GameRulesConfig.ActionsPerRound} 个行动，含本次）后爆炸（仅你可见）");
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("place_hazard", "timed_bomb");
         return true;
     }
 
@@ -1368,7 +1357,6 @@ public static class ActionService
             $"{RoleInfo.GetDisplayName(unit.Role)} 使用火焰喷射器（耗【汽油瓶】×{GameRulesConfig.FuelCost}），命中 {hits} 人，{damaged} 人扣血；路径火焰 {flameRounds} 回合（{flameRounds * GameRulesConfig.ActionsPerRound} 行动）");
         GameManager.Instance?.CheckWinConditions();
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("aoe_flame", "flamethrower");
         return true;
     }
 
@@ -1410,7 +1398,6 @@ public static class ActionService
             $"{RoleInfo.GetDisplayName(unit.Role)} 投掷闪光弹于 ({target.x},{target.y})，{hits} 人获得【致盲】{GameRulesConfig.FlashbangBlindRounds}回合");
         VisibilityService.RefreshWorld();
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("util_flash", "flashbang");
         return true;
     }
 
@@ -1450,7 +1437,6 @@ public static class ActionService
         TurnManager.Instance.Log(
             $"{RoleInfo.GetDisplayName(unit.Role)} 发动摩托车（耗【汽油瓶】×{GameRulesConfig.FuelCost}），持续 {GameRulesConfig.MotorcycleDuration} 回合：移+{GameRulesConfig.MotorcycleMove} / 可冲击");
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("util", "motorcycle_start");
         return true;
     }
 
@@ -1571,7 +1557,6 @@ public static class ActionService
         GameManager.Instance?.CheckWinConditions();
         VisibilityService.RefreshWorld();
         TurnManager.Instance.NotifyActionDone();
-        ClientPerfMark.Action("combat", "motorcycle_ram");
         return true;
     }
 

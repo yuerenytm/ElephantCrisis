@@ -16,7 +16,7 @@ public static class RolePortrait
             return cached;
 
         string file = role.ToString(); // Elephant / Human / Monkey / Cat
-        var art = ClientPerfResourceProbe.Load<Sprite>($"Roles/{file}");
+        var art = Resources.Load<Sprite>($"Roles/{file}");
         if (art != null)
         {
             cache[role] = art;
@@ -25,7 +25,7 @@ public static class RolePortrait
         }
 
         // 也尝试不带扩展名的 Texture2D → Sprite
-        var tex = ClientPerfResourceProbe.Load<Texture2D>($"Roles/{file}");
+        var tex = Resources.Load<Texture2D>($"Roles/{file}");
         if (tex != null)
         {
             art = Sprite.Create(tex, new Rect(0, 0, tex.width, tex.height), new Vector2(0.5f, 0.5f), Mathf.Max(tex.width, tex.height));

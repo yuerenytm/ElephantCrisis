@@ -5,7 +5,6 @@
 造数用 [`../sim/`](../sim/README.md) 的 Game LogicSim；本工具只负责「事件合不合法 / 状态像不像 bug」，不做胜率统计。
 
 - 宏观胜率 / 调参建议：[`../balance_analysis/`](../balance_analysis/README.md)（另一套，读 `meta.json`，勿混用）
-- 实机帧率 / 美术加载：[`../perf_analysis/`](../perf_analysis/README.md)（另一套采集，勿混用 JSONL）
 
 ## 与上下游的关系
 
@@ -13,8 +12,6 @@
 sim（只造数，只认 -collect 开关）
   └─ match_*/events.jsonl ──► logic_qa（本目录：微观规则校验）
   └─ match_*/meta.json    ──► balance_analysis（宏观胜率 + LLM 建议）
-
-perf_analysis（实机性能，独立采集，不用 sim 的日志）
 ```
 
 本目录只 import `elephant_sim`（sim 对外 SDK：`log_io` / `models` / `unity_batch`），不 import `balance_analysis`。
