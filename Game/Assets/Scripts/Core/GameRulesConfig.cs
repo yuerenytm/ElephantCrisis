@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
 using UnityEngine;
@@ -23,6 +24,17 @@ public static class GameRulesConfig
     }
 
     private static bool loaded;
+
+    /// <summary>代码实际请求过的配置键（section.key），供启动校验比对 yaml。</summary>
+    private static readonly HashSet<string> requestedKeys =
+        new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+    private static bool keysValidated;
+
+    private static void NoteKey(string section, string key)
+    {
+        requestedKeys.Add(section + "." + key);
+    }
 
     private static readonly Dictionary<RoleType, RoleBaseStats> roleStats =
         new Dictionary<RoleType, RoleBaseStats>();
@@ -163,7 +175,6 @@ public static class GameRulesConfig
     public static int HoursPerRound => Mathf.Max(1, GetInt("clock", "hours_per_round", 2));
 
     public static int MaxFullRounds => Mathf.Max(1, GetInt("match", "max_full_rounds", 80));
-    public static int DrawPerTurn => Mathf.Max(1, GetInt("match", "draw_per_turn", 1));
     public static int ActionsPerRound => Mathf.Max(1, GetInt("match", "actions_per_round", 4));
     public static int PickupRange => Mathf.Max(1, GetInt("match", "pickup_range", 1));
 
@@ -235,6 +246,8 @@ public static class GameRulesConfig
     public static int BlindVisibility => GetInt("status", "blind_visibility", 0);
     public static int HiddenRevealRange => GetInt("status", "hidden_reveal_range", 1);
     public static int PoisonRounds => Mathf.Max(1, GetInt("status", "poison_rounds", 1));
+    /// <summary>沼泽地形每次施加的中毒持续回合（无施加者，按回合倒数）。</summary>
+    public static int SwampPoisonRounds => Mathf.Max(1, GetInt("status", "swamp_poison_rounds", 1));
     public static int BurningRounds => Mathf.Max(1, GetInt("status", "burning_rounds", 1));
     public static int StunRounds => Mathf.Max(1, GetInt("status", "stun_rounds", 1));
     public static int BlindRounds => Mathf.Max(1, GetInt("status", "blind_rounds", 1));
@@ -370,6 +383,7 @@ public static class GameRulesConfig
     public static int GetInt(string section, string key, int fallback)
     {
         EnsureLoaded();
+        NoteKey(section, key);
         if (!sections.TryGetValue(section, out var map))
             return fallback;
         if (!map.TryGetValue(key, out string raw))
@@ -384,6 +398,7 @@ public static class GameRulesConfig
     public static float GetFloat(string section, string key, float fallback)
     {
         EnsureLoaded();
+        NoteKey(section, key);
         if (!sections.TryGetValue(section, out var map))
             return fallback;
         if (!map.TryGetValue(key, out string raw))
@@ -391,6 +406,81 @@ public static class GameRulesConfig
         if (float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out float v))
             return v;
         return fallback;
+    }
+
+    /// <summary>
+    /// 启动校验（只跑一次）：对比 yaml 里的键和代码真正读取的键。
+    /// 覆盖两类隐患：① yaml 有、代码不读（改了没效果）② 代码读、yaml 没有（静默用默认值）。
+    /// </summary>
+    public static void ValidateKeysOnce()
+    {
+        if (keysValidated)
+            return;
+        keysValidated = true;
+        EnsureLoaded();
+
+        // 触发所有配置 getter，让 NoteKey 登记被消费的键
+        foreach (var prop in typeof(GameRulesConfig).GetProperties(BindingFlags.Public | BindingFlags.Static))
+        {
+            if (prop.GetIndexParameters().Length != 0)
+                continue;
+            try { prop.GetValue(null); }
+            catch { /* 单个属性异常不影响整体校验 */ }
+        }
+
+        // 技能数值按等级动态拼键（*_lv1/2/3），getter 覆盖不到，这里显式触发
+        for (int lv = 1; lv <= 3; lv++)
+        {
+            try
+            {
+                HumanCooldown(lv);
+                MonkeyCooldown(lv);
+                CatCooldown(lv);
+                MonkeyRadius(lv);
+                DeterrenceOuterRadius(lv);
+            }
+            catch { }
+        }
+
+        // 这些段落由专门的解析器处理（roles / grid / deck），不走 GetInt，跳过
+        var skippedSections = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "roles", "grid", "deck"
+        };
+
+        var unused = new List<string>();
+        foreach (var section in sections)
+        {
+            if (skippedSections.Contains(section.Key))
+                continue;
+            foreach (var key in section.Value.Keys)
+            {
+                string full = section.Key + "." + key;
+                if (!requestedKeys.Contains(full))
+                    unused.Add(full);
+            }
+        }
+
+        var missing = new List<string>();
+        foreach (var full in requestedKeys)
+        {
+            int dot = full.IndexOf('.');
+            if (dot <= 0)
+                continue;
+            string sec = full.Substring(0, dot);
+            string key = full.Substring(dot + 1);
+            if (!sections.TryGetValue(sec, out var map) || !map.ContainsKey(key))
+                missing.Add(full);
+        }
+
+        if (unused.Count > 0)
+            Debug.LogWarning(
+                $"[GameRulesConfig] yaml 中未被代码读取的键 {unused.Count} 个: {string.Join(", ", unused)}");
+        if (missing.Count > 0)
+            Debug.LogWarning(
+                $"[GameRulesConfig] 代码读取但 yaml 缺失的键 {missing.Count} 个（将用内置默认值）: {string.Join(", ", missing)}");
+        if (unused.Count == 0 && missing.Count == 0)
+            Debug.Log("[GameRulesConfig] 配置键校验通过：yaml 与代码完全对应。");
     }
 
     public static string ResolveRulesPath()

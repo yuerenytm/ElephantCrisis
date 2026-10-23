@@ -896,7 +896,7 @@ public static class ActionService
 
         unit.Inventory.Remove(ItemKind.RedBull);
         DeckManager.Instance?.AddToDiscard(ItemKind.RedBull);
-        unit.PendingExtraActions = Mathf.Max(0, unit.PendingExtraActions) + 1;
+        unit.PendingExtraActions = Mathf.Max(0, unit.PendingExtraActions) + GameRulesConfig.RedBullExtraActions;
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.LogFor(unit,
             $"{RoleInfo.GetDisplayName(unit.Role)} 喝下【红牛】（行动结束后额外行动×{unit.PendingExtraActions}）");
@@ -1181,7 +1181,7 @@ public static class ActionService
             other.ApplyStatus(StatusType.Burning, GameRulesConfig.BurningRounds, unit);
         }
 
-        HazardManager.Instance?.PlaceFlameArea(target, blast, 2);
+        HazardManager.Instance?.PlaceFlameArea(target, blast, GameRulesConfig.MolotovFlameRounds);
         // 铺火后再扫一次：爆点内角色（含未扣血）立刻着火
         foreach (var other in GameManager.Instance.Units)
         {

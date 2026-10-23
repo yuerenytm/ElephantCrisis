@@ -516,7 +516,7 @@ public class UnitActor : MonoBehaviour
     {
         if (PoisonStacks >= MaxPoisonStacks)
             return false;
-        statuses.Add(new StatusEffect(StatusType.Poison, 1));
+        statuses.Add(new StatusEffect(StatusType.Poison, GameRulesConfig.SwampPoisonRounds));
         LogicMatchLogger.Active?.EmitStatus(this, StatusType.Poison, "apply");
         RefreshVisual();
         return true;

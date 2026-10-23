@@ -247,6 +247,7 @@ public class GameBootstrap : MonoBehaviour
         matchRunning = true;
 
         MainMenuUI.Instance?.Hide();
+        GameRulesConfig.ValidateKeysOnce();
 
         bool lean = MatchConfig.IsLeanRuntime;
         EnsureSystems(lean);

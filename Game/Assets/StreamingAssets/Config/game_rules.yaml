@@ -66,7 +66,6 @@ lava:
 # 最大回合、摸牌、每回合行动数、拾取半径
 match:
   max_full_rounds: 80
-  draw_per_turn: 1
   actions_per_round: 4
   pickup_range: 1          # 拾取/弃置等邻接操作半径
 
@@ -127,7 +126,6 @@ items:
   bomb_radius: 2
   bomb_range: 5
   mega_bomb_damage: 24
-  mega_bomb_radius: 2
   timed_bomb_damage: 15
   timed_bomb_radius: 4
   timed_bomb_min_rounds: 1
@@ -195,8 +193,8 @@ items:
   doll_monkey_atk: 3
   doll_cat_move: 2
   skill_upgrade_cards: 3
-  skill_level_base: 1
-  skill_level_max: 3
+  skill_upgrade_level_base: 1
+  skill_upgrade_level_max: 3
   reinforce_amount: 1
   red_bull_extra_actions: 1
   weight_per_card: 1
@@ -226,6 +224,7 @@ status:
   hidden_reveal_range: 1
   # 状态默认持续回合（角色/地形施加，如毒 1 回合、着火 1 回合等）
   poison_rounds: 1
+  swamp_poison_rounds: 1   # 沼泽地形每次施加的中毒持续回合
   burning_rounds: 1
   stun_rounds: 1
   blind_rounds: 1
