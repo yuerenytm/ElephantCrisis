@@ -158,23 +158,20 @@ public static class WeatherService
         nextChangeRound = fromRound + Random.Range(min, max + 1);
     }
 
+    /// <summary>
+    /// 晴 / 雨 / 雾 严格等权：每次变更从"除当前以外"的天气里等概率抽一种。
+    /// 三种天气地位相同，晴天不特殊；新增天气类型时无需改这里。
+    /// </summary>
     private static void ChangeToRandom(int round)
     {
-        WeatherType next;
-        if (Current == WeatherType.Clear)
+        var options = new List<WeatherType>(2);
+        foreach (WeatherType w in System.Enum.GetValues(typeof(WeatherType)))
         {
-            // 晴天必然变为雨/雾
-            next = Random.value < 0.5f ? WeatherType.Rain : WeatherType.Fog;
-        }
-        else
-        {
-            var options = new List<WeatherType>(2);
-            if (Current != WeatherType.Clear) options.Add(WeatherType.Clear);
-            if (Current != WeatherType.Rain) options.Add(WeatherType.Rain);
-            if (Current != WeatherType.Fog) options.Add(WeatherType.Fog);
-            next = options[Random.Range(0, options.Count)];
+            if (w != Current)
+                options.Add(w);
         }
 
+        WeatherType next = options[Random.Range(0, options.Count)];
         ApplyWeather(next, round, ChangeSource.Auto);
     }
 
