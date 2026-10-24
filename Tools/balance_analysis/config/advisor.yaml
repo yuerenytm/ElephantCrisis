@@ -1,8 +1,9 @@
 # 数值平衡顾问配置
-# 未公开前可把 api_key 写在这里；公开仓库前务必清空并改用环境变量。
+# api_key 只从环境变量读取（BALANCE_ADVISOR_API_KEY 或 OPENAI_API_KEY），
+# 不要把它写回这个文件——本仓库是公开的。
 
 api:
-  api_key: "sk-30714e448c3c4e248c3f4640075e952a"
+  api_key: ""
   base_url: https://api.deepseek.com
   model: deepseek-v4-flash
   temperature: 0.3
