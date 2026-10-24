@@ -1,4 +1,8 @@
-"""Launch Unity LogicSim (Game scripts) to produce match_*/events.jsonl."""
+"""启动 Unity 的 LogicSim 批处理，产出 match_*/ 日志目录。
+
+本模块只负责「环境探测 + 拼命令行 + 收尾报错」，不含任何游戏规则：
+真正的模拟由 Game 侧的 LogicSimRunner 在 Unity 进程内完成。
+"""
 
 from __future__ import annotations
 
@@ -11,14 +15,24 @@ from typing import List, Optional
 
 
 def repo_root() -> Path:
+    """仓库根目录（由本文件位置向上推三级：elephant_sim → sim → Tools → 根）。"""
     return Path(__file__).resolve().parents[3]
 
 
 def game_project_path() -> Path:
+    """Unity 工程目录：仓库根下的 Game/。"""
     return repo_root() / "Game"
 
 
 def find_unity_editor() -> Optional[Path]:
+    """探测 Unity.exe 路径，找不到返回 None。
+
+    优先级：
+    1. 环境变量 UNITY_EDITOR / UNITY_PATH（显式指定优先）
+    2. Unity Hub 默认安装目录（取版本号最大者）
+    3. 常见自定义/便携安装：D:\\Unity、E:\\Unity、C:\\Unity、LOCALAPPDATA
+    4. 工程 ProjectSettings/ProjectVersion.txt 里的版本号精确匹配
+    """
     env = os.environ.get("UNITY_EDITOR") or os.environ.get("UNITY_PATH")
     if env:
         p = Path(env)
@@ -78,7 +92,10 @@ def find_unity_editor() -> Optional[Path]:
 
 
 def find_running_unity() -> List[int]:
-    """返回正在运行的 Unity.exe 进程 PID 列表（Windows）。空列表 = 没有 Unity 在跑。"""
+    """返回正在运行的 Unity.exe 进程 PID 列表（仅 Windows）。
+
+    空列表表示没有 Unity 在跑；非 Windows 平台恒为空。
+    """
     pids: List[int] = []
     if os.name != "nt":
         return pids
@@ -106,6 +123,11 @@ def find_running_unity() -> List[int]:
 
 
 def clear_match_outputs(out_dir: Path) -> int:
+    """删除输出目录下所有 match_* 子目录和旧 batch_summary.json。
+
+    unity_logic_sim.log 不删（追加写入，便于排查历史）。
+    返回删除的目录数。
+    """
     if not out_dir.is_dir():
         return 0
     removed = 0
@@ -127,10 +149,23 @@ def run_unity_logic_sim(
     unity_exe: Optional[Path] = None,
     clean: bool = True,
     collect: str = "both",
+    timeout: Optional[float] = None,
 ) -> int:
-    """
-    Run Game LogicSim via Unity Editor batchmode.
-    Returns process exit code.
+    """以 Unity batchmode 跑一批 LogicSim，返回进程退出码。
+
+    Args:
+        matches: 对局数量。
+        out_dir: 产物目录（会在其中创建 match_<seed>/）。
+        base_seed: 起始种子，逐局 +1。
+        max_rounds: 单局完整回合上限。
+        unity_exe: 指定 Unity.exe；缺省自动探测。
+        clean: 是否先清空旧的 match_*。
+        collect: balance / logic / both，透传给 Game 侧决定写哪些文件。
+        timeout: 整体超时秒数；None 表示不限制（默认）。
+
+    Returns:
+        0 成功；127 找不到 Unity 或工程；128 有 Unity 正在运行；
+        124 超时；其余为 Unity 进程自身的退出码。
     """
     unity = unity_exe or find_unity_editor()
     if unity is None or not Path(unity).is_file():
@@ -193,7 +228,15 @@ def run_unity_logic_sim(
 
     print("Launching Unity LogicSim:")
     print(" ", " ".join(cmd))
-    proc = subprocess.run(cmd, check=False)
+    try:
+        proc = subprocess.run(cmd, check=False, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print(
+            f"ERROR: Unity batchmode 超过 {timeout} 秒未结束，已终止。日志：{log_file}",
+            file=sys.stderr,
+        )
+        return 124
+
     print(f"Unity exit code: {proc.returncode} (log: {log_file})")
     if proc.returncode != 0 and log_file.is_file():
         text = log_file.read_text(encoding="utf-8", errors="ignore")
