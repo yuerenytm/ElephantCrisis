@@ -104,7 +104,9 @@ public static class SpriteFactory
         return ToSprite(tex, size);
     }
 
-    /// <summary>结束回合圆形按钮：泥色象纹印章，贴合象群危机氛围。</summary>
+    /// <summary>
+    /// 结束回合圆形按钮：泥色象纹印章，贴合象群危机氛围。
+    /// </summary>
     public static Sprite CreateEndTurnButton(int size = 256)
     {
         var tex = NewClearTex(size);

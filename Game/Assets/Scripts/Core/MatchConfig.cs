@@ -1,11 +1,17 @@
-/// <summary>当前对局模式与人类操控角色（AI / 管理员对战时用）。</summary>
+/// <summary>
+/// 当前对局模式与人类操控角色（AI / 管理员对战时用）。
+/// </summary>
 public enum GameMode
 {
     Hotseat,
     AiBattle,
-    /// <summary>基于 AI 对战：正常能见度；可查 AI 背包/技能、虚空印牌、任选氛围。</summary>
+    /// <summary>
+    /// 基于 AI 对战：正常能见度；可查 AI 背包/技能、虚空印牌、任选氛围。
+    /// </summary>
     AdminMode,
-    /// <summary>全 AI 逻辑批仿真（无人类座位，瘦开局，写逻辑 JSONL）。</summary>
+    /// <summary>
+    /// 全 AI 逻辑批仿真（无人类座位，瘦开局，写逻辑 JSONL）。
+    /// </summary>
     LogicSim
 }
 
@@ -14,7 +20,9 @@ public static class MatchConfig
     public static GameMode Mode { get; private set; } = GameMode.Hotseat;
     public static RoleType HumanRole { get; private set; } = RoleType.Human;
 
-    /// <summary>有 AI 队友/对手的对战（含管理员模式、LogicSim）。</summary>
+    /// <summary>
+    /// 有 AI 队友/对手的对战（含管理员模式、LogicSim）。
+    /// </summary>
     public static bool IsAiBattle =>
         Mode == GameMode.AiBattle
         || Mode == GameMode.AdminMode
@@ -24,39 +32,59 @@ public static class MatchConfig
 
     public static bool IsLogicSim => Mode == GameMode.LogicSim;
 
-    /// <summary>无 UI / 瘦表现（LogicSim）。</summary>
+    /// <summary>
+    /// 无 UI / 瘦表现（LogicSim）。
+    /// </summary>
     public static bool IsLeanRuntime => IsLogicSim;
 
+    /// <summary>
+    /// 切换到热座模式。
+    /// </summary>
     public static void SetHotseat()
     {
         Mode = GameMode.Hotseat;
         HumanRole = RoleType.Human;
     }
 
+    /// <summary>
+    /// 切换到 AI 对战模式，指定人类角色。
+    /// </summary>
     public static void SetAiBattle(RoleType humanRole)
     {
         Mode = GameMode.AiBattle;
         HumanRole = humanRole;
     }
 
+    /// <summary>
+    /// 切换到管理员模式。
+    /// </summary>
     public static void SetAdminMode(RoleType humanRole)
     {
         Mode = GameMode.AdminMode;
         HumanRole = humanRole;
     }
 
+    /// <summary>
+    /// 切换到 LogicSim 模式（四人全 AI）。
+    /// </summary>
     public static void SetLogicSim()
     {
         Mode = GameMode.LogicSim;
         HumanRole = RoleType.Human;
     }
 
+    /// <summary>
+    /// 恢复默认（热座 / 人类角色）。
+    /// </summary>
     public static void Clear()
     {
         Mode = GameMode.Hotseat;
         HumanRole = RoleType.Human;
     }
 
+    /// <summary>
+    /// 该角色是否由人类操作；LogicSim 下恒为 false。
+    /// </summary>
     public static bool IsHumanControlled(RoleType role)
     {
         if (IsLogicSim)
@@ -66,12 +94,17 @@ public static class MatchConfig
         return role == HumanRole;
     }
 
+    /// <summary>
+    /// 同上，带空值保护。
+    /// </summary>
     public static bool IsHumanControlled(UnitActor unit)
     {
         return unit != null && IsHumanControlled(unit.Role);
     }
 
-    /// <summary>当前回合是否由本地玩家操作。</summary>
+    /// <summary>
+    /// 当前回合是否由本地玩家操作。
+    /// </summary>
     public static bool IsHumanTurn()
     {
         var unit = TurnManager.Instance?.CurrentUnit;

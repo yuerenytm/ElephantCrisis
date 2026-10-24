@@ -1,6 +1,8 @@
 using UnityEngine;
 
-/// <summary>汽油火焰地块轻微闪烁。</summary>
+/// <summary>
+/// 汽油火焰地块轻微闪烁。
+/// </summary>
 public class FlameFlicker : MonoBehaviour
 {
     private SpriteRenderer[] renderers;

@@ -40,6 +40,9 @@ public class GameBootstrap : MonoBehaviour
         ShowMainMenu();
     }
 
+    /// <summary>
+    /// 显示主菜单并清空当前对局。
+    /// </summary>
     public void ShowMainMenu()
     {
         matchRunning = false;
@@ -49,6 +52,9 @@ public class GameBootstrap : MonoBehaviour
         MainMenuUI.Instance.Show();
     }
 
+    /// <summary>
+    /// 请求重开：排队到帧末执行，避免在按钮回调里销毁 UI。
+    /// </summary>
     public void RequestRestartMatch()
     {
         if (transitionQueued)
@@ -57,9 +63,14 @@ public class GameBootstrap : MonoBehaviour
         StartCoroutine(CoRestartMatch());
     }
 
-    /// <summary>兼容旧调用名。</summary>
+    /// <summary>
+    /// 兼容旧调用名。
+    /// </summary>
     public void RequestRestartHotseat() => RequestRestartMatch();
 
+    /// <summary>
+    /// 请求回主菜单：同样排队到帧末执行。
+    /// </summary>
     public void RequestReturnToMenu()
     {
         if (transitionQueued)
@@ -96,7 +107,9 @@ public class GameBootstrap : MonoBehaviour
         ShowMainMenu();
     }
 
-    /// <summary>清掉对局物件，不卸载场景。</summary>
+    /// <summary>
+    /// 清掉对局物件，不卸载场景。
+    /// </summary>
     private void TeardownGameplay()
     {
         if (PlayerInputController.Instance != null)
@@ -146,7 +159,9 @@ public class GameBootstrap : MonoBehaviour
             PlayerInputController.Instance.enabled = true;
     }
 
-    /// <summary>LogicSim 局间清理（保留 Bootstrap 与系统组件）。</summary>
+    /// <summary>
+    /// LogicSim 局间清理（保留 Bootstrap 与系统组件）。
+    /// </summary>
     public void TeardownForLogicSim()
     {
         // 必须同步销毁：延迟 Destroy 会使下一局同帧仍拿到已毁单例
@@ -199,25 +214,36 @@ public class GameBootstrap : MonoBehaviour
         GameManager.Instance?.ClearMatch();
     }
 
+    /// <summary>
+    /// 开始热座对局（四人都可操作）。
+    /// </summary>
     public void StartHotseat()
     {
         MatchConfig.SetHotseat();
         StartMatch();
     }
 
+    /// <summary>
+    /// 开始 AI 对战，指定由人类操作的角色。
+    /// </summary>
     public void StartAiBattle(RoleType humanRole)
     {
         MatchConfig.SetAiBattle(humanRole);
         StartMatch();
     }
 
+    /// <summary>
+    /// 开始管理员模式（可任意印牌 / 切天气 / 切时段）。
+    /// </summary>
     public void StartAdminMode(RoleType humanRole)
     {
         MatchConfig.SetAdminMode(humanRole);
         StartMatch();
     }
 
-    /// <summary>LogicSim：全 AI 瘦开局（调用前须 MatchConfig.SetLogicSim）。</summary>
+    /// <summary>
+    /// LogicSim：全 AI 瘦开局（调用前须 MatchConfig.SetLogicSim）。
+    /// </summary>
     public void StartLogicSimMatch()
     {
         if (!MatchConfig.IsLogicSim)
@@ -226,18 +252,28 @@ public class GameBootstrap : MonoBehaviour
         StartMatch();
     }
 
-    /// <summary>局间清理后允许再次 StartMatch（LogicSim 连跑）。</summary>
+    /// <summary>
+    /// 局间清理后允许再次 StartMatch（LogicSim 连跑）。
+    /// </summary>
     public void ResetMatchRunningFlag()
     {
         matchRunning = false;
     }
 
-    /// <summary>兼容旧入口。</summary>
+    /// <summary>
+    /// 兼容旧入口。
+    /// </summary>
     public void StartAiBattle() => MainMenuUI.Instance?.OnAiBattleClicked();
 
+    /// <summary>
+    /// 联机入口（预留，当前跳主菜单提示）。
+    /// </summary>
     public void StartOnline() => MainMenuUI.Instance?.OnOnlineClicked();
 
     [ContextMenu("Start Hotseat")]
+    /// <summary>
+    /// 兼容旧按钮：等同热座开局。
+    /// </summary>
     public void StartDemo() => StartHotseat();
 
     private void StartMatch()

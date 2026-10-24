@@ -1,7 +1,9 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>场上危险物：香蕉皮 / 定时炸弹 / 地雷 / 汽油火焰地块。</summary>
+/// <summary>
+/// 场上危险物：香蕉皮 / 定时炸弹 / 地雷 / 汽油火焰地块。
+/// </summary>
 public class HazardManager : MonoBehaviour
 {
     public static HazardManager Instance;
@@ -16,7 +18,9 @@ public class HazardManager : MonoBehaviour
     public class TimedBombHazard
     {
         public Vector2Int Cell;
-        /// <summary>剩余行动数（安放时 = 所选回合×4；每次行动结束 −1，含安放当次）。</summary>
+        /// <summary>
+        /// 剩余行动数（安放时 = 所选回合×4；每次行动结束 −1，含安放当次）。
+        /// </summary>
         public int ActionsLeft;
         public RoleType Owner;
         public GameObject Visual;
@@ -31,7 +35,9 @@ public class HazardManager : MonoBehaviour
     public class FlamePatch
     {
         public Vector2Int Cell;
-        /// <summary>剩余行动数（铺设时 = 规则回合×4；每次行动结束 −1）。</summary>
+        /// <summary>
+        /// 剩余行动数（铺设时 = 规则回合×4；每次行动结束 −1）。
+        /// </summary>
         public int ActionsLeft;
         public GameObject Visual;
     }
@@ -55,6 +61,9 @@ public class HazardManager : MonoBehaviour
             Instance = null;
     }
 
+    /// <summary>
+    /// 清空全部危险物（视觉 + 数据）。
+    /// </summary>
     public void ClearAll()
     {
         foreach (var b in bananas)
@@ -71,6 +80,9 @@ public class HazardManager : MonoBehaviour
         flames.Clear();
     }
 
+    /// <summary>
+    /// 扑灭全部火焰（下雨时调用）。
+    /// </summary>
     public void ClearAllFlames(string reason = null)
     {
         var cells = new List<Vector2Int>(flames.Count);
@@ -87,6 +99,9 @@ public class HazardManager : MonoBehaviour
             TurnManager.Instance?.Log(reason);
     }
 
+    /// <summary>
+    /// 该格是否有火焰。
+    /// </summary>
     public bool HasFlameAt(Vector2Int cell)
     {
         for (int i = 0; i < flames.Count; i++)
@@ -97,6 +112,9 @@ public class HazardManager : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// 放置香蕉皮陷阱。
+    /// </summary>
     public void PlaceBananaTrap(Vector2Int cell, RoleType thrower)
     {
         var trap = new BananaTrap { Cell = cell, Thrower = thrower };
@@ -105,6 +123,9 @@ public class HazardManager : MonoBehaviour
         RefreshHazardVisibility();
     }
 
+    /// <summary>
+    /// 放置定时炸弹（回合数会换算成行动数）。
+    /// </summary>
     public void PlaceTimedBomb(Vector2Int cell, int rounds, RoleType owner)
     {
         int actions = Mathf.Clamp(rounds, GameRulesConfig.TimedBombMinRounds, GameRulesConfig.TimedBombMaxRounds) * GameRulesConfig.ActionsPerRound;
@@ -127,6 +148,9 @@ public class HazardManager : MonoBehaviour
         RefreshHazardVisibility();
     }
 
+    /// <summary>
+    /// 安放地雷。
+    /// </summary>
     public void PlaceMine(Vector2Int cell)
     {
         for (int i = 0; i < mines.Count; i++)
@@ -139,7 +163,9 @@ public class HazardManager : MonoBehaviour
         mines.Add(mine);
     }
 
-    /// <summary>在爆点半径内铺火焰，持续 rounds 个完整回合（实际 = rounds×4 个行动）；熔岩/冰地不铺；同格刷新为较长剩余。</summary>
+    /// <summary>
+    /// 在爆点半径内铺火焰，持续 rounds 个完整回合（实际 = rounds×4 个行动）；熔岩/冰地不铺；同格刷新为较长剩余。
+    /// </summary>
     public void PlaceFlameArea(Vector2Int center, int radius, int rounds)
     {
         if (WeatherService.BlocksBurning)
@@ -292,7 +318,9 @@ public class HazardManager : MonoBehaviour
         return go;
     }
 
-    /// <summary>香蕉皮与定时炸弹仅对放置者可见，且须在迷雾视野内；地雷全员可见但受迷雾限制。</summary>
+    /// <summary>
+    /// 香蕉皮与定时炸弹仅对放置者可见，且须在迷雾视野内；地雷全员可见但受迷雾限制。
+    /// </summary>
     public void RefreshHazardVisibility()
     {
         var fogViewer = VisibilityService.GetFogViewer();
@@ -326,9 +354,14 @@ public class HazardManager : MonoBehaviour
         }
     }
 
-    /// <summary>兼容旧调用名。</summary>
+    /// <summary>
+    /// 兼容旧调用名。
+    /// </summary>
     public void RefreshBananaVisibility() => RefreshHazardVisibility();
 
+    /// <summary>
+    /// 视野角色能否看见该格的香蕉皮。
+    /// </summary>
     public bool CanSeeBananaAt(Vector2Int cell, UnitActor viewer)
     {
         if (viewer == null) return false;
@@ -340,6 +373,9 @@ public class HazardManager : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// 视野角色能否看见该格的定时炸弹。
+    /// </summary>
     public bool CanSeeTimedBombAt(Vector2Int cell, UnitActor viewer)
     {
         if (viewer == null) return false;
@@ -351,7 +387,9 @@ public class HazardManager : MonoBehaviour
         return false;
     }
 
-    /// <summary>悬停用：该格可见危险物摘要，无则 null。</summary>
+    /// <summary>
+    /// 悬停用：该格可见危险物摘要，无则 null。
+    /// </summary>
     public string DescribeHazards(Vector2Int cell, UnitActor viewer)
     {
         var lines = new List<string>();
@@ -389,6 +427,9 @@ public class HazardManager : MonoBehaviour
         return string.Join("\n", lines);
     }
 
+    /// <summary>
+    /// 该格是否有可见的陷阱标记。
+    /// </summary>
     public bool HasVisibleMarkerAt(Vector2Int cell, UnitActor viewer)
     {
         foreach (var mine in mines)
@@ -413,7 +454,9 @@ public class HazardManager : MonoBehaviour
         ResolveFlameOnCell(unit);
     }
 
-    /// <summary>身处火焰格立刻获得着火（雨天无法着火）。</summary>
+    /// <summary>
+    /// 身处火焰格立刻获得着火（雨天无法着火）。
+    /// </summary>
     public void ResolveFlameOnCell(UnitActor unit)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -429,10 +472,14 @@ public class HazardManager : MonoBehaviour
             $"🔥 {RoleInfo.GetDisplayName(unit.Role)} 身处火焰，获得「着火」");
     }
 
-    /// <summary>行动开始时：站在火焰上则补着火。</summary>
+    /// <summary>
+    /// 行动开始时：站在火焰上则补着火。
+    /// </summary>
     public void ApplyFlameBurningAtTurnStart(UnitActor unit) => ResolveFlameOnCell(unit);
 
-    /// <summary>踩踏香蕉皮：投掷者自己踩不触发；濒死无法获得跌倒则不消耗。</summary>
+    /// <summary>
+    /// 踩踏香蕉皮：投掷者自己踩不触发；濒死无法获得跌倒则不消耗。
+    /// </summary>
     public void ResolveBananaOnStep(UnitActor unit)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -457,6 +504,9 @@ public class HazardManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 踩到地雷：法伤并消耗地雷。
+    /// </summary>
     public void ResolveMineOnStep(UnitActor unit)
     {
         if (unit == null || unit.IsDead)
@@ -479,7 +529,9 @@ public class HazardManager : MonoBehaviour
         }
     }
 
-    /// <summary>行动结束：火焰剩余行动 −1，耗尽移除。</summary>
+    /// <summary>
+    /// 行动结束：火焰剩余行动 −1，耗尽移除。
+    /// </summary>
     public void TickFlamesOnActionEnd()
     {
         for (int i = flames.Count - 1; i >= 0; i--)
@@ -549,6 +601,9 @@ public class HazardManager : MonoBehaviour
         GameManager.Instance?.CheckWinConditions();
     }
 
+    /// <summary>
+    /// 熔岩吞掉指定格的危险物。
+    /// </summary>
     public void SwallowCells(List<Vector2Int> cells)
     {
         if (cells == null) return;

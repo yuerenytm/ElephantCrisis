@@ -1,7 +1,9 @@
 using System.Collections;
 using UnityEngine;
 
-/// <summary>AI 对战：在非人类角色回合用启发式策略自动行动。</summary>
+/// <summary>
+/// AI 对战：在非人类角色回合用启发式策略自动行动。
+/// </summary>
 public class AiController : MonoBehaviour
 {
     public static AiController Instance;
@@ -50,6 +52,9 @@ public class AiController : MonoBehaviour
             TurnManager.Instance.OnTurnChanged -= OnTurnChanged;
     }
 
+    /// <summary>
+    /// 确保已订阅回合变化事件（AI 对战开局时调用）。
+    /// </summary>
     public void EnsureSubscribed()
     {
         Subscribe();
@@ -133,7 +138,9 @@ public class AiController : MonoBehaviour
         actingUnit = null;
     }
 
-    /// <summary>LogicSim：无延时同步推进当前单位一整回合并结束行动。</summary>
+    /// <summary>
+    /// LogicSim：无延时同步推进当前单位一整回合并结束行动。
+    /// </summary>
     private void PlayTurnSync(UnitActor unit)
     {
         actingUnit = unit;

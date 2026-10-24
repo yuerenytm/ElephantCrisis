@@ -1,8 +1,13 @@
 using UnityEngine;
 
-/// <summary>主动技能入口（象威慑为被动，在 UnitActor 属性中结算）。</summary>
+/// <summary>
+/// 主动技能入口（象威慑为被动，在 UnitActor 属性中结算）。
+/// </summary>
 public static class SkillService
 {
+    /// <summary>
+    /// 主动技能是否可用，并给出原因。
+    /// </summary>
     public static bool CanUseActiveSkill(UnitActor unit, out string reason)
     {
         reason = null;
@@ -39,6 +44,9 @@ public static class SkillService
         return true;
     }
 
+    /// <summary>
+    /// 人类技能第一步：进入强化选择。
+    /// </summary>
     public static bool TryBeginHumanReinforce(UnitActor unit)
     {
         if (!CanUseActiveSkill(unit, out string reason))
@@ -54,6 +62,9 @@ public static class SkillService
         return true;
     }
 
+    /// <summary>
+    /// 人类技能第二步：确认强化属性。
+    /// </summary>
     public static bool TryConfirmHumanReinforce(UnitActor unit, StatBoost boost)
     {
         if (unit == null || unit.Role != RoleType.Human || unit.IsDying)
@@ -76,6 +87,9 @@ public static class SkillService
         return true;
     }
 
+    /// <summary>
+    /// 猴子技能第一步：进入偷窃目标选择。
+    /// </summary>
     public static bool TryBeginMonkeySteal(UnitActor unit)
     {
         if (!CanUseActiveSkill(unit, out string reason))
@@ -91,6 +105,9 @@ public static class SkillService
         return true;
     }
 
+    /// <summary>
+    /// 猴子技能第二步：选定目标（看其背包）。
+    /// </summary>
     public static bool TryMonkeySelectTarget(UnitActor monkey, UnitActor target)
     {
         if (monkey == null || target == null || monkey.Role != RoleType.Monkey)
@@ -130,6 +147,9 @@ public static class SkillService
         return true;
     }
 
+    /// <summary>
+    /// 猴子技能第三步：取走目标的一件物品。
+    /// </summary>
     public static bool TryMonkeyTakeItem(UnitActor monkey, int itemIndex)
     {
         var target = TurnManager.Instance.PendingSkillTargetUnit;
@@ -165,6 +185,9 @@ public static class SkillService
         return true;
     }
 
+    /// <summary>
+    /// 猫的技能：进入隐匿。
+    /// </summary>
     public static bool TryCatStealth(UnitActor unit)
     {
         if (!CanUseActiveSkill(unit, out string reason))
@@ -185,13 +208,24 @@ public static class SkillService
     }
 }
 
-/// <summary>隐匿：邻接外不可见/不可选为目标；攻击或被攻击后解除；获得着火时解除；撞入隐匿格则弹回来向邻格（不解除隐匿）。</summary>
+/// <summary>
+/// 隐匿：邻接外不可见/不可选为目标；攻击或被攻击后解除；获得着火时解除；撞入隐匿格则弹回来向邻格（不解除隐匿）。
+/// </summary>
 public static class StealthService
 {
+    /// <summary>
+    /// 保留的空实现（历史接口）。
+    /// </summary>
     public static void CheckAll() { }
 
+    /// <summary>
+    /// 保留的空实现（历史接口）。
+    /// </summary>
     public static void CheckBreakFor(UnitActor unit) { }
 
+    /// <summary>
+    /// 隐匿目标是否可被指定（需邻接或具备反隐）。
+    /// </summary>
     public static bool CanTargetDespiteHidden(UnitActor attacker, UnitActor defender)
     {
         if (defender == null || !defender.HasStatus(StatusType.Hidden))
@@ -203,6 +237,9 @@ public static class StealthService
         return GridManager.Instance.GetManhattanDistance(attacker.Cell, defender.Cell) <= GameRulesConfig.HiddenRevealRange;
     }
 
+    /// <summary>
+    /// 取格子上的单位。
+    /// </summary>
     public static UnitActor GetOccupantUnit(Vector2Int cell)
     {
         var go = GridManager.Instance?.GetOccupant(cell);
@@ -214,7 +251,9 @@ public static class StealthService
         return u;
     }
 
-    /// <summary>对移动者可见的占格者会阻挡移动预判与落入。</summary>
+    /// <summary>
+    /// 对移动者可见的占格者会阻挡移动预判与落入。
+    /// </summary>
     public static bool BlocksMovementFor(UnitActor mover, Vector2Int cell)
     {
         var occ = GetOccupantUnit(cell);

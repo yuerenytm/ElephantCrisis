@@ -80,7 +80,9 @@ public class AtmosphereVisual : MonoBehaviour
         UpdateCelestial(period, weather);
     }
 
-    /// <summary>用引擎距离雾做柔和霾气，避免粒子白块。</summary>
+    /// <summary>
+    /// 用引擎距离雾做柔和霾气，避免粒子白块。
+    /// </summary>
     private static void ApplyDistanceFog(GameClock.Period period, WeatherType weather)
     {
         bool foggy = weather == WeatherType.Fog;
@@ -292,7 +294,9 @@ public class AtmosphereVisual : MonoBehaviour
         skyRenderer.transform.localScale = new Vector3(-90f, 90f, 90f);
     }
 
-    /// <summary>极细雨丝：中心一条发丝，两侧几乎透明。</summary>
+    /// <summary>
+    /// 极细雨丝：中心一条发丝，两侧几乎透明。
+    /// </summary>
     private static Texture2D CreateRainStreakTexture(int w, int h)
     {
         var tex = new Texture2D(w, h, TextureFormat.RGBA32, false);
@@ -529,7 +533,9 @@ public class AtmosphereVisual : MonoBehaviour
             rainPs.Play();
     }
 
-    /// <summary>四时段细雨：清晰可见但不至于粗白条；密度/色调随时段略变。</summary>
+    /// <summary>
+    /// 四时段细雨：清晰可见但不至于粗白条；密度/色调随时段略变。
+    /// </summary>
     private static void ApplyRainStyleForPeriod(
         GameClock.Period period,
         ParticleSystem.MainModule main,

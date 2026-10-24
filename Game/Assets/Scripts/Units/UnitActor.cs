@@ -18,42 +18,66 @@ public class UnitActor : MonoBehaviour
     public int PermAtk { get; private set; }
     public int PermDef { get; private set; }
 
-    /// <summary>肾上腺素临时加成（按回合计数）。</summary>
+    /// <summary>
+    /// 肾上腺素临时加成（按回合计数）。
+    /// </summary>
     public int TempMove { get; private set; }
     public int TempAtk { get; private set; }
     public int AdrenalineRoundsLeft { get; private set; }
 
     public int FlamethrowerCooldown { get; set; }
-    /// <summary>摩托车发动剩余回合（完整回合倒数；&gt;0 时移+3 且可冲击）。</summary>
+    /// <summary>
+    /// 摩托车发动剩余回合（完整回合倒数；&gt;0 时移+3 且可冲击）。
+    /// </summary>
     public int MotorcycleActiveRounds { get; set; }
 
-    /// <summary>弩已蓄力，可在后续行动射击。</summary>
+    /// <summary>
+    /// 弩已蓄力，可在后续行动射击。
+    /// </summary>
     public bool CrossbowCharged { get; private set; }
-    /// <summary>本行动已对弩蓄力（同行动不可再射）。</summary>
+    /// <summary>
+    /// 本行动已对弩蓄力（同行动不可再射）。
+    /// </summary>
     public bool CrossbowChargedThisAction { get; private set; }
 
-    /// <summary>主动技能冷却（完整回合倒数）。象威慑无冷却。</summary>
+    /// <summary>
+    /// 主动技能冷却（完整回合倒数）。象威慑无冷却。
+    /// </summary>
     public int SkillCooldownLeft { get; private set; }
 
-    /// <summary>人 Lv3 技能护盾：抵消 1 次物伤（非装备）。</summary>
+    /// <summary>
+    /// 人 Lv3 技能护盾：抵消 1 次物伤（非装备）。
+    /// </summary>
     public int SkillShieldCharges { get; private set; }
 
-    /// <summary>护身符触发后的临时能量护盾层数（吸收 1 次物/法伤）。</summary>
+    /// <summary>
+    /// 护身符触发后的临时能量护盾层数（吸收 1 次物/法伤）。
+    /// </summary>
     public int AmuletShieldCharges { get; private set; }
 
-    /// <summary>护身符增益仍有效：下次行动开始时清除护盾与隐匿。</summary>
+    /// <summary>
+    /// 护身符增益仍有效：下次行动开始时清除护盾与隐匿。
+    /// </summary>
     public bool AmuletBuffActive { get; private set; }
 
-    /// <summary>红牛：本行动结束后待执行的额外行动次数。</summary>
+    /// <summary>
+    /// 红牛：本行动结束后待执行的额外行动次数。
+    /// </summary>
     public int PendingExtraActions { get; set; }
 
-    /// <summary>技能升级卡累计等级加成（每 3 张 +1，上限计入 SkillLevel）。</summary>
+    /// <summary>
+    /// 技能升级卡累计等级加成（每 3 张 +1，上限计入 SkillLevel）。
+    /// </summary>
     public int SkillUpgradeBonus { get; private set; }
 
-    /// <summary>本局是否已发动过领袖宣言。</summary>
+    /// <summary>
+    /// 本局是否已发动过领袖宣言。
+    /// </summary>
     public bool HasUsedLeaderDeclaration { get; set; }
 
-    /// <summary>隐匿是否来自丛林（离开丛林时解除；攻击破隐等其它清除会一并复位）。</summary>
+    /// <summary>
+    /// 隐匿是否来自丛林（离开丛林时解除；攻击破隐等其它清除会一并复位）。
+    /// </summary>
     public bool HiddenFromJungle { get; private set; }
 
     private readonly List<StatusEffect> statuses = new List<StatusEffect>();
@@ -61,13 +85,19 @@ public class UnitActor : MonoBehaviour
 
     public bool IsDying { get; private set; }
     public bool IsDead { get; private set; }
-    /// <summary>濒死剩余行动数（进入时 = 3 回合×4；每次行动结束 −1，含进入当次行动）。</summary>
+    /// <summary>
+    /// 濒死剩余行动数（进入时 = 3 回合×4；每次行动结束 −1，含进入当次行动）。
+    /// </summary>
     public int DyingActionsLeft { get; private set; }
 
-    /// <summary>角色默认近战射程（不计入远程武器叠加）。</summary>
+    /// <summary>
+    /// 角色默认近战射程（不计入远程武器叠加）。
+    /// </summary>
     public int BaseAttackRange => GameRulesConfig.MeleeRange;
 
-    /// <summary>时段×天气矩阵能见度（未叠挂件/状态）；夜视镜在 CurrentVisibility 中另计。</summary>
+    /// <summary>
+    /// 时段×天气矩阵能见度（未叠挂件/状态）；夜视镜在 CurrentVisibility 中另计。
+    /// </summary>
     public int BaseVisibility
     {
         get
@@ -112,10 +142,14 @@ public class UnitActor : MonoBehaviour
         }
     }
 
-    /// <summary>近战射程 = 近战武器距离（无则默认 1）+ 外部增益（高地等）。</summary>
+    /// <summary>
+    /// 近战射程 = 近战武器距离（无则默认 1）+ 外部增益（高地等）。
+    /// </summary>
     public int AttackRange => GetMeleeWeaponRange() + GetRangeBonus();
 
-    /// <summary>仅高地等外部增益，不含角色默认射程；供弓弩等叠加。</summary>
+    /// <summary>
+    /// 仅高地等外部增益，不含角色默认射程；供弓弩等叠加。
+    /// </summary>
     public int GetRangeBonus()
     {
         var grid = GridManager.Instance;
@@ -124,6 +158,9 @@ public class UnitActor : MonoBehaviour
         return TerrainInfo.GetRangeBonus(grid.GetTileType(Cell));
     }
 
+    /// <summary>
+    /// 近战武器的攻击距离。
+    /// </summary>
     public int GetMeleeWeaponRange()
     {
         if (Inventory == null) return BaseAttackRange;
@@ -136,6 +173,9 @@ public class UnitActor : MonoBehaviour
         return BaseAttackRange;
     }
 
+    /// <summary>
+    /// 近战武器的攻击加成。
+    /// </summary>
     public int GetMeleeWeaponAtkBonus()
     {
         if (Inventory == null) return 0;
@@ -148,7 +188,9 @@ public class UnitActor : MonoBehaviour
         return 0;
     }
 
-    /// <summary>普攻物伤用的攻击力（含近战武器加成）。</summary>
+    /// <summary>
+    /// 普攻物伤用的攻击力（含近战武器加成）。
+    /// </summary>
     public int MeleeAtk => CurrentAtk + GetMeleeWeaponAtkBonus();
 
     public TileType CurrentTile
@@ -162,7 +204,9 @@ public class UnitActor : MonoBehaviour
         }
     }
 
-    /// <summary>射击射程 = 武器射程贡献 + 外部增益（不含默认射程 1）。</summary>
+    /// <summary>
+    /// 射击射程 = 武器射程贡献 + 外部增益（不含默认射程 1）。
+    /// </summary>
     public int GetShootRange(ItemKind weapon)
     {
         return ItemInfo.GetWeaponRangeBonus(weapon) + GetRangeBonus();
@@ -172,12 +216,16 @@ public class UnitActor : MonoBehaviour
     public int Def => BaseDef + PermDef + GetDollDefBonus() + (Inventory?.GetArmorDefenseBonus() ?? 0)
         + GetStatusDefMod() + GetTerrainDefMod() + WeatherService.GetDefMod(this);
 
-    /// <summary>基础法抗（game_rules.yaml，百分比：象 0 / 人 20 / 猴 20 / 猫 50）。</summary>
+    /// <summary>
+    /// 基础法抗（game_rules.yaml，百分比：象 0 / 人 20 / 猴 20 / 猫 50）。
+    /// </summary>
     public int BaseMagicResist { get; private set; }
 
     private int GetTerrainMagicResistMod() => TerrainInfo.GetMagicResistMod(CurrentTile);
 
-    /// <summary>法伤结算用百分比（0–100），下限 0：基础 + 地形（丛林+20/沙−10/沼−20）+ 天气（雨+25/雾+10）。</summary>
+    /// <summary>
+    /// 法伤结算用百分比（0–100），下限 0：基础 + 地形（丛林+20/沙−10/沼−20）+ 天气（雨+25/雾+10）。
+    /// </summary>
     public int MagicResist
     {
         get
@@ -189,7 +237,9 @@ public class UnitActor : MonoBehaviour
 
     public static int MaxPoisonStacks => GameRulesConfig.PoisonMaxStacks;
 
-    /// <summary>存活时移动力下限恒为 1（含濒死、满层中毒等）；死亡为 0。</summary>
+    /// <summary>
+    /// 存活时移动力下限恒为 1（含濒死、满层中毒等）；死亡为 0。
+    /// </summary>
     public int CurrentMove
     {
         get
@@ -217,6 +267,9 @@ public class UnitActor : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 载具提供的移动加成。
+    /// </summary>
     public int GetVehicleMoveBonus()
     {
         if (Inventory == null)
@@ -240,10 +293,14 @@ public class UnitActor : MonoBehaviour
     }
 
     public int CurrentAtk => IsDead ? 0 : Atk;
-    /// <summary>结算用防御；各类减防叠完后下限为 0（不允许破防使物伤超过攻击）。</summary>
+    /// <summary>
+    /// 结算用防御；各类减防叠完后下限为 0（不允许破防使物伤超过攻击）。
+    /// </summary>
     public int CurrentDef => IsDead ? 0 : Mathf.Max(0, Def);
 
-    /// <summary>物伤结算用防御；ignoreArmor 时不计装备防具提供的防御加成。</summary>
+    /// <summary>
+    /// 物伤结算用防御；ignoreArmor 时不计装备防具提供的防御加成。
+    /// </summary>
     public int GetDefenseForPhysicalHit(bool ignoreArmor)
     {
         if (IsDead) return 0;
@@ -255,7 +312,9 @@ public class UnitActor : MonoBehaviour
 
     public float CurrentBagCapacity => BagCapacity + GetDollBagBonus() + ItemInfo.GetTacticalVestBagBonus(this);
 
-    /// <summary>基础 1 + 本命玩偶 +1 + 升级卡加成；上限 3。</summary>
+    /// <summary>
+    /// 基础 1 + 本命玩偶 +1 + 升级卡加成；上限 3。
+    /// </summary>
     public int SkillLevel
     {
         get
@@ -267,6 +326,9 @@ public class UnitActor : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 已装备武器的攻击加成。
+    /// </summary>
     public int GetEquippedWeaponAtkBonus()
     {
         if (Inventory == null) return 0;
@@ -279,6 +341,9 @@ public class UnitActor : MonoBehaviour
         return 0;
     }
 
+    /// <summary>
+    /// 查找已装备物品的索引；没有则 -1。
+    /// </summary>
     public int FindEquippedIndex(ItemKind kind)
     {
         if (Inventory == null) return -1;
@@ -290,11 +355,17 @@ public class UnitActor : MonoBehaviour
         return -1;
     }
 
+    /// <summary>
+    /// 每个行动开始时复位弩的蓄力 / 射击标记。
+    /// </summary>
     public void ResetCrossbowActionFlags()
     {
         CrossbowChargedThisAction = false;
     }
 
+    /// <summary>
+    /// 弩蓄力（本行动不可再射击）。
+    /// </summary>
     public bool TryChargeCrossbow()
     {
         if (IsDead || IsDying)
@@ -308,14 +379,23 @@ public class UnitActor : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// 弩是否已蓄力、可射击。
+    /// </summary>
     public bool CanFireCrossbow()
         => CrossbowCharged && !CrossbowChargedThisAction && FindEquippedIndex(ItemKind.Crossbow) >= 0;
 
+    /// <summary>
+    /// 射击后消耗蓄力。
+    /// </summary>
     public void ConsumeCrossbowCharge()
     {
         CrossbowCharged = false;
     }
 
+    /// <summary>
+    /// 玩偶提供的攻击加成。
+    /// </summary>
     public int GetDollAtkBonus()
     {
         if (Inventory == null) return 0;
@@ -325,12 +405,18 @@ public class UnitActor : MonoBehaviour
         return m;
     }
 
+    /// <summary>
+    /// 玩偶提供的防御加成。
+    /// </summary>
     public int GetDollDefBonus()
     {
         if (Inventory == null) return 0;
         return Inventory.Contains(ItemKind.DollElephant) ? GameRulesConfig.DollElephantDef : 0;
     }
 
+    /// <summary>
+    /// 玩偶提供的移动加成。
+    /// </summary>
     public int GetDollMoveBonus()
     {
         if (Inventory == null) return 0;
@@ -340,18 +426,26 @@ public class UnitActor : MonoBehaviour
         return m;
     }
 
+    /// <summary>
+    /// 玩偶提供的背包容量加成。
+    /// </summary>
     public int GetDollBagBonus()
     {
         if (Inventory == null) return 0;
         return Inventory.Contains(ItemKind.DollHuman) ? GameRulesConfig.DollHumanBag : 0;
     }
 
+    /// <summary>
+    /// 按装备与玩偶重算背包容量。
+    /// </summary>
     public void RefreshBagCapacity()
     {
         Inventory?.SetCapacity(CurrentBagCapacity);
     }
 
-    /// <summary>其他存活非濒死象的威慑光环。</summary>
+    /// <summary>
+    /// 其他存活非濒死象的威慑光环。
+    /// </summary>
     public int GetDeterrencePenalty()
     {
         var units = TurnManager.Instance?.Units;
@@ -417,7 +511,9 @@ public class UnitActor : MonoBehaviour
     private int GetTerrainAtkMod() => TerrainInfo.GetAtkMod(CurrentTile);
     private int GetTerrainDefMod() => TerrainInfo.GetDefMod(CurrentTile);
 
-    /// <summary>进入格子时触发的地形效果（丛林隐匿、沼泽中毒等）。</summary>
+    /// <summary>
+    /// 进入格子时触发的地形效果（丛林隐匿、沼泽中毒等）。
+    /// </summary>
     public void ApplyTerrainEnterEffects()
     {
         if (IsDead || IsDying)
@@ -465,7 +561,9 @@ public class UnitActor : MonoBehaviour
                 : $"{RoleInfo.GetDisplayName(Role)} 离开丛林，【隐匿】解除");
     }
 
-    /// <summary>踏入沼泽：立刻叠 1 层地形中毒（受 3 层上限）。</summary>
+    /// <summary>
+    /// 踏入沼泽：立刻叠 1 层地形中毒（受 3 层上限）。
+    /// </summary>
     public void ApplySwampEnterPoison()
     {
         if (IsDead || IsDying || CurrentTile != TileType.Swamp)
@@ -511,7 +609,9 @@ public class UnitActor : MonoBehaviour
         }
     }
 
-    /// <summary>增加 1 层无施加者中毒；已满层返回 false。</summary>
+    /// <summary>
+    /// 增加 1 层无施加者中毒；已满层返回 false。
+    /// </summary>
     private bool TryAddTerrainPoisonStack()
     {
         if (PoisonStacks >= MaxPoisonStacks)
@@ -539,7 +639,9 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
-    /// <summary>行动开始：冰地跌倒（概率见 game_rules.yaml terrain.ice_trip_chance；滑行靴免疫）。</summary>
+    /// <summary>
+    /// 行动开始：冰地跌倒（概率见 game_rules.yaml terrain.ice_trip_chance；滑行靴免疫）。
+    /// </summary>
     public void TickIceTerrainOnTurnStart()
     {
         if (IsDead || IsDying)
@@ -555,6 +657,9 @@ public class UnitActor : MonoBehaviour
             $"{RoleInfo.GetDisplayName(Role)} 在冰地上滑倒，获得【跌倒】{GameRulesConfig.TripRounds}回合");
     }
 
+    /// <summary>
+    /// 是否带有某状态。
+    /// </summary>
     public bool HasStatus(StatusType type)
     {
         foreach (var s in statuses)
@@ -562,6 +667,9 @@ public class UnitActor : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// 施加状态；隐匿 / 着火等有互斥规则。
+    /// </summary>
     public void ApplyStatus(StatusType type, int rounds, UnitActor source = null)
     {
         if (IsDead || IsDying || rounds <= 0)
@@ -617,7 +725,9 @@ public class UnitActor : MonoBehaviour
             $"{RoleInfo.GetDisplayName(Role)} 获得【着火】，【隐匿】解除");
     }
 
-    /// <summary>中毒可叠加，最多 <see cref="MaxPoisonStacks"/> 层；满层时新施加不生效（不覆盖已有层）。</summary>
+    /// <summary>
+    /// 中毒可叠加，最多 <see cref="MaxPoisonStacks"/> 层；满层时新施加不生效（不覆盖已有层）。
+    /// </summary>
     private void ApplyPoisonStack(int rounds, UnitActor source)
     {
         if (PoisonStacks >= MaxPoisonStacks)
@@ -630,6 +740,9 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
+    /// <summary>
+    /// 清除状态。
+    /// </summary>
     public void ClearStatus(StatusType type, string logOp = "expire")
     {
         bool had = HasStatus(type);
@@ -646,7 +759,9 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
-    /// <summary>隐匿：直到攻击/被攻击/着火或其它效果清除，不按回合倒数。</summary>
+    /// <summary>
+    /// 隐匿：直到攻击/被攻击/着火或其它效果清除，不按回合倒数。
+    /// </summary>
     public void ApplyHiddenStatus(string logOp = "skill")
     {
         if (IsDead || IsDying)
@@ -657,18 +772,26 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
+    /// <summary>
+    /// 设置技能冷却（完整回合数）。
+    /// </summary>
     public void SetSkillCooldown(int rounds)
     {
         SkillCooldownLeft = Mathf.Max(0, rounds);
     }
 
+    /// <summary>
+    /// 每完整回合递减技能冷却。
+    /// </summary>
     public void TickSkillCooldownOnFullRound()
     {
         if (SkillCooldownLeft > 0)
             SkillCooldownLeft--;
     }
 
-    /// <summary>消耗 3 张技能升级卡，永久技能等级 +1（受上限 3 约束）。</summary>
+    /// <summary>
+    /// 消耗 3 张技能升级卡，永久技能等级 +1（受上限 3 约束）。
+    /// </summary>
     public bool TryConsumeSkillUpgradeCards(out string reason)
     {
         reason = null;
@@ -704,7 +827,9 @@ public class UnitActor : MonoBehaviour
         return true;
     }
 
-    /// <summary>人·强化效果。返回战报用短描述。</summary>
+    /// <summary>
+    /// 人·强化效果。返回战报用短描述。
+    /// </summary>
     public string ApplySkillReinforce(StatBoost boost)
     {
         string detail;
@@ -732,6 +857,9 @@ public class UnitActor : MonoBehaviour
         return detail;
     }
 
+    /// <summary>
+    /// 清空全部状态（濒死 / 死亡时用）。
+    /// </summary>
     public void ClearAllStatuses()
     {
         statuses.Clear();
@@ -745,6 +873,9 @@ public class UnitActor : MonoBehaviour
     private MaterialPropertyBlock tintBlock;
     private bool worldVisible = true;
 
+    /// <summary>
+    /// 初始化角色：属性、背包、视觉。
+    /// </summary>
     public void Setup(RoleType role, Vector2Int startCell)
     {
         Role = role;
@@ -840,6 +971,9 @@ public class UnitActor : MonoBehaviour
         return mat.color;
     }
 
+    /// <summary>
+    /// 把单位放到指定格并（可选）登记占用。
+    /// </summary>
     public void PlaceAt(Vector2Int cell, bool register)
     {
         var grid = GridManager.Instance;
@@ -868,7 +1002,9 @@ public class UnitActor : MonoBehaviour
             mr.sortingOrder = grid.GetSortOrder(Cell, 50);
     }
 
-    /// <summary>面朝棋盘中心，四角出生位更易辨认。</summary>
+    /// <summary>
+    /// 面朝棋盘中心，四角出生位更易辨认。
+    /// </summary>
     private void FaceBoardCenter()
     {
         if (modelRoot == null)
@@ -887,11 +1023,16 @@ public class UnitActor : MonoBehaviour
         modelRoot.rotation = Quaternion.LookRotation(flat.normalized, Vector3.up);
     }
 
-    /// <summary>尝试移动。若撞上不可见的隐匿占格者，会弹回来向邻格并破隐；LastMoveBumped 供日志。</summary>
+    /// <summary>
+    /// 尝试移动。若撞上不可见的隐匿占格者，会弹回来向邻格并破隐；LastMoveBumped 供日志。
+    /// </summary>
     public bool LastMoveBumped { get; private set; }
     public Vector2Int LastMoveIntendedCell { get; private set; }
     public UnitActor LastMoveBumpedUnit { get; private set; }
 
+    /// <summary>
+    /// 移动到目标格：路径、隐匿撞击、地形进入效果。
+    /// </summary>
     public bool TryMoveTo(Vector2Int target)
     {
         LastMoveBumped = false;
@@ -934,6 +1075,9 @@ public class UnitActor : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// 回血；濒死时回到 1 血即脱离濒死。
+    /// </summary>
     public void Heal(int amount)
     {
         if (IsDead || amount <= 0)
@@ -1040,7 +1184,9 @@ public class UnitActor : MonoBehaviour
         return applied;
     }
 
-    /// <summary>护身符：弃置自身、免疫本次致命伤害、获得 1 层能量护盾与隐匿。</summary>
+    /// <summary>
+    /// 护身符：弃置自身、免疫本次致命伤害、获得 1 层能量护盾与隐匿。
+    /// </summary>
     private bool TryTriggerAmulet()
     {
         int idx = FindEquippedIndex(ItemKind.Amulet);
@@ -1058,7 +1204,9 @@ public class UnitActor : MonoBehaviour
         return true;
     }
 
-    /// <summary>行动开始：清除护身符赋予的临时护盾与隐匿。</summary>
+    /// <summary>
+    /// 行动开始：清除护身符赋予的临时护盾与隐匿。
+    /// </summary>
     public void ClearAmuletBuffsOnActionStart()
     {
         if (!AmuletBuffActive)
@@ -1081,6 +1229,9 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
+    /// <summary>
+    /// 每完整回合的状态倒计时。
+    /// </summary>
     public void TickStatusOnFullRound()
     {
         if (AdrenalineRoundsLeft > 0)
@@ -1126,7 +1277,9 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
-    /// <summary>施加者行动开始：倒数由其施加的状态。</summary>
+    /// <summary>
+    /// 施加者行动开始：倒数由其施加的状态。
+    /// </summary>
     public void TickStatusesFromApplier(RoleType applier)
     {
         for (int i = statuses.Count - 1; i >= 0; i--)
@@ -1152,7 +1305,9 @@ public class UnitActor : MonoBehaviour
     /// <summary>
     /// 行动开始着火：先造成法伤（火焰），再按持续倒数（优先于熔岩等其它行动开始结算）。
     /// </summary>
-    /// <summary>橡胶雨衣挡下一次着火施加并扣 1 耐久；毁则入弃牌。</summary>
+    /// <summary>
+    /// 橡胶雨衣挡下一次着火施加并扣 1 耐久；毁则入弃牌。
+    /// </summary>
     private void ConsumeRubberRaincoatBurnImmunity()
     {
         if (Inventory == null)
@@ -1181,6 +1336,9 @@ public class UnitActor : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 行动开始：着火法伤 DoT。
+    /// </summary>
     public void TickBurningOnTurnStart()
     {
         if (!HasStatus(StatusType.Burning) || IsDead)
@@ -1210,7 +1368,9 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
-    /// <summary>行动结束毒伤：每层 2 点法伤（角色毒由施加者按层倒数，沼泽毒离地清除）。</summary>
+    /// <summary>
+    /// 行动结束毒伤：每层 2 点法伤（角色毒由施加者按层倒数，沼泽毒离地清除）。
+    /// </summary>
     public void TickPoisonOnTurnEnd()
     {
         int stacks = PoisonStacks;
@@ -1258,6 +1418,9 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
+    /// <summary>
+    /// 使用肾上腺素（临时攻击 / 移动）。
+    /// </summary>
     public bool TryApplyAdrenaline()
     {
         if (IsDead || IsDying)
@@ -1272,6 +1435,9 @@ public class UnitActor : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// 进入濒死：掉落全部物品，3 回合×4 行动后死亡。
+    /// </summary>
     public void EnterDying()
     {
         if (IsDead || IsDying)
@@ -1287,6 +1453,9 @@ public class UnitActor : MonoBehaviour
     }
 
     // 每次行动结束推进（含晕眩跳过 / 红牛额外行动）
+    /// <summary>
+    /// 每次行动结束推进濒死倒计时。
+    /// </summary>
     public void TickDyingOnActionEnd()
     {
         if (!IsDying || IsDead)
@@ -1299,6 +1468,9 @@ public class UnitActor : MonoBehaviour
             RefreshVisual();
     }
 
+    /// <summary>
+    /// 死亡：清格子、掉落、隐藏视觉。
+    /// </summary>
     public void Die()
     {
         if (IsDead)
@@ -1319,6 +1491,9 @@ public class UnitActor : MonoBehaviour
         gameObject.SetActive(false);
     }
 
+    /// <summary>
+    /// 把背包物品全部掉在脚下。
+    /// </summary>
     public void DropAllItems()
     {
         if (Inventory == null || Inventory.Count == 0)
@@ -1327,6 +1502,9 @@ public class UnitActor : MonoBehaviour
         GroundItemManager.Instance?.DropItems(Cell, dropped);
     }
 
+    /// <summary>
+    /// 永久属性提升（强化卡）。
+    /// </summary>
     public void ApplyPermanentBoost(StatBoost boost, int value)
     {
         if (IsDead || IsDying || value == 0)
@@ -1341,6 +1519,9 @@ public class UnitActor : MonoBehaviour
         RefreshVisual();
     }
 
+    /// <summary>
+    /// 设置选中高亮。
+    /// </summary>
     public void SetSelected(bool selected)
     {
         if (selectRing == null)
@@ -1348,7 +1529,9 @@ public class UnitActor : MonoBehaviour
         selectRing.SetActive(selected && worldVisible);
     }
 
-    /// <summary>迷雾：非视野内单位隐藏渲染（逻辑仍在场上）。</summary>
+    /// <summary>
+    /// 迷雾：非视野内单位隐藏渲染（逻辑仍在场上）。
+    /// </summary>
     public void SetWorldVisible(bool visible)
     {
         worldVisible = visible;
@@ -1371,6 +1554,9 @@ public class UnitActor : MonoBehaviour
             label.gameObject.SetActive(false);
     }
 
+    /// <summary>
+    /// 刷新颜色 / 模型等表现。
+    /// </summary>
     public void RefreshVisual()
     {
         if (modelRoot == null)
@@ -1405,6 +1591,9 @@ public class UnitActor : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 状态栏文本。
+    /// </summary>
     public string GetStatusText()
     {
         if (IsDead) return "已死亡";
@@ -1412,6 +1601,9 @@ public class UnitActor : MonoBehaviour
         return $"移{CurrentMove} 血{Hp}/{MaxHp} 攻{CurrentAtk} 防{CurrentDef} 法抗{MagicResist}% 视{CurrentVisibility} 包{Inventory.UsedWeight:0.##}/{CurrentBagCapacity:0.##} 偶{Inventory.CountDolls()} 技{SkillInfo.GetSkillName(Role)}Lv{SkillLevel}";
     }
 
+    /// <summary>
+    /// 悬停时的详细状态文本。
+    /// </summary>
     public string GetHoverStatusText()
     {
         if (IsDead)

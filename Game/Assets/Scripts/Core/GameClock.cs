@@ -17,13 +17,18 @@ public static class GameClock
 
     public static bool HasAdminOverride => adminOverride && MatchConfig.IsAdminMode;
 
+    /// <summary>
+    /// 清除管理员的时段覆盖。
+    /// </summary>
     public static void ClearAdminOverride()
     {
         adminOverride = false;
         adminHour = GameRulesConfig.ClockStartHour;
     }
 
-    /// <summary>管理员：任选时段。写入代表时刻（清晨6/白天12/黄昏18/黑夜0）。</summary>
+    /// <summary>
+    /// 管理员：任选时段。写入代表时刻（清晨6/白天12/黄昏18/黑夜0）。
+    /// </summary>
     public static bool AdminSetPeriod(Period period)
     {
         if (!MatchConfig.IsAdminMode)
@@ -37,6 +42,9 @@ public static class GameClock
         return true;
     }
 
+    /// <summary>
+    /// 时段的代表小时（清晨 6 / 白天 12 / 黄昏 18 / 黑夜 0）。
+    /// </summary>
     public static int GetRepresentativeHour(Period period)
     {
         switch (period)
@@ -48,6 +56,9 @@ public static class GameClock
         }
     }
 
+    /// <summary>
+    /// 回合号对应的小时（0~23）。
+    /// </summary>
     public static int GetHour(int roundNumber)
     {
         if (HasAdminOverride)
@@ -58,9 +69,15 @@ public static class GameClock
         return (start + (r - 1) * step) % 24;
     }
 
+    /// <summary>
+    /// 回合号对应的时段。
+    /// </summary>
     public static Period GetPeriod(int roundNumber)
         => GetPeriodForHour(GetHour(roundNumber));
 
+    /// <summary>
+    /// 小时对应的时段。
+    /// </summary>
     public static Period GetPeriodForHour(int hour)
     {
         hour = ((hour % 24) + 24) % 24;
@@ -73,10 +90,15 @@ public static class GameClock
         return Period.Night; // 20–23, 0–3
     }
 
+    /// <summary>
+    /// 时段基础能见度（未计天气）。
+    /// </summary>
     public static int GetBaseVisibility(int roundNumber)
         => WeatherService.GetPeriodWeatherVisibility(GetPeriod(roundNumber), WeatherService.Current);
 
-    /// <summary>仅按时段的标称值（不含天气）；展示/兼容用。现行结算见 WeatherService.GetPeriodWeatherVisibility。</summary>
+    /// <summary>
+    /// 仅按时段的标称值（不含天气）；展示/兼容用。现行结算见 WeatherService.GetPeriodWeatherVisibility。
+    /// </summary>
     public static int GetBaseVisibilityForPeriod(Period period)
     {
         switch (period)
@@ -88,9 +110,15 @@ public static class GameClock
         }
     }
 
+    /// <summary>
+    /// 形如 08:00 的时刻文本。
+    /// </summary>
     public static string GetTimeLabel(int roundNumber)
         => $"{GetHour(roundNumber)}:00";
 
+    /// <summary>
+    /// 时段的中文名。
+    /// </summary>
     public static string GetPeriodName(Period period)
     {
         switch (period)
@@ -102,9 +130,15 @@ public static class GameClock
         }
     }
 
+    /// <summary>
+    /// 回合号对应时段的中文名。
+    /// </summary>
     public static string GetPeriodName(int roundNumber)
         => GetPeriodName(GetPeriod(roundNumber));
 
+    /// <summary>
+    /// 状态栏一行文本：时刻 + 时段。
+    /// </summary>
     public static string GetStatusLine(int roundNumber)
     {
         string line = $"{GetTimeLabel(roundNumber)} · {GetPeriodName(roundNumber)}";

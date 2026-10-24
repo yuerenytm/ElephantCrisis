@@ -40,7 +40,9 @@ public static class RolePortrait
         return art;
     }
 
-    /// <summary>若来自美术资源，地图上可不再叠文字。</summary>
+    /// <summary>
+    /// 若来自美术资源，地图上可不再叠文字。
+    /// </summary>
     public static bool IsArtSprite(RoleType role)
     {
         GetSprite(role);

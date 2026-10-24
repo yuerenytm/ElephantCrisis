@@ -23,6 +23,9 @@ public static class TerrainGenerator
         new Vector2Int(0, -1)
     };
 
+    /// <summary>
+    /// 生成地形：五种地形各 1~2 个连通斑块，出生点周围留白。
+    /// </summary>
     public static void Generate(GridManager grid)
     {
         if (grid == null)

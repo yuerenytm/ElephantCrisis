@@ -1,6 +1,8 @@
 using UnityEngine;
 
-/// <summary>直立广告牌：只跟随相机水平朝向，供单位 / 掉落 / 陷阱在 2.5D 中面向镜头。</summary>
+/// <summary>
+/// 直立广告牌：只跟随相机水平朝向，供单位 / 掉落 / 陷阱在 2.5D 中面向镜头。
+/// </summary>
 public class CameraBillboard : MonoBehaviour
 {
     private void LateUpdate()

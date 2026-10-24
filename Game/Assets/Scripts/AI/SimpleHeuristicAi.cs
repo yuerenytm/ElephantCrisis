@@ -1,9 +1,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-/// <summary>首期启发式 AI：治疗/穿甲 → 射击/近战/炸弹 → 拾取 → 移动。</summary>
+/// <summary>
+/// 首期启发式 AI：治疗/穿甲 → 射击/近战/炸弹 → 拾取 → 移动。
+/// </summary>
 public static class SimpleHeuristicAi
 {
+    /// <summary>
+    /// 尝试做一个动作；返回 false 表示本行动无事可做。
+    /// </summary>
     public static bool TryActOnce(UnitActor unit)
     {
         if (unit == null || unit.IsDead)

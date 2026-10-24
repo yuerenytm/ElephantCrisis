@@ -14,10 +14,13 @@ public enum StatusType
 
 public struct StatusEffect
 {
+    /// <summary>状态类型。</summary>
     public StatusType Type;
+    /// <summary>剩余层数 / 回合数；归零时移除。</summary>
     public int RoundsLeft;
-    /// <summary>由角色施加时为 true；持续在施加者行动开始时倒数。</summary>
+    /// <summary>是否记录了施加者：为 true 时由 SourceRole 决定「按施加者行动开始倒数」。</summary>
     public bool HasSource;
+    /// <summary>施加者角色；仅在 HasSource 为 true 时有意义。</summary>
     public RoleType SourceRole;
 
     public StatusEffect(StatusType type, int rounds)
@@ -70,7 +73,9 @@ public static class StatusInfo
     }
 }
 
-/// <summary>程序生成的简易状态图标（避免依赖外部资源）。</summary>
+/// <summary>
+/// 程序生成的简易状态图标（避免依赖外部资源）。
+/// </summary>
 public static class StatusIconFactory
 {
     private static readonly Dictionary<StatusType, Sprite> cache = new Dictionary<StatusType, Sprite>();

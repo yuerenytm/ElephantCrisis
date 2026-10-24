@@ -8,9 +8,14 @@ public enum StatBoost
     Move
 }
 
-/// <summary>统一卡牌/物品使用入口，UI 只调用这里，不写死每种按钮。</summary>
+/// <summary>
+/// 统一卡牌/物品使用入口，UI 只调用这里，不写死每种按钮。
+/// </summary>
 public static class ItemUseService
 {
+    /// <summary>
+    /// 只判断能否使用，不改状态（UI 置灰用）。
+    /// </summary>
     public static bool CanAttemptUse(UnitActor unit, int itemIndex, out string reason)
     {
         reason = null;
@@ -110,6 +115,9 @@ public static class ItemUseService
         return true;
     }
 
+    /// <summary>
+    /// 使用物品：能直接结算就结算，需要选目标则进入对应瞄准态。
+    /// </summary>
     public static bool TryBeginUse(UnitActor unit, int itemIndex)
     {
         if (!CanAttemptUse(unit, itemIndex, out string reason))
@@ -178,6 +186,9 @@ public static class ItemUseService
         }
     }
 
+    /// <summary>
+    /// 确认强化卡选择的属性。
+    /// </summary>
     public static bool TryConfirmReinforce(UnitActor unit, StatBoost boost)
     {
         if (TurnManager.Instance.Phase != TurnPhase.SelectingReinforce)
@@ -185,6 +196,9 @@ public static class ItemUseService
         return ActionService.TryUseReinforce(unit, boost);
     }
 
+    /// <summary>
+    /// 确认定时炸弹的延时回合数。
+    /// </summary>
     public static bool TryConfirmTimedBombDelay(UnitActor unit, int rounds)
     {
         if (TurnManager.Instance.Phase != TurnPhase.SelectingTimedBombDelay)
@@ -192,6 +206,9 @@ public static class ItemUseService
         return ActionService.TryPlaceTimedBomb(unit, rounds);
     }
 
+    /// <summary>
+    /// 确认本次射击使用的弹药。
+    /// </summary>
     public static bool TryConfirmAmmo(UnitActor unit, ItemKind ammo)
     {
         if (TurnManager.Instance.Phase != TurnPhase.SelectingAmmo)
@@ -215,6 +232,9 @@ public static class ItemUseService
 
 public static class ActionService
 {
+    /// <summary>
+    /// 普攻：校验隐匿、视野、次数与距离，结算伤害与反伤。
+    /// </summary>
     public static bool TryAttack(UnitActor attacker, UnitActor defender)
     {
         if (attacker == null || defender == null)
@@ -329,7 +349,9 @@ public static class ActionService
         return true;
     }
 
-    /// <summary>荆棘护甲：被近战打中后，对攻击者反弹实际伤害 50%（向下取整）真伤。</summary>
+    /// <summary>
+    /// 荆棘护甲：被近战打中后，对攻击者反弹实际伤害 50%（向下取整）真伤。
+    /// </summary>
     private static void TryThornsReflect(UnitActor attacker, UnitActor defender, int dealt)
     {
         if (attacker == null || defender == null || attacker.IsDead || dealt <= 0)
@@ -368,7 +390,9 @@ public static class ActionService
         BreakStealthIfAttacked(defender);
     }
 
-    /// <summary>被攻击（含 AOE 覆盖）后解除隐匿。</summary>
+    /// <summary>
+    /// 被攻击（含 AOE 覆盖）后解除隐匿。
+    /// </summary>
     private static void BreakStealthIfAttacked(UnitActor defender)
     {
         if (defender == null || defender.IsDead || !defender.HasStatus(StatusType.Hidden))
@@ -378,6 +402,9 @@ public static class ActionService
             $"{RoleInfo.GetDisplayName(defender.Role)} 被攻击，【隐匿】解除");
     }
 
+    /// <summary>
+    /// 射击：校验装备、弩蓄力、弹药与射程，结算伤害与附加状态。
+    /// </summary>
     public static bool TryShoot(UnitActor attacker, int weaponIndex, UnitActor defender)
     {
         if (attacker == null || defender == null)
@@ -464,6 +491,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 移动：校验次数与落点，结算陷阱与隐匿撞人。
+    /// </summary>
     public static bool TryMove(UnitActor unit, Vector2Int target)
     {
         if (unit == null || unit.IsDead)
@@ -494,6 +524,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 拾取周围全部物品。
+    /// </summary>
     public static bool TryPickup(UnitActor unit)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -517,6 +550,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 拾取指定格的单件物品。
+    /// </summary>
     public static bool TryPickupOne(UnitActor unit, Vector2Int cell, int groundIndex)
     {
         if (unit == null || unit.IsDead)
@@ -581,6 +617,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 弃置一张手牌到指定格。
+    /// </summary>
     public static bool TryDiscard(UnitActor unit, int itemIndex, Vector2Int cell)
     {
         if (unit == null || unit.IsDead)
@@ -621,7 +660,9 @@ public static class ActionService
         TurnManager.Instance.NotifyActionDone();
     }
 
-    /// <summary>AI/系统：自动弃置到脚下，直到不超重（优先弃非玩偶、未穿戴）。</summary>
+    /// <summary>
+    /// AI/系统：自动弃置到脚下，直到不超重（优先弃非玩偶、未穿戴）。
+    /// </summary>
     public static void AutoDiscardToCapacity(UnitActor unit)
     {
         if (unit == null || unit.IsDead || unit.Inventory == null)
@@ -666,7 +707,9 @@ public static class ActionService
         return best;
     }
 
-    /// <summary>装备栏：未装备则装备；甲/盾已装备则卸下；武器已装备则发动（射击/蓄力/喷射）。</summary>
+    /// <summary>
+    /// 装备栏：未装备则装备；甲/盾已装备则卸下；武器已装备则发动（射击/蓄力/喷射）。
+    /// </summary>
     public static bool TryUseEquipable(UnitActor unit, int itemIndex)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -751,6 +794,9 @@ public static class ActionService
         return TryToggleEquip(unit, itemIndex);
     }
 
+    /// <summary>
+    /// 切换装备状态（甲 / 护盾 / 武器 / 护身符）。
+    /// </summary>
     public static bool TryToggleEquip(UnitActor unit, int itemIndex)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -796,6 +842,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 使用药水，按种类回血。
+    /// </summary>
     public static bool TryUsePotion(UnitActor unit, ItemKind kind)
     {
         if (!ItemInfo.IsPotion(kind) || !CanUseOwned(unit, kind))
@@ -814,10 +863,15 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 使用小药水。
+    /// </summary>
     public static bool TryUseSmallPotion(UnitActor unit)
         => TryUsePotion(unit, ItemKind.SmallPotion);
 
-    /// <summary>牛奶：清除自身中毒（全部层）、着火、跌倒。</summary>
+    /// <summary>
+    /// 牛奶：清除自身中毒（全部层）、着火、跌倒。
+    /// </summary>
     public static bool TryUseMilk(UnitActor unit)
     {
         if (!CanUseOwned(unit, ItemKind.Milk))
@@ -860,7 +914,9 @@ public static class ActionService
         return true;
     }
 
-    /// <summary>天气弹：立刻将天气转为对应天气（已是该天气不可用）。</summary>
+    /// <summary>
+    /// 天气弹：立刻将天气转为对应天气（已是该天气不可用）。
+    /// </summary>
     public static bool TryUseWeatherBullet(UnitActor unit, ItemKind kind)
     {
         if (!ItemInfo.TryGetWeatherBulletTarget(kind, out var target))
@@ -886,7 +942,9 @@ public static class ActionService
         return true;
     }
 
-    /// <summary>红牛：本行动结束后额外行动一次（可叠加次数）。</summary>
+    /// <summary>
+    /// 红牛：本行动结束后额外行动一次（可叠加次数）。
+    /// </summary>
     public static bool TryUseRedBull(UnitActor unit)
     {
         if (!CanUseOwned(unit, ItemKind.RedBull))
@@ -904,7 +962,9 @@ public static class ActionService
         return true;
     }
 
-    /// <summary>濒死自救：直接使用自己脚下格子上的血瓶（不经背包）。</summary>
+    /// <summary>
+    /// 濒死自救：直接使用自己脚下格子上的血瓶（不经背包）。
+    /// </summary>
     public static bool TryUseGroundPotion(UnitActor unit)
     {
         if (unit == null || unit.IsDead)
@@ -937,6 +997,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 附近地面是否有药水可喝。
+    /// </summary>
     public static bool HasGroundPotionAt(UnitActor unit)
     {
         if (unit == null || GroundItemManager.Instance == null)
@@ -944,6 +1007,9 @@ public static class ActionService
         return GroundItemManager.Instance.HasPotionAt(unit.Cell);
     }
 
+    /// <summary>
+    /// 使用肾上腺素（临时属性加成，按回合衰减）。
+    /// </summary>
     public static bool TryUseAdrenaline(UnitActor unit)
     {
         if (!CanUseOwned(unit, ItemKind.Adrenaline))
@@ -966,6 +1032,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 使用技能升级卡（凑齐后提升技能等级）。
+    /// </summary>
     public static bool TryUseSkillUpgrade(UnitActor unit)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -987,6 +1056,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 使用强化卡（永久属性提升）。
+    /// </summary>
     public static bool TryUseReinforce(UnitActor unit, StatBoost boost)
     {
         if (boost != StatBoost.Attack && boost != StatBoost.Defense && boost != StatBoost.Move)
@@ -1008,7 +1080,9 @@ public static class ActionService
         return true;
     }
 
-    /// <summary>回旋镖：射程 4、15 物伤；击杀（死亡）回手，否则进弃牌。</summary>
+    /// <summary>
+    /// 回旋镖：射程 4、15 物伤；击杀（死亡）回手，否则进弃牌。
+    /// </summary>
     public static bool TryThrowBoomerang(UnitActor unit, UnitActor defender)
     {
         if (unit == null || defender == null || unit.IsDead || unit.IsDying || defender.IsDead)
@@ -1066,6 +1140,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 投掷炸弹（范围法伤）。
+    /// </summary>
     public static bool TryThrowBomb(UnitActor unit, Vector2Int target)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -1200,6 +1277,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 投掷香蕉皮陷阱。
+    /// </summary>
     public static bool TryThrowBanana(UnitActor unit, Vector2Int target)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -1228,6 +1308,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 安放地雷。
+    /// </summary>
     public static bool TryPlaceMine(UnitActor unit, Vector2Int target)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -1256,6 +1339,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 安放定时炸弹。
+    /// </summary>
     public static bool TryPlaceTimedBomb(UnitActor unit, int rounds)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -1274,6 +1360,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 喷火器：沿指定方向铺出一列火焰。
+    /// </summary>
     public static bool TryFlamethrower(UnitActor unit, Vector2Int dirCell)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -1360,6 +1449,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 投掷闪光弹（致盲 / 晕眩）。
+    /// </summary>
     public static bool TryThrowFlashbang(UnitActor unit, Vector2Int target)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -1401,7 +1493,9 @@ public static class ActionService
         return true;
     }
 
-    /// <summary>发动摩托车：耗汽油瓶，持续若干完整回合（期间移加速且可冲击，数值见 game_rules.yaml）。</summary>
+    /// <summary>
+    /// 发动摩托车：耗汽油瓶，持续若干完整回合（期间移加速且可冲击，数值见 game_rules.yaml）。
+    /// </summary>
     public static bool TryStartMotorcycle(UnitActor unit, int itemIndex)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -1440,6 +1534,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 摩托车冲撞：沿方向冲刺并撞飞沿途单位。
+    /// </summary>
     public static bool TryMotorcycleRam(UnitActor unit, Vector2Int target)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
@@ -1560,6 +1657,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 钩爪选择目标。
+    /// </summary>
     public static bool TryHookSelectTarget(UnitActor unit, UnitActor target)
     {
         if (unit == null || target == null || unit.IsDead || target.IsDead || target == unit)
@@ -1603,6 +1703,9 @@ public static class ActionService
         return true;
     }
 
+    /// <summary>
+    /// 钩爪夺取目标的一件物品。
+    /// </summary>
     public static bool TryHookTakeItem(UnitActor unit, int itemIndex)
     {
         var turn = TurnManager.Instance;

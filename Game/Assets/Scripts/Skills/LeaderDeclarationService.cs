@@ -1,8 +1,13 @@
 using UnityEngine;
 
-/// <summary>特殊技能「领袖宣言」：每名玩家限一次。</summary>
+/// <summary>
+/// 特殊技能「领袖宣言」：每名玩家限一次。
+/// </summary>
 public static class LeaderDeclarationService
 {
+    /// <summary>
+    /// 是否满足领袖宣言条件，并给出缺口。
+    /// </summary>
     public static bool CanDeclare(UnitActor unit, out string reason, out UnitActor missingHolder, out ItemKind missingDoll)
     {
         reason = null;
@@ -41,6 +46,9 @@ public static class LeaderDeclarationService
         return true;
     }
 
+    /// <summary>
+    /// 执行领袖宣言（直接获胜）。
+    /// </summary>
     public static bool TryDeclare(UnitActor unit)
     {
         if (!CanDeclare(unit, out string reason, out var holder, out var missing))
@@ -67,7 +75,9 @@ public static class LeaderDeclarationService
         return true;
     }
 
-    /// <summary>持有任意三只玩偶，且缺的那一只在其他存活玩家身上（地上不触发）。</summary>
+    /// <summary>
+    /// 持有任意三只玩偶，且缺的那一只在其他存活玩家身上（地上不触发）。
+    /// </summary>
     public static bool TryFindMissingDollOnOtherPlayer(
         UnitActor unit, out ItemKind missing, out UnitActor holder, out string reason)
     {

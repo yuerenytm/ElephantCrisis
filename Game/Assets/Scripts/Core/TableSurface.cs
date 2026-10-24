@@ -6,7 +6,9 @@ public enum TableStyle
     Parchment = 1
 }
 
-/// <summary>桌游桌面材质：优先加载 Resources/Table 贴图，设置中切换。</summary>
+/// <summary>
+/// 桌游桌面材质：优先加载 Resources/Table 贴图，设置中切换。
+/// </summary>
 public static class TableSurface
 {
     public const string PrefKey = "ElephantCrisis.TableStyle";
@@ -74,7 +76,9 @@ public static class TableSurface
         return cachedRim;
     }
 
-    /// <summary>一张贴图约覆盖的世界单位；越小越清晰、重复越密。</summary>
+    /// <summary>
+    /// 一张贴图约覆盖的世界单位；越小越清晰、重复越密。
+    /// </summary>
     public const float TileWorldSize = 10f;
 
     public static Texture2D GetTableTexture(TableStyle style)

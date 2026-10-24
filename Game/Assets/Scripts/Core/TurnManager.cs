@@ -37,12 +37,16 @@ public class TurnManager : MonoBehaviour
     public TurnPhase Phase { get; private set; } = TurnPhase.WaitingAction;
 
     public bool HasMoved { get; private set; }
-    /// <summary>本行动是否已使用过普通近战攻击。</summary>
+    /// <summary>
+    /// 本行动是否已使用过普通近战攻击。
+    /// </summary>
     public bool HasMeleeAttacked { get; private set; }
     public int PendingItemIndex { get; private set; } = -1;
     public ItemKind PendingAmmoKind { get; private set; } = ItemKind.Arrow;
     public UnitActor PendingSkillTargetUnit { get; set; }
-    /// <summary>勾爪抢夺选物（复用 SelectingMonkeyMarkItem）。</summary>
+    /// <summary>
+    /// 勾爪抢夺选物（复用 SelectingMonkeyMarkItem）。
+    /// </summary>
     public bool PendingHookSteal { get; set; }
 
     public event Action OnTurnChanged;
@@ -62,6 +66,9 @@ public class TurnManager : MonoBehaviour
         Instance = this;
     }
 
+    /// <summary>
+    /// 重置行动顺序与轮次（重开对局时用）。
+    /// </summary>
     public void ResetMatch()
     {
         units.Clear();
@@ -78,6 +85,9 @@ public class TurnManager : MonoBehaviour
         InventoryItem.ResetIdCounter();
     }
 
+    /// <summary>
+    /// 开局：登记参战单位、复位轮次与天气，并开始第一个行动。
+    /// </summary>
     public void Setup(List<UnitActor> allUnits)
     {
         units.Clear();
@@ -94,6 +104,9 @@ public class TurnManager : MonoBehaviour
         BeginTurnFor(units[0], firstTurn: true);
     }
 
+    /// <summary>
+    /// 行动开始的结算链：护身符→着火→领袖→状态同步→沼泽毒→熔岩→火焰→冰地→晕眩→弩标记，最后通知 AI/输入。
+    /// </summary>
     public void BeginTurnFor(UnitActor unit, bool firstTurn = false)
     {
         CurrentUnit = unit;
@@ -196,20 +209,32 @@ public class TurnManager : MonoBehaviour
         OnStateChanged?.Invoke();
     }
 
+    /// <summary>
+    /// 通知 UI 与 AI 刷新当前状态，不推进回合。
+    /// </summary>
     public void NotifyActionDone() => OnStateChanged?.Invoke();
 
+    /// <summary>
+    /// 标记本行动已移动（禁止再次移动）。
+    /// </summary>
     public void MarkMoved()
     {
         HasMoved = true;
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 标记本行动已普攻（禁止再次普攻）。
+    /// </summary>
     public void MarkMeleeAttacked()
     {
         HasMeleeAttacked = true;
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入炸弹投掷的瞄准态。
+    /// </summary>
     public void EnterBombTargeting(int itemIndex)
     {
         Phase = TurnPhase.SelectingBombTarget;
@@ -217,6 +242,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入香蕉皮投掷的瞄准态。
+    /// </summary>
     public void EnterBananaTargeting(int itemIndex)
     {
         Phase = TurnPhase.SelectingBananaTarget;
@@ -224,6 +252,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入地雷安放的瞄准态。
+    /// </summary>
     public void EnterMineTargeting(int itemIndex)
     {
         Phase = TurnPhase.SelectingMineTarget;
@@ -231,6 +262,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入弃置选格的瞄准态。
+    /// </summary>
     public void EnterDiscardTargeting(int itemIndex)
     {
         Phase = TurnPhase.SelectingDiscardTarget;
@@ -238,6 +272,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入射击目标选择态，并记录所用弹药。
+    /// </summary>
     public void EnterShootTargeting(int itemIndex, ItemKind ammo)
     {
         Phase = TurnPhase.SelectingShootTarget;
@@ -246,6 +283,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入弹药选择态（一件武器可选多种弹药时）。
+    /// </summary>
     public void EnterAmmoChoice(int weaponIndex)
     {
         Phase = TurnPhase.SelectingAmmo;
@@ -253,6 +293,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入强化卡属性选择态。
+    /// </summary>
     public void EnterReinforceChoice(int itemIndex)
     {
         Phase = TurnPhase.SelectingReinforce;
@@ -260,6 +303,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入技能强化（永久属性）选择态。
+    /// </summary>
     public void EnterSkillReinforce()
     {
         Phase = TurnPhase.SelectingSkillReinforce;
@@ -267,6 +313,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入猴子技能的分支选择态。
+    /// </summary>
     public void EnterMonkeySkillChoice()
     {
         Phase = TurnPhase.SelectingMonkeySkillMode;
@@ -274,6 +323,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入猴子标记的目标选择态。
+    /// </summary>
     public void EnterMonkeyMarkTarget()
     {
         Phase = TurnPhase.SelectingMonkeyMarkTarget;
@@ -281,12 +333,18 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入猴子标记的物品选择态。
+    /// </summary>
     public void EnterMonkeyMarkItem()
     {
         Phase = TurnPhase.SelectingMonkeyMarkItem;
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入猴子偷窃的目标选择态。
+    /// </summary>
     public void EnterMonkeyStealTarget()
     {
         Phase = TurnPhase.SelectingMonkeyStealTarget;
@@ -294,6 +352,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入定时炸弹的延时回合选择态。
+    /// </summary>
     public void EnterTimedBombDelay(int itemIndex)
     {
         Phase = TurnPhase.SelectingTimedBombDelay;
@@ -301,6 +362,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入喷火器的方向选择态。
+    /// </summary>
     public void EnterFlameDirection(int itemIndex)
     {
         Phase = TurnPhase.SelectingFlameDirection;
@@ -308,6 +372,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入摩托车冲撞的方向选择态。
+    /// </summary>
     public void EnterMotorcycleRam(int itemIndex)
     {
         Phase = TurnPhase.SelectingMotorcycleRam;
@@ -315,6 +382,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入钩爪的目标选择态。
+    /// </summary>
     public void EnterHookTarget(int itemIndex)
     {
         Phase = TurnPhase.SelectingHookTarget;
@@ -323,6 +393,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入钩爪夺取物品的选择态。
+    /// </summary>
     public void EnterHookItemPick(UnitActor target)
     {
         PendingSkillTargetUnit = target;
@@ -331,6 +404,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 进入拾取模式，等待点击地面。
+    /// </summary>
     public void EnterPickupMode()
     {
         Phase = TurnPhase.SelectingPickup;
@@ -338,6 +414,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
+    /// <summary>
+    /// 退出瞄准态，回到 WaitingAction。
+    /// </summary>
     public void CancelTargeting()
     {
         PendingItemIndex = -1;
@@ -347,7 +426,9 @@ public class TurnManager : MonoBehaviour
         NotifyActionDone();
     }
 
-    /// <summary>请求结束行动：超重时拒绝并提示，不进入单独弃置阶段。</summary>
+    /// <summary>
+    /// 请求结束行动：超重时拒绝并提示，不进入单独弃置阶段。
+    /// </summary>
     public bool RequestEndTurn()
     {
         if (Phase == TurnPhase.GameOver)
@@ -380,6 +461,9 @@ public class TurnManager : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// 行动结束结算并推进到下一个行动者；跨轮时统一结算状态、冷却、熔岩与天气。
+    /// </summary>
     public void EndTurn(bool skipped = false)
     {
         if (Phase == TurnPhase.GameOver)
@@ -501,6 +585,9 @@ public class TurnManager : MonoBehaviour
         OnStateChanged?.Invoke();
     }
 
+    /// <summary>
+    /// 停表：进入 GameOver 并清空当前单位。
+    /// </summary>
     public void SetGameOver()
     {
         Phase = TurnPhase.GameOver;
@@ -520,6 +607,9 @@ public class TurnManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 写一条对局日志（同时进 UI 与 LogicSim 事件）。
+    /// </summary>
     public void Log(string msg)
     {
         // LogicSim 无头跑局：战报已完整写入 events.jsonl，跳过 Debug.Log（否则批量跑局会刷出带堆栈的巨量日志）

@@ -91,7 +91,9 @@ public static class UiTheme
         return cachedSoftBgSprite;
     }
 
-    /// <summary>半透明圆角面板 + 柔和阴影，无金框。</summary>
+    /// <summary>
+    /// 半透明圆角面板 + 柔和阴影，无金框。
+    /// </summary>
     public static RectTransform CreateFramedPanel(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax,
         bool solid = false)
     {
@@ -126,7 +128,9 @@ public static class UiTheme
         return rt;
     }
 
-    /// <summary>标题区：无框，仅文字 + 底部分隔线。</summary>
+    /// <summary>
+    /// 标题区：无框，仅文字 + 底部分隔线。
+    /// </summary>
     public static RectTransform CreateHeaderBar(Transform parent, string name, Vector2 anchorMin, Vector2 anchorMax)
     {
         var go = new GameObject(name);

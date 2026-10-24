@@ -6,9 +6,13 @@ public class MapVisual : MonoBehaviour
 
     private Transform[,] tileRoots;
     private SpriteRenderer[,] cellRenderers;
-    /// <summary>高地实心台体（Mesh），比精灵崖壁稳定，连片即等高台地。</summary>
+    /// <summary>
+    /// 高地实心台体（Mesh），比精灵崖壁稳定，连片即等高台地。
+    /// </summary>
     private Transform[,] highlandSlabs;
-    /// <summary>丛林格上的灌木/蕨叶装饰根节点。</summary>
+    /// <summary>
+    /// 丛林格上的灌木/蕨叶装饰根节点。
+    /// </summary>
     private Transform[,] jungleDecorRoots;
     private Sprite[] junglePropSprites;
     private Transform root;
@@ -18,28 +22,42 @@ public class MapVisual : MonoBehaviour
     private static readonly Color BombHint = new Color(0.95f, 0.7f, 0.15f, 0.4f);
     private static readonly Color BlastHint = new Color(1f, 0.2f, 0.05f, 0.55f);
     private static readonly Color BlastCenter = new Color(1f, 0.45f, 0.1f, 0.7f);
-    /// <summary>视野内缘软过渡格数（曼哈顿），越大边缘越柔。</summary>
+    /// <summary>
+    /// 视野内缘软过渡格数（曼哈顿），越大边缘越柔。
+    /// </summary>
     private const float FogSoftCells = 2.25f;
 
-    /// <summary>战争迷雾视觉：雾天=浓白雾；晴天=空气透视；雨天=冷灰蓝。</summary>
+    /// <summary>
+    /// 战争迷雾视觉：雾天=浓白雾；晴天=空气透视；雨天=冷灰蓝。
+    /// </summary>
     private struct VisionVeilStyle
     {
         public Color Tint;
         public float Density;
-        /// <summary>棋盘内视野外不透明下限（须挡住地形信息）。</summary>
+        /// <summary>
+        /// 棋盘内视野外不透明下限（须挡住地形信息）。
+        /// </summary>
         public float BoardMinOpaque;
-        /// <summary>棋盘外树林不透明下限（晴天可更低，露出远树剪影）。</summary>
+        /// <summary>
+        /// 棋盘外树林不透明下限（晴天可更低，露出远树剪影）。
+        /// </summary>
         public float ForestMinOpaque;
         public float TextureStrength;
         public float SoftCells;
-        /// <summary>上层雾浓度倍率（晴天压低，避免「云墙」）。</summary>
+        /// <summary>
+        /// 上层雾浓度倍率（晴天压低，避免「云墙」）。
+        /// </summary>
         public float UpperLayerMul;
         public float WispAlpha;
         public bool ShowWisps;
     }
-    /// <summary>贴图相对格子超采样，双线性后更连续、纹理更细。</summary>
+    /// <summary>
+    /// 贴图相对格子超采样，双线性后更连续、纹理更细。
+    /// </summary>
     private const int FogTexelsPerCell = 4;
-    /// <summary>立体雾：多层抬升 + 漂浮雾团。</summary>
+    /// <summary>
+    /// 立体雾：多层抬升 + 漂浮雾团。
+    /// </summary>
     private static readonly float[] FogLayerHeights = { 0.05f, 0.42f, 0.9f, 1.45f };
     private static readonly float[] FogLayerAlphaMul = { 1f, 0.7f, 0.45f, 0.28f };
     private static readonly float[] FogLayerNoiseSeed = { 0f, 17.3f, 41.7f, 73.1f };
@@ -62,10 +80,14 @@ public class MapVisual : MonoBehaviour
     private Transform decorRoot;
     private float boardW;
     private float boardD;
-    /// <summary>近棋盘装饰林（地砖+密树）；更外圈稀疏树 + 超大地坪盖住真空。</summary>
+    /// <summary>
+    /// 近棋盘装饰林（地砖+密树）；更外圈稀疏树 + 超大地坪盖住真空。
+    /// </summary>
     private const int ForestMargin = 10;
     private const int ForestOuterMargin = 28;
-    /// <summary>迷雾贴图向棋盘外延伸的格数，用于盖住装饰树林。</summary>
+    /// <summary>
+    /// 迷雾贴图向棋盘外延伸的格数，用于盖住装饰树林。
+    /// </summary>
     private const int FogForestPad = ForestOuterMargin;
     private const int FogBaseSortingOrder = 12000;
     private const float ForestGroundPlaneSize = 160f;
@@ -364,7 +386,9 @@ public class MapVisual : MonoBehaviour
         highlandMaterial.color = HighlandRock;
     }
 
-    /// <summary>18×18 外茂密装饰树林：仅表现，不可走、不可选。超大地坪防止露出真空。</summary>
+    /// <summary>
+    /// 18×18 外茂密装饰树林：仅表现，不可走、不可选。超大地坪防止露出真空。
+    /// </summary>
     private void BuildForestBorder(GridManager grid)
     {
         decorRoot = new GameObject("ForestBorder").transform;
@@ -455,7 +479,9 @@ public class MapVisual : MonoBehaviour
         }
     }
 
-    /// <summary>桌面设置已移除对局表现；保留空实现以免菜单报错。</summary>
+    /// <summary>
+    /// 桌面设置已移除对局表现；保留空实现以免菜单报错。
+    /// </summary>
     public void ApplyTableStyle(TableStyle style)
     {
     }
@@ -849,7 +875,9 @@ public class MapVisual : MonoBehaviour
         }
     }
 
-    /// <summary>textureStrength：1=团雾纹理，0=均匀天空霾。</summary>
+    /// <summary>
+    /// textureStrength：1=团雾纹理，0=均匀天空霾。
+    /// </summary>
     private static void SampleFogAppearance(
         float cellX, float cellY, float maskAlpha, float seed, int layer, float textureStrength, out Color pix)
     {
@@ -1048,7 +1076,9 @@ public class MapVisual : MonoBehaviour
         }
     }
 
-    /// <summary>炸弹瞄准时：悬浮格为中心，染色爆炸半径。</summary>
+    /// <summary>
+    /// 炸弹瞄准时：悬浮格为中心，染色爆炸半径。
+    /// </summary>
     public void UpdateBombHoverPreview(Vector2Int? hover)
     {
         if (overlayRenderers == null)

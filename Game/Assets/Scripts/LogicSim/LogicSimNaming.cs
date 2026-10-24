@@ -1,6 +1,8 @@
 using System.Text;
 
-/// <summary>LogicSim 日志字段命名：与 Tools/sim events.jsonl schema 对齐（snake_case）。</summary>
+/// <summary>
+/// LogicSim 日志字段命名：与 Tools/sim events.jsonl schema 对齐（snake_case）。
+/// </summary>
 public static class LogicSimNaming
 {
     public static string Role(RoleType role) => role.ToString().ToLowerInvariant();

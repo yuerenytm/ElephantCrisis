@@ -6,16 +6,24 @@ public class Inventory
     public float Capacity { get; private set; }
     public List<InventoryItem> Items { get; private set; } = new List<InventoryItem>();
 
-    /// <summary>已消耗弹药的债务字段已废弃（一张一支，消耗即弃牌）。</summary>
+    /// <summary>
+    /// 已消耗弹药的债务字段已废弃（一张一支，消耗即弃牌）。
+    /// </summary>
     private readonly Dictionary<ItemKind, int> ammoSpendDebt = new Dictionary<ItemKind, int>();
 
     private void ClearAmmoDebt(ItemKind ammo) => ammoSpendDebt.Remove(ammo);
 
+    /// <summary>
+    /// 构造背包，指定容量。
+    /// </summary>
     public Inventory(float capacity)
     {
         Capacity = capacity;
     }
 
+    /// <summary>
+    /// 重设容量（战术背心 / 玩偶加成后调用）。
+    /// </summary>
     public void SetCapacity(float capacity)
     {
         Capacity = capacity;
@@ -36,21 +44,33 @@ public class Inventory
 
     public bool HasSpace => UsedWeight < Capacity - 0.001f;
 
-    /// <summary>当前负重是否超过容量（行动中允许超重，超重时无法结束行动）。</summary>
+    /// <summary>
+    /// 当前负重是否超过容量（行动中允许超重，超重时无法结束行动）。
+    /// </summary>
     public bool IsOverCapacity => UsedWeight > Capacity + 0.001f;
 
+    /// <summary>
+    /// 按种类判断能否放入。
+    /// </summary>
     public bool CanAdd(ItemKind kind) => CanAdd(InventoryItem.CreateFresh(kind));
 
-    /// <summary>是否能在不超重的前提下放入（仅作提示；行动中实际添加不受此限制）。</summary>
+    /// <summary>
+    /// 是否能在不超重的前提下放入（仅作提示；行动中实际添加不受此限制）。
+    /// </summary>
     public bool CanAdd(InventoryItem item)
     {
         float addWeight = ItemInfo.GetWeight(item);
         return UsedWeight + addWeight <= Capacity + 0.001f;
     }
 
+    /// <summary>
+    /// 按种类放入一件。
+    /// </summary>
     public bool Add(ItemKind kind) => Add(InventoryItem.CreateFresh(kind));
 
-    /// <summary>加入背包；行动中允许超过容量。</summary>
+    /// <summary>
+    /// 加入背包；行动中允许超过容量。
+    /// </summary>
     public bool Add(InventoryItem item)
     {
         if (ItemInfo.GetMaxCharges(item.Kind) > 0 && item.Charges <= 0)
@@ -77,6 +97,9 @@ public class Inventory
         return true;
     }
 
+    /// <summary>
+    /// 移除一件指定种类的物品。
+    /// </summary>
     public bool Remove(ItemKind kind)
     {
         for (int i = 0; i < Items.Count; i++)
@@ -91,6 +114,9 @@ public class Inventory
         return false;
     }
 
+    /// <summary>
+    /// 按索引移除。
+    /// </summary>
     public bool RemoveAt(int index)
     {
         if (index < 0 || index >= Items.Count)
@@ -101,6 +127,9 @@ public class Inventory
         return true;
     }
 
+    /// <summary>
+    /// 按索引取物品。
+    /// </summary>
     public bool TryGet(int index, out InventoryItem item)
     {
         if (index < 0 || index >= Items.Count)
@@ -112,6 +141,9 @@ public class Inventory
         return true;
     }
 
+    /// <summary>
+    /// 按索引覆盖物品。
+    /// </summary>
     public void SetAt(int index, InventoryItem item)
     {
         if (index < 0 || index >= Items.Count)
@@ -119,7 +151,9 @@ public class Inventory
         Items[index] = item;
     }
 
-    /// <summary>弹药返回支数；其它返回件数。</summary>
+    /// <summary>
+    /// 弹药返回支数；其它返回件数。
+    /// </summary>
     public int CountOf(ItemKind kind)
     {
         if (ItemInfo.IsStackableAmmo(kind))
@@ -138,6 +172,9 @@ public class Inventory
         return n;
     }
 
+    /// <summary>
+    /// 是否持有某类物品。
+    /// </summary>
     public bool Contains(ItemKind kind)
     {
         if (ItemInfo.IsStackableAmmo(kind))
@@ -147,11 +184,17 @@ public class Inventory
         return false;
     }
 
+    /// <summary>
+    /// 弹药总发数。
+    /// </summary>
     public int TotalAmmoCharges()
     {
         return CountOf(ItemKind.Arrow) + CountOf(ItemKind.PoisonArrow) + CountOf(ItemKind.FireRocket);
     }
 
+    /// <summary>
+    /// 数量足够的弹药种类列表。
+    /// </summary>
     public List<ItemKind> GetAvailableAmmoTypes(int need)
     {
         var list = new List<ItemKind>();
@@ -161,6 +204,9 @@ public class Inventory
         return list;
     }
 
+    /// <summary>
+    /// 持有的玩偶数量。
+    /// </summary>
     public int CountDolls()
     {
         int n = 0;
@@ -169,6 +215,9 @@ public class Inventory
         return n;
     }
 
+    /// <summary>
+    /// 是否集齐全部玩偶（胜利条件）。
+    /// </summary>
     public bool HasAllDolls()
     {
         return Contains(ItemKind.DollElephant)
@@ -177,6 +226,9 @@ public class Inventory
             && Contains(ItemKind.DollCat);
     }
 
+    /// <summary>
+    /// 装备提供的防御加成。
+    /// </summary>
     public int GetArmorDefenseBonus()
     {
         int sum = 0;
@@ -189,9 +241,14 @@ public class Inventory
         return sum;
     }
 
+    /// <summary>
+    /// 该物品是否可装备。
+    /// </summary>
     public bool IsEquipable(ItemKind kind) => ItemInfo.IsEquipable(kind);
 
-    /// <summary>装备；同槽位已有装备则先卸下。</summary>
+    /// <summary>
+    /// 装备；同槽位已有装备则先卸下。
+    /// </summary>
     public bool TryEquip(int index, out string log)
     {
         log = null;
@@ -228,6 +285,9 @@ public class Inventory
         return true;
     }
 
+    /// <summary>
+    /// 卸下装备。
+    /// </summary>
     public bool TryUnequip(int index, out string log)
     {
         log = null;
@@ -245,7 +305,9 @@ public class Inventory
         return true;
     }
 
-    /// <summary>消耗指定弹药；每消耗 1 支弃 1 张对应弹药牌。</summary>
+    /// <summary>
+    /// 消耗指定弹药；每消耗 1 支弃 1 张对应弹药牌。
+    /// </summary>
     public bool TryConsumeAmmo(ItemKind ammo, int count, List<ItemKind> discardedCards)
     {
         if (!ItemInfo.IsStackableAmmo(ammo) || count <= 0)
@@ -273,9 +335,15 @@ public class Inventory
         return false;
     }
 
+    /// <summary>
+    /// 消耗箭矢（旧接口）。
+    /// </summary>
     public bool TryConsumeArrows(int count, List<ItemKind> discardedCards)
         => TryConsumeAmmo(ItemKind.Arrow, count, discardedCards);
 
+    /// <summary>
+    /// 消耗一次护盾，返回护盾是否耗尽。
+    /// </summary>
     public bool TryConsumeShieldCharge(out bool destroyed)
     {
         destroyed = false;
@@ -298,6 +366,9 @@ public class Inventory
         return false;
     }
 
+    /// <summary>
+    /// 消耗一次护甲耐久，返回是否损坏。
+    /// </summary>
     public bool TryWearArmor(out bool broken, out ItemKind brokenKind)
     {
         broken = false;
@@ -322,6 +393,9 @@ public class Inventory
         return false;
     }
 
+    /// <summary>
+    /// 取走全部物品（死亡 / 濒死掉落用）。
+    /// </summary>
     public List<InventoryItem> TakeAll()
     {
         ammoSpendDebt.Clear();
@@ -336,7 +410,9 @@ public class Inventory
         return copy;
     }
 
-    /// <summary>旧接口：非弓箭按件移除；弓箭请用 TryConsumeArrows。</summary>
+    /// <summary>
+    /// 旧接口：非弓箭按件移除；弓箭请用 TryConsumeArrows。
+    /// </summary>
     public int RemoveUpTo(ItemKind kind, int count, List<ItemKind> removed)
     {
         if (kind == ItemKind.Arrow)

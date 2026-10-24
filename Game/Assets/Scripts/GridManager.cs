@@ -12,7 +12,9 @@ public class GridManager : MonoBehaviour
     public float cellSize = 1.25f;
     public Vector3 originPosition = Vector3.zero;
 
-    /// <summary>高地相对地面的抬升高度（世界 Y）。</summary>
+    /// <summary>
+    /// 高地相对地面的抬升高度（世界 Y）。
+    /// </summary>
     public const float HighlandElevation = 0.45f;
 
     private Dictionary<Vector2Int, GameObject> occupiedCells = new Dictionary<Vector2Int, GameObject>();
@@ -36,6 +38,9 @@ public class GridManager : MonoBehaviour
         InitTiles();
     }
 
+    /// <summary>
+    /// 初始化地形数组并生成地形。
+    /// </summary>
     public void InitTiles()
     {
         tiles = new TileType[gridWidth, gridHeight];
@@ -46,11 +51,17 @@ public class GridManager : MonoBehaviour
         TerrainGenerator.Generate(this);
     }
 
+    /// <summary>
+    /// 坐标是否在网格内。
+    /// </summary>
     public bool IsValidCell(Vector2Int cell)
     {
         return cell.x >= 0 && cell.x < gridWidth && cell.y >= 0 && cell.y < gridHeight;
     }
 
+    /// <summary>
+    /// 取地形类型；越界静默返回 Normal。
+    /// </summary>
     public TileType GetTileType(Vector2Int cell)
     {
         if (!IsValidCell(cell) || tiles == null)
@@ -58,6 +69,9 @@ public class GridManager : MonoBehaviour
         return tiles[cell.x, cell.y];
     }
 
+    /// <summary>
+    /// 写地形类型。
+    /// </summary>
     public void SetTileType(Vector2Int cell, TileType type)
     {
         if (!IsValidCell(cell) || tiles == null)
@@ -68,6 +82,9 @@ public class GridManager : MonoBehaviour
     public int LavaInset => lavaInset;
 
     // 最外层非熔岩一圈变为熔岩，返回本轮新变熔岩的格子
+    /// <summary>
+    /// 最外一圈变为熔岩，返回本轮新变的格子。
+    /// </summary>
     public List<Vector2Int> ShrinkLavaRing()
     {
         var changed = new List<Vector2Int>();
@@ -98,6 +115,9 @@ public class GridManager : MonoBehaviour
         return changed;
     }
 
+    /// <summary>
+    /// 清空占用表（开局 / 清理时用）。
+    /// </summary>
     public void ClearAllOccupants()
     {
         occupiedCells.Clear();
@@ -109,32 +129,49 @@ public class GridManager : MonoBehaviour
             Instance = null;
     }
 
+    /// <summary>
+    /// 该格是否被占用。
+    /// </summary>
     public bool IsCellOccupied(Vector2Int cell)
     {
         return occupiedCells.ContainsKey(cell);
     }
 
+    /// <summary>
+    /// 登记占用者。
+    /// </summary>
     public void SetCellOccupied(Vector2Int cell, GameObject occupant)
     {
         occupiedCells[cell] = occupant;
     }
 
+    /// <summary>
+    /// 清除占用。
+    /// </summary>
     public void ClearCell(Vector2Int cell)
     {
         if (occupiedCells.ContainsKey(cell))
             occupiedCells.Remove(cell);
     }
 
+    /// <summary>
+    /// 取占用者。
+    /// </summary>
     public GameObject GetOccupant(Vector2Int cell)
     {
         occupiedCells.TryGetValue(cell, out GameObject occupant);
         return occupant;
     }
 
+    /// <summary>
+    /// 格子的世界高度（高地会抬高）。
+    /// </summary>
     public float GetCellHeight(Vector2Int cell)
         => TerrainInfo.GetElevation(GetTileType(cell));
 
-    /// <summary>格子中心：XZ 为地面，Y 为抬升（高地 +0.25）。</summary>
+    /// <summary>
+    /// 格子中心：XZ 为地面，Y 为抬升（高地 +0.25）。
+    /// </summary>
     public Vector3 CellToWorld(Vector2Int cell)
     {
         return originPosition + new Vector3(
@@ -143,7 +180,9 @@ public class GridManager : MonoBehaviour
             cell.y * cellSize + cellSize * 0.5f);
     }
 
-    /// <summary>由世界坐标粗映射格子（用 XZ；忽略高度差时的点击请用 TryScreenToCell）。</summary>
+    /// <summary>
+    /// 由世界坐标粗映射格子（用 XZ；忽略高度差时的点击请用 TryScreenToCell）。
+    /// </summary>
     public Vector2Int WorldToCell(Vector3 worldPos)
     {
         Vector3 localPos = worldPos - originPosition;
@@ -152,7 +191,9 @@ public class GridManager : MonoBehaviour
         return new Vector2Int(x, y);
     }
 
-    /// <summary>斜视正交相机下的点选：射线与各格顶面求交，取最近命中。</summary>
+    /// <summary>
+    /// 斜视正交相机下的点选：射线与各格顶面求交，取最近命中。
+    /// </summary>
     public bool TryScreenToCell(Camera cam, Vector2 screenPos, out Vector2Int cell)
     {
         cell = default;
@@ -193,13 +234,18 @@ public class GridManager : MonoBehaviour
         return hit;
     }
 
-    /// <summary>2.5D 绘制排序：偏北（更大 cell.y）先画，抬升略后画。</summary>
+    /// <summary>
+    /// 2.5D 绘制排序：偏北（更大 cell.y）先画，抬升略后画。
+    /// </summary>
     public int GetSortOrder(Vector2Int cell, int layer)
     {
         int elev = GetCellHeight(cell) > 0.01f ? 2 : 0;
         return cell.y * 20 + cell.x + elev + layer;
     }
 
+    /// <summary>
+    /// 两格之间的曼哈顿距离。
+    /// </summary>
     public int GetManhattanDistance(Vector2Int a, Vector2Int b)
     {
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);

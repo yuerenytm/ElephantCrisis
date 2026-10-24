@@ -1,6 +1,8 @@
 using UnityEngine;
 
-/// <summary>在 Inspector 中拖入 URP Shader；运行时所有程序化模型/地形共用。</summary>
+/// <summary>
+/// 在 Inspector 中拖入 URP Shader；运行时所有程序化模型/地形共用。
+/// </summary>
 [CreateAssetMenu(menuName = "ElephantCrisis/Shader Refs")]
 public class ShaderRefs : ScriptableObject
 {

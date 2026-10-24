@@ -5,9 +5,14 @@ using UnityEngine;
 /// </summary>
 public static class VisibilityService
 {
-    /// <summary>白天基础能见度（兼容旧引用）。</summary>
+    /// <summary>
+    /// 白天基础能见度（兼容旧引用）。
+    /// </summary>
     public static int DefaultVisibility => GameRulesConfig.FullMapVisibility;
 
+    /// <summary>
+    /// 当前迷雾的视野角色：AI 对战固定为玩家，其余为当前行动者。
+    /// </summary>
     public static UnitActor GetFogViewer()
     {
         // AI 对战 / 管理员：始终按玩家角色视野（荣誉模式，无全图透视）
@@ -20,6 +25,9 @@ public static class VisibilityService
         return TurnManager.Instance?.CurrentUnit;
     }
 
+    /// <summary>
+    /// 按角色查找存活单位。
+    /// </summary>
     public static UnitActor FindUnit(RoleType role)
     {
         var units = GameManager.Instance?.Units ?? TurnManager.Instance?.Units;
@@ -33,6 +41,9 @@ public static class VisibilityService
         return null;
     }
 
+    /// <summary>
+    /// 该格是否在视野半径内。
+    /// </summary>
     public static bool CanSeeCell(UnitActor viewer, Vector2Int cell)
     {
         var grid = GridManager.Instance;
@@ -43,7 +54,9 @@ public static class VisibilityService
         return grid.GetManhattanDistance(viewer.Cell, cell) <= viewer.CurrentVisibility;
     }
 
-    /// <summary>行动者是否可将目标格作为移动落点（须在自身能见度内）。</summary>
+    /// <summary>
+    /// 行动者是否可将目标格作为移动落点（须在自身能见度内）。
+    /// </summary>
     public static bool CanMoveTo(UnitActor mover, Vector2Int target)
     {
         if (mover == null || mover.IsDead)
@@ -54,7 +67,9 @@ public static class VisibilityService
         return grid.GetManhattanDistance(mover.Cell, target) <= mover.CurrentVisibility;
     }
 
-    /// <summary>视野角色是否能看见该单位（隐匿另计）。</summary>
+    /// <summary>
+    /// 视野角色是否能看见该单位（隐匿另计）。
+    /// </summary>
     public static bool CanSeeUnit(UnitActor viewer, UnitActor target)
     {
         if (target == null || target.IsDead)
@@ -72,7 +87,9 @@ public static class VisibilityService
         return true;
     }
 
-    /// <summary>望远镜窥视：viewer 能否查看 target 背包（须望远镜生效且能看见该单位）。</summary>
+    /// <summary>
+    /// 望远镜窥视：viewer 能否查看 target 背包（须望远镜生效且能看见该单位）。
+    /// </summary>
     public static bool CanPeekInventory(UnitActor viewer, UnitActor target)
     {
         if (!ItemInfo.CanPeekInventories(viewer) || target == null || target.IsDead)
@@ -82,6 +99,9 @@ public static class VisibilityService
         return CanSeeUnit(viewer, target);
     }
 
+    /// <summary>
+    /// 按视野角色刷新地图迷雾、单位、掉落与危险物的显隐。
+    /// </summary>
     public static void RefreshWorld()
     {
         var viewer = GetFogViewer();
@@ -92,7 +112,9 @@ public static class VisibilityService
         AtmosphereVisual.Instance?.Refresh();
     }
 
-    /// <summary>天气/时段变更后：立刻重算迷雾半径、单位显隐与移动提示。</summary>
+    /// <summary>
+    /// 天气/时段变更后：立刻重算迷雾半径、单位显隐与移动提示。
+    /// </summary>
     public static void RefreshAfterVisionRuleChange()
     {
         RefreshWorld();

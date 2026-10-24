@@ -8,7 +8,9 @@ public class GameManager : MonoBehaviour
     public List<UnitActor> Units { get; private set; } = new List<UnitActor>();
     public string WinnerText { get; private set; }
     public bool IsGameOver { get; private set; }
-    /// <summary>LogicSim / 结算用：获胜角色；平局或 max_rounds 时为 null。</summary>
+    /// <summary>
+    /// LogicSim / 结算用：获胜角色；平局或 max_rounds 时为 null。
+    /// </summary>
     public RoleType? WinnerRole { get; private set; }
     public string EndReason { get; private set; }
 
@@ -23,6 +25,9 @@ public class GameManager : MonoBehaviour
             Instance = null;
     }
 
+    /// <summary>
+    /// 登记本局参战单位并清空结果状态。
+    /// </summary>
     public void RegisterUnits(List<UnitActor> units)
     {
         Units = new List<UnitActor>(units);
@@ -32,6 +37,9 @@ public class GameManager : MonoBehaviour
         EndReason = null;
     }
 
+    /// <summary>
+    /// 清空对局数据（单位名单与结果）。
+    /// </summary>
     public void ClearMatch()
     {
         Units = new List<UnitActor>();
@@ -41,6 +49,9 @@ public class GameManager : MonoBehaviour
         EndReason = null;
     }
 
+    /// <summary>
+    /// 熔岩缩一圈：吞掉落物与危险物、刷新视觉、让单位重新贴地。
+    /// </summary>
     public void ApplyLavaShrink()
     {
         var changed = GridManager.Instance.ShrinkLavaRing();
@@ -68,6 +79,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 判定胜负：集齐玩偶 / 唯一存活 / 全灭平局。
+    /// </summary>
     public void CheckWinConditions()
     {
         if (IsGameOver)
@@ -106,7 +120,9 @@ public class GameManager : MonoBehaviour
             EndGame("平局（无人存活）", null, "draw");
     }
 
-    /// <summary>LogicSim 回合上限强制结束。</summary>
+    /// <summary>
+    /// LogicSim 回合上限强制结束。
+    /// </summary>
     public void ForceEndForLogicSim(string reason)
     {
         if (IsGameOver)
@@ -133,11 +149,17 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    /// 重开一局。
+    /// </summary>
     public void Restart()
     {
         GameBootstrap.Instance?.RequestRestartMatch();
     }
 
+    /// <summary>
+    /// 回主菜单。
+    /// </summary>
     public void ReturnToMenu()
     {
         GameBootstrap.Instance?.RequestReturnToMenu();

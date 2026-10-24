@@ -190,7 +190,9 @@ public class GameUI : MonoBehaviour
         return btn.gameObject;
     }
 
-    /// <summary>延后到帧末刷新，避免在按钮回调里销毁正在点击的 UI。</summary>
+    /// <summary>
+    /// 延后到帧末刷新，避免在按钮回调里销毁正在点击的 UI。
+    /// </summary>
     public void RequestRefresh()
     {
         refreshDirty = true;

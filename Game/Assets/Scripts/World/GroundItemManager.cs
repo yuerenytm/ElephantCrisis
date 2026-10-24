@@ -5,7 +5,9 @@ public class GroundItemManager : MonoBehaviour
 {
     public static GroundItemManager Instance;
 
-    /// <summary>地面堆叠条目：开局散落 FaceDown=true（仅知有牌）；弃置/濒死掉落 FaceDown=false（正面可见）。</summary>
+    /// <summary>
+    /// 地面堆叠条目：开局散落 FaceDown=true（仅知有牌）；弃置/濒死掉落 FaceDown=false（正面可见）。
+    /// </summary>
     public struct GroundStackEntry
     {
         public InventoryItem Item;
@@ -16,10 +18,14 @@ public class GroundItemManager : MonoBehaviour
         new Dictionary<Vector2Int, List<GroundStackEntry>>();
     private readonly Dictionary<Vector2Int, GameObject> visuals = new Dictionary<Vector2Int, GameObject>();
 
-    /// <summary>开局散落背面色（与弃置掉落蓝区分；玩偶散落同色）。</summary>
+    /// <summary>
+    /// 开局散落背面色（与弃置掉落蓝区分；玩偶散落同色）。
+    /// </summary>
     private static readonly Color ScatterFill = new Color(0.42f, 0.4f, 0.36f, 1f);
     private static readonly Color ScatterBorder = new Color(0.22f, 0.2f, 0.18f, 1f);
-    /// <summary>弃置/掉落正面普通牌。</summary>
+    /// <summary>
+    /// 弃置/掉落正面普通牌。
+    /// </summary>
     private static readonly Color DropFill = new Color(0.25f, 0.55f, 0.95f, 1f);
     private static readonly Color DropBorder = new Color(0.1f, 0.25f, 0.5f, 1f);
 
@@ -28,6 +34,9 @@ public class GroundItemManager : MonoBehaviour
         Instance = this;
     }
 
+    /// <summary>
+    /// 在格子上掉落一组物品（正面可见）。
+    /// </summary>
     public void DropItems(Vector2Int cell, List<InventoryItem> items)
     {
         if (items == null || items.Count == 0)
@@ -38,17 +47,25 @@ public class GroundItemManager : MonoBehaviour
         RefreshVisual(cell);
     }
 
+    /// <summary>
+    /// 按种类掉落单件物品。
+    /// </summary>
     public void DropItem(Vector2Int cell, ItemKind kind)
     {
         DropItem(cell, InventoryItem.CreateFresh(kind));
     }
 
+    /// <summary>
+    /// 掉落指定实例的物品。
+    /// </summary>
     public void DropItem(Vector2Int cell, InventoryItem item)
     {
         DropItems(cell, new List<InventoryItem> { item });
     }
 
-    /// <summary>开局散落：背面朝上，身份不可见。</summary>
+    /// <summary>
+    /// 开局散落：背面朝上，身份不可见。
+    /// </summary>
     public void ScatterFaceDown(Vector2Int cell, InventoryItem item)
     {
         EnsurePile(cell);
@@ -62,12 +79,17 @@ public class GroundItemManager : MonoBehaviour
             piles[cell] = new List<GroundStackEntry>();
     }
 
+    /// <summary>
+    /// 该格是否有物品。
+    /// </summary>
     public bool HasItems(Vector2Int cell)
     {
         return piles.TryGetValue(cell, out var list) && list.Count > 0;
     }
 
-    /// <summary>曼哈顿半径内是否有掉落物（无分配；供动作掩码/寻路预判用）。</summary>
+    /// <summary>
+    /// 曼哈顿半径内是否有掉落物（无分配；供动作掩码/寻路预判用）。
+    /// </summary>
     public bool HasItemsAround(Vector2Int center, int radius)
     {
         for (int dx = -radius; dx <= radius; dx++)
@@ -83,7 +105,9 @@ public class GroundItemManager : MonoBehaviour
         return false;
     }
 
-    /// <summary>全图随机收集至多 count 张牌进背包（领袖宣言等效果用）；不消耗行动、不限距离、允许超重。返回实际收集张数。</summary>
+    /// <summary>
+    /// 全图随机收集至多 count 张牌进背包（领袖宣言等效果用）；不消耗行动、不限距离、允许超重。返回实际收集张数。
+    /// </summary>
     public int CollectRandom(Inventory inventory, int count)
     {
         if (inventory == null || count <= 0)
@@ -115,6 +139,9 @@ public class GroundItemManager : MonoBehaviour
         return picked;
     }
 
+    /// <summary>
+    /// 查看该格全部物品。
+    /// </summary>
     public List<InventoryItem> Peek(Vector2Int cell)
     {
         var result = new List<InventoryItem>();
@@ -125,6 +152,9 @@ public class GroundItemManager : MonoBehaviour
         return result;
     }
 
+    /// <summary>
+    /// 查看该格的堆叠条目（含正反面标记）。
+    /// </summary>
     public List<GroundStackEntry> PeekEntries(Vector2Int cell)
     {
         if (piles.TryGetValue(cell, out var list))
@@ -132,6 +162,9 @@ public class GroundItemManager : MonoBehaviour
         return new List<GroundStackEntry>();
     }
 
+    /// <summary>
+    /// 该格第 index 张是否背面朝下。
+    /// </summary>
     public bool IsFaceDown(Vector2Int cell, int index)
     {
         if (!piles.TryGetValue(cell, out var list) || index < 0 || index >= list.Count)
@@ -148,6 +181,9 @@ public class GroundItemManager : MonoBehaviour
         public bool FaceDown;
     }
 
+    /// <summary>
+    /// 取范围内可拾取的物品列表。
+    /// </summary>
     public List<GroundLootEntry> GetLootInRange(Vector2Int center, int maxDist)
     {
         var result = new List<GroundLootEntry>();
@@ -176,6 +212,9 @@ public class GroundItemManager : MonoBehaviour
         return result;
     }
 
+    /// <summary>
+    /// 偷看该格第 index 张牌。
+    /// </summary>
     public bool TryPeek(Vector2Int cell, int index, out InventoryItem item)
     {
         item = default;
@@ -185,6 +224,9 @@ public class GroundItemManager : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// 取走该格第 index 张牌。
+    /// </summary>
     public bool TryTakeAt(Vector2Int cell, int index, out InventoryItem item)
     {
         item = default;
@@ -198,7 +240,9 @@ public class GroundItemManager : MonoBehaviour
         return true;
     }
 
-    /// <summary>拾取指定格上指定下标的一件物品（允许暂时超重）。</summary>
+    /// <summary>
+    /// 拾取指定格上指定下标的一件物品（允许暂时超重）。
+    /// </summary>
     public bool TryPickupOne(Vector2Int cell, int index, Inventory inventory)
     {
         if (inventory == null || !piles.TryGetValue(cell, out var list))
@@ -215,7 +259,9 @@ public class GroundItemManager : MonoBehaviour
         return true;
     }
 
-    /// <summary>脚下是否有可直接使用的血瓶（濒死自救）。仅计正面朝上的牌，不暴露开局散落身份。</summary>
+    /// <summary>
+    /// 脚下是否有可直接使用的血瓶（濒死自救）。仅计正面朝上的牌，不暴露开局散落身份。
+    /// </summary>
     public bool HasPotionAt(Vector2Int cell)
     {
         if (!piles.TryGetValue(cell, out var list))
@@ -228,7 +274,9 @@ public class GroundItemManager : MonoBehaviour
         return false;
     }
 
-    /// <summary>取走该格第一瓶正面血瓶（不进入背包）。</summary>
+    /// <summary>
+    /// 取走该格第一瓶正面血瓶（不进入背包）。
+    /// </summary>
     public bool TryTakeFirstPotion(Vector2Int cell, out InventoryItem item)
     {
         item = default;
@@ -248,6 +296,9 @@ public class GroundItemManager : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// 拾取该格全部物品。
+    /// </summary>
     public int TryPickupAll(Vector2Int cell, Inventory inventory)
     {
         if (!piles.TryGetValue(cell, out var list) || list.Count == 0)
@@ -269,6 +320,9 @@ public class GroundItemManager : MonoBehaviour
         return picked;
     }
 
+    /// <summary>
+    /// 拾取周围物品（含所在格）。
+    /// </summary>
     public int TryPickupAround(Vector2Int center, Inventory inventory)
     {
         int total = 0;
@@ -285,7 +339,9 @@ public class GroundItemManager : MonoBehaviour
         return total;
     }
 
-    /// <summary>熔岩吞噬格子上的掉落物，送入弃牌堆。返回件数。</summary>
+    /// <summary>
+    /// 熔岩吞噬格子上的掉落物，送入弃牌堆。返回件数。
+    /// </summary>
     public int SwallowCellsToDiscard(List<Vector2Int> cells)
     {
         int total = 0;
@@ -319,6 +375,9 @@ public class GroundItemManager : MonoBehaviour
         return total;
     }
 
+    /// <summary>
+    /// 清空全部地面物品。
+    /// </summary>
     public void ClearAll()
     {
         foreach (var kv in visuals)
@@ -403,6 +462,9 @@ public class GroundItemManager : MonoBehaviour
         go.SetActive(viewer == null || VisibilityService.CanSeeCell(viewer, cell));
     }
 
+    /// <summary>
+    /// 按视野角色刷新地面物品显隐。
+    /// </summary>
     public void RefreshAllVisibility(UnitActor viewer)
     {
         foreach (var kv in visuals)
@@ -414,7 +476,9 @@ public class GroundItemManager : MonoBehaviour
         }
     }
 
-    /// <summary>悬停用：该格掉落物摘要，无则 null。背面牌不暴露种类。</summary>
+    /// <summary>
+    /// 悬停用：该格掉落物摘要，无则 null。背面牌不暴露种类。
+    /// </summary>
     public string DescribeLoot(Vector2Int cell)
     {
         if (!piles.TryGetValue(cell, out var list) || list.Count == 0)

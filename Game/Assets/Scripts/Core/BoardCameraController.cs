@@ -13,11 +13,15 @@ public class BoardCameraController : MonoBehaviour
     private const float FieldOfView = 50f;
     private const float LookHeight = 0.55f;
     private const float FollowLerp = 12f;
-    /// <summary>按住 R / Shift+R 时的转速（度/秒）。</summary>
+    /// <summary>
+    /// 按住 R / Shift+R 时的转速（度/秒）。
+    /// </summary>
     private const float RotateSpeedDegrees = 45f;
     private const float PitchMin = 12f;
     private const float PitchMax = 70f;
-    /// <summary>默认天空（清晨晴）；对局中由 AtmosphereVisual 覆盖。</summary>
+    /// <summary>
+    /// 默认天空（清晨晴）；对局中由 AtmosphereVisual 覆盖。
+    /// </summary>
     private static readonly Color DefaultSky = new Color(0.95f, 0.72f, 0.58f);
 
     [SerializeField] private float panThresholdPx = 6f;
@@ -42,7 +46,9 @@ public class BoardCameraController : MonoBehaviour
     private Vector2 lastScreen;
     private Vector3 panGrabGround;
 
-    /// <summary>本次右键手势是否已用于拖移（用于区分「取消瞄准」短按）。</summary>
+    /// <summary>
+    /// 本次右键手势是否已用于拖移（用于区分「取消瞄准」短按）。
+    /// </summary>
     public bool PannedThisGesture => pannedThisGesture;
 
     private void Awake()
@@ -80,7 +86,9 @@ public class BoardCameraController : MonoBehaviour
         ApplyTransform(true);
     }
 
-    /// <summary>开局：相机落到跟随单位后方，朝向棋盘中心（第三人称跟背视角）。</summary>
+    /// <summary>
+    /// 开局：相机落到跟随单位后方，朝向棋盘中心（第三人称跟背视角）。
+    /// </summary>
     public void SnapBehindFollowUnit()
     {
         panOffset = Vector3.zero;

@@ -1,6 +1,8 @@
 using UnityEngine;
 
-/// <summary>程序化地形顶面 / 高地崖壁贴图（点滤波色块风格，各地形可区分）。</summary>
+/// <summary>
+/// 程序化地形顶面 / 高地崖壁贴图（点滤波色块风格，各地形可区分）。
+/// </summary>
 public static class TerrainSpriteFactory
 {
     public static Sprite CreateTop(TileType type, bool checkerAlt, int size = 32)
@@ -88,7 +90,9 @@ public static class TerrainSpriteFactory
         return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
     }
 
-    /// <summary>高地侧面：岩层条纹；枢轴在底边，从地面长到台面。</summary>
+    /// <summary>
+    /// 高地侧面：岩层条纹；枢轴在底边，从地面长到台面。
+    /// </summary>
     public static Sprite CreateHighlandCliff(int width = 32, int height = 24)
     {
         var tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
@@ -122,7 +126,9 @@ public static class TerrainSpriteFactory
         return Sprite.Create(tex, new Rect(0, 0, width, height), new Vector2(0.5f, 0f), width);
     }
 
-    /// <summary>棋盘外装饰林地坪（不可交互）。</summary>
+    /// <summary>
+    /// 棋盘外装饰林地坪（不可交互）。
+    /// </summary>
     public static Sprite CreateForestFloor(bool alt, int size = 32)
     {
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
@@ -150,7 +156,9 @@ public static class TerrainSpriteFactory
         return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
     }
 
-    /// <summary>丛林格上的灌木 / 蕨 / 阔叶（广告牌，枢轴在脚下；画幅加厚）。</summary>
+    /// <summary>
+    /// 丛林格上的灌木 / 蕨 / 阔叶（广告牌，枢轴在脚下；画幅加厚）。
+    /// </summary>
     public static Sprite CreateJungleProp(int variant, int size = 48)
     {
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
@@ -249,7 +257,9 @@ public static class TerrainSpriteFactory
         }
     }
 
-    /// <summary>装饰树冠广告牌（variant 换造型；枢轴在脚下）。</summary>
+    /// <summary>
+    /// 装饰树冠广告牌（variant 换造型；枢轴在脚下）。
+    /// </summary>
     public static Sprite CreateForestTree(int variant, int size = 32)
     {
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);

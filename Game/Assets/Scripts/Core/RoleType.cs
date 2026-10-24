@@ -32,7 +32,9 @@ public static class RoleInfo
         }
     }
 
-    /// <summary>角色基础五维，来自 StreamingAssets/Config/game_rules.yaml（与 sim 共用）。</summary>
+    /// <summary>
+    /// 角色基础五维，来自 StreamingAssets/Config/game_rules.yaml（与 sim 共用）。
+    /// </summary>
     public static void GetBaseStats(RoleType role, out int move, out int hp, out int atk, out int def, out int bag)
     {
         var s = GameRulesConfig.GetRoleStats(role);
@@ -43,7 +45,9 @@ public static class RoleInfo
         bag = s.Bag;
     }
 
-    /// <summary>角色基础法抗（百分比 0–100），法伤结算：⌊伤害 × (1 − 法抗%)⌋。象为 0（法伤克制其高物防）。</summary>
+    /// <summary>
+    /// 角色基础法抗（百分比 0–100），法伤结算：⌊伤害 × (1 − 法抗%)⌋。象为 0（法伤克制其高物防）。
+    /// </summary>
     public static int GetMagicResist(RoleType role)
     {
         return GameRulesConfig.GetRoleStats(role).MagicResist;

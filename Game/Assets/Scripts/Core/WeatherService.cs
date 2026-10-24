@@ -26,6 +26,9 @@ public static class WeatherService
     private static int lastChangeRound = 1;
     private static int nextChangeRound = int.MaxValue;
 
+    /// <summary>
+    /// 天气的中文名。
+    /// </summary>
     public static string GetDisplayName(WeatherType weather)
     {
         switch (weather)
@@ -36,8 +39,14 @@ public static class WeatherService
         }
     }
 
+    /// <summary>
+    /// 当前天气的中文名。
+    /// </summary>
     public static string GetDisplayName() => GetDisplayName(Current);
 
+    /// <summary>
+    /// 一行效果摘要（供日志 / UI）。
+    /// </summary>
     public static string GetShortEffect(WeatherType weather)
     {
         switch (weather)
@@ -72,6 +81,9 @@ public static class WeatherService
         return GameRulesConfig.FullMapVisibility;
     }
 
+    /// <summary>
+    /// 兼容旧接口：按当前时段与天气算能见度。
+    /// </summary>
     public static int GetVisibilityAfterWeather(int periodBaseVisibility, UnitActor unit = null)
     {
         // 兼容旧调用：改走时段×天气矩阵（忽略 periodBaseVisibility）
@@ -83,6 +95,9 @@ public static class WeatherService
         return GetPeriodWeatherVisibility(period, weather);
     }
 
+    /// <summary>
+    /// 开局：设为晴天并排出第一次变更。
+    /// </summary>
     public static void ResetForMatch(int roundNumber = 1)
     {
         Current = WeatherType.Clear;
@@ -97,7 +112,9 @@ public static class WeatherService
             (MatchConfig.IsAdminMode ? " · 管理员可任选天气/时段" : $" · 下次变更约第{nextChangeRound}回合"));
     }
 
-    /// <summary>完整回合号推进到 newRound 后调用。</summary>
+    /// <summary>
+    /// 完整回合号推进到 newRound 后调用。
+    /// </summary>
     public static void OnFullRoundAdvanced(int newRound)
     {
         if (MatchConfig.IsAdminMode)
@@ -107,6 +124,9 @@ public static class WeatherService
         ChangeToRandom(newRound);
     }
 
+    /// <summary>
+    /// 管理员直接指定天气（仅管理员模式生效）。
+    /// </summary>
     public static bool AdminSetWeather(WeatherType weather)
     {
         if (!MatchConfig.IsAdminMode)
@@ -115,7 +135,9 @@ public static class WeatherService
         return true;
     }
 
-    /// <summary>天气弹：强制切换天气；已是目标天气则失败。非管理员模式会重置下次自动变更日程。</summary>
+    /// <summary>
+    /// 天气弹：强制切换天气；已是目标天气则失败。非管理员模式会重置下次自动变更日程。
+    /// </summary>
     public static bool TryApplyFromCard(WeatherType weather)
     {
         if (Current == weather)
@@ -125,6 +147,9 @@ public static class WeatherService
         return true;
     }
 
+    /// <summary>
+    /// 雨天物防修正（未穿雨衣时生效）。
+    /// </summary>
     public static int GetDefMod(UnitActor unit = null)
     {
         if (Current != WeatherType.Rain)
@@ -134,7 +159,9 @@ public static class WeatherService
         return GameRulesConfig.RainDefMod;
     }
 
-    /// <summary>天气法抗修正（百分比，平值相加，下限 0 由 UnitActor.MagicResist 统一夹取）。数值见 game_rules.yaml。</summary>
+    /// <summary>
+    /// 天气法抗修正（百分比，平值相加，下限 0 由 UnitActor.MagicResist 统一夹取）。数值见 game_rules.yaml。
+    /// </summary>
     public static int GetMagicResistMod(UnitActor unit = null)
     {
         switch (Current)
@@ -147,7 +174,9 @@ public static class WeatherService
 
     public static bool BlocksBurning => Current == WeatherType.Rain;
 
-    /// <summary>下次自动变更的完整回合号（管理员模式下为 MaxValue）。</summary>
+    /// <summary>
+    /// 下次自动变更的完整回合号（管理员模式下为 MaxValue）。
+    /// </summary>
     public static int NextChangeRound => nextChangeRound;
 
     private static void ScheduleNextChange(int fromRound)

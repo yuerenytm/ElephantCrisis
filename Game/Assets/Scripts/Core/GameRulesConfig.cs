@@ -25,7 +25,9 @@ public static class GameRulesConfig
 
     private static bool loaded;
 
-    /// <summary>代码实际请求过的配置键（section.key），供启动校验比对 yaml。</summary>
+    /// <summary>
+    /// 代码实际请求过的配置键（section.key），供启动校验比对 yaml。
+    /// </summary>
     private static readonly HashSet<string> requestedKeys =
         new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
@@ -97,7 +99,9 @@ public static class GameRulesConfig
         }
     }
 
-    /// <summary>仅供测试/热重载：清空后再次 EnsureLoaded。</summary>
+    /// <summary>
+    /// 仅供测试/热重载：清空后再次 EnsureLoaded。
+    /// </summary>
     public static void ReloadForEditor()
     {
         loaded = false;
@@ -124,7 +128,9 @@ public static class GameRulesConfig
         return 0;
     }
 
-    /// <summary>牌组总印数（所有印数 &gt; 0 的条目之和）。</summary>
+    /// <summary>
+    /// 牌组总印数（所有印数 &gt; 0 的条目之和）。
+    /// </summary>
     public static int DeckTotal
     {
         get
@@ -137,7 +143,9 @@ public static class GameRulesConfig
         }
     }
 
-    /// <summary>按 ItemKind 枚举顺序返回印数 &gt; 0 的条目。</summary>
+    /// <summary>
+    /// 按 ItemKind 枚举顺序返回印数 &gt; 0 的条目。
+    /// </summary>
     public static void CollectPositiveDeckCounts(List<KeyValuePair<ItemKind, int>> dst)
     {
         EnsureLoaded();
@@ -181,7 +189,9 @@ public static class GameRulesConfig
     public static int GridWidth => Mathf.Max(1, GetInt("grid", "width", 18));
     public static int GridHeight => Mathf.Max(1, GetInt("grid", "height", 18));
 
-    /// <summary>出生格（来自 grid.spawn_cells）。</summary>
+    /// <summary>
+    /// 出生格（来自 grid.spawn_cells）。
+    /// </summary>
     public static Vector2Int SpawnCell(RoleType role)
     {
         EnsureLoaded();
@@ -246,7 +256,9 @@ public static class GameRulesConfig
     public static int BlindVisibility => GetInt("status", "blind_visibility", 0);
     public static int HiddenRevealRange => GetInt("status", "hidden_reveal_range", 1);
     public static int PoisonRounds => Mathf.Max(1, GetInt("status", "poison_rounds", 1));
-    /// <summary>沼泽地形每次施加的中毒持续回合（无施加者，按回合倒数）。</summary>
+    /// <summary>
+    /// 沼泽地形每次施加的中毒持续回合（无施加者，按回合倒数）。
+    /// </summary>
     public static int SwampPoisonRounds => Mathf.Max(1, GetInt("status", "swamp_poison_rounds", 1));
     public static int BurningRounds => Mathf.Max(1, GetInt("status", "burning_rounds", 1));
     public static int StunRounds => Mathf.Max(1, GetInt("status", "stun_rounds", 1));
@@ -366,7 +378,9 @@ public static class GameRulesConfig
     public static int ArmorDurabilityLoss => Mathf.Max(1, GetInt("items", "armor_durability_loss", 1));
     public static int AmuletShieldCharges => Mathf.Max(1, GetInt("items", "amulet_shield_charges", 1));
 
-    /// <summary>按 ItemKind 蛇形名读取 items 段下 kind_field 的整数值。</summary>
+    /// <summary>
+    /// 按 ItemKind 蛇形名读取 items 段下 kind_field 的整数值。
+    /// </summary>
     public static int Item(ItemKind kind, string field, int fallback)
         => GetInt("items", ItemKindToYamlKey(kind) + "_" + field, fallback);
 
@@ -815,7 +829,9 @@ public static class GameRulesConfig
         }
     }
 
-    /// <summary>与改表前 DeckManager.BuildDemoDeck 硬编码一致，供缺文件时回退。</summary>
+    /// <summary>
+    /// 与改表前 DeckManager.BuildDemoDeck 硬编码一致，供缺文件时回退。
+    /// </summary>
     private static IEnumerable<KeyValuePair<ItemKind, int>> FallbackDeck()
     {
         yield return new KeyValuePair<ItemKind, int>(ItemKind.SmallPotion, 10);

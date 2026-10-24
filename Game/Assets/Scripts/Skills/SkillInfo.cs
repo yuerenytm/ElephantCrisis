@@ -1,6 +1,8 @@
 using System.Collections.Generic;
 
-/// <summary>四角色现行技能的等级数值。</summary>
+/// <summary>
+/// 四角色现行技能的等级数值。
+/// </summary>
 public static class SkillInfo
 {
     public static string GetSkillName(RoleType role) => role switch
@@ -33,7 +35,9 @@ public static class SkillInfo
         => skillLevel >= GameRulesConfig.SkillLevelMax ? GameRulesConfig.DeterrenceInnerRadius : 0;
 }
 
-/// <summary>旧版猴标记已废弃；保留空实现以免残留引用编译失败。</summary>
+/// <summary>
+/// 旧版猴标记已废弃；保留空实现以免残留引用编译失败。
+/// </summary>
 public static class StealMarks
 {
     public static void Reset() { }

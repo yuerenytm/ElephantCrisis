@@ -12,7 +12,9 @@ public sealed class LogicMatchLogger
 {
     public static LogicMatchLogger Active { get; private set; }
     public static bool IsRecording => Active != null;
-    /// <summary>是否在写逐事件 events.jsonl（balance 模式为 false，仅记结果）。</summary>
+    /// <summary>
+    /// 是否在写逐事件 events.jsonl（balance 模式为 false，仅记结果）。
+    /// </summary>
     public static bool IsRecordingEvents => Active != null && Active.RecordEvents;
 
     private readonly List<string> lines = new List<string>(512);
@@ -26,9 +28,14 @@ public sealed class LogicMatchLogger
     private int fullRounds;
     private bool finished;
 
-    /// <summary>是否写逐事件 events.jsonl（balance 模式为 false）。</summary>
+    /// <summary>
+    /// 是否写逐事件 events.jsonl（balance 模式为 false）。
+    /// </summary>
     public bool RecordEvents => collect != "balance";
 
+    /// <summary>
+    /// 构造日志器：记种子、策略与采集模式。
+    /// </summary>
     public LogicMatchLogger(int seed, Dictionary<string, string> strategies, string collect = "both")
     {
         this.seed = seed;
@@ -40,17 +47,26 @@ public sealed class LogicMatchLogger
             ("strategies", Dict(this.strategies))));
     }
 
+    /// <summary>
+    /// 清空当前活动日志器（局间调用）。
+    /// </summary>
     public static void ClearActive()
     {
         if (Active != null)
             Active = null;
     }
 
+    /// <summary>
+    /// 写一条自定义事件（字段为已序列化的 JSON 片段）。
+    /// </summary>
     public void Emit(string type, params (string key, string jsonValue)[] fields)
     {
         EmitRaw(type, Obj(fields));
     }
 
+    /// <summary>
+    /// 行动开始事件。
+    /// </summary>
     public void EmitTurnStart(UnitActor unit)
     {
         if (unit == null) return;
@@ -61,6 +77,9 @@ public sealed class LogicMatchLogger
             ("hour", I(GameClock.GetHour(tm != null ? tm.RoundNumber : 1))));
     }
 
+    /// <summary>
+    /// 行动结束事件（含是否跳过）。
+    /// </summary>
     public void EmitTurnEnd(UnitActor unit, bool skipped)
     {
         Emit("turn_end",
@@ -68,11 +87,17 @@ public sealed class LogicMatchLogger
             ("skipped", skipped ? "true" : "false"));
     }
 
+    /// <summary>
+    /// 晕眩跳过事件。
+    /// </summary>
     public void EmitStunSkip(UnitActor unit)
     {
         Emit("stun_skip", ("actor", Q(LogicSimNaming.Role(unit.Role))));
     }
 
+    /// <summary>
+    /// 抽牌事件。
+    /// </summary>
     public void EmitDraw(UnitActor unit, ItemKind item)
     {
         Emit("draw",
@@ -80,6 +105,9 @@ public sealed class LogicMatchLogger
             ("item", Q(LogicSimNaming.Item(item))));
     }
 
+    /// <summary>
+    /// 移动事件。
+    /// </summary>
     public void EmitMove(UnitActor unit, Vector2Int from, Vector2Int to)
     {
         Emit("move",
@@ -88,6 +116,9 @@ public sealed class LogicMatchLogger
             ("to_cell", Cell(to)));
     }
 
+    /// <summary>
+    /// 伤害事件（raw / dealt / 来源）。
+    /// </summary>
     public void EmitDamage(string actor, string target, string kind, int raw, int dealt, string via = null)
     {
         var fields = new List<(string, string)>
@@ -103,6 +134,9 @@ public sealed class LogicMatchLogger
         EmitRaw("damage", Obj(fields.ToArray()));
     }
 
+    /// <summary>
+    /// 治疗事件。
+    /// </summary>
     public void EmitHeal(UnitActor unit, ItemKind item, int healed, int hpAfter)
     {
         Emit("heal",
@@ -112,6 +146,9 @@ public sealed class LogicMatchLogger
             ("hp_after", I(hpAfter)));
     }
 
+    /// <summary>
+    /// 炸弹爆炸事件。
+    /// </summary>
     public void EmitBomb(UnitActor unit, Vector2Int cell)
     {
         Emit("bomb",
@@ -119,6 +156,9 @@ public sealed class LogicMatchLogger
             ("cell", Cell(cell)));
     }
 
+    /// <summary>
+    /// 装备事件。
+    /// </summary>
     public void EmitEquip(UnitActor unit, ItemKind item)
     {
         Emit("equip",
@@ -126,6 +166,9 @@ public sealed class LogicMatchLogger
             ("item", Q(LogicSimNaming.Item(item))));
     }
 
+    /// <summary>
+    /// 拾取事件。
+    /// </summary>
     public void EmitPickup(UnitActor unit, int count)
     {
         Emit("pickup",
@@ -133,6 +176,9 @@ public sealed class LogicMatchLogger
             ("count", I(count)));
     }
 
+    /// <summary>
+    /// 弃置事件。
+    /// </summary>
     public void EmitDiscard(UnitActor unit, ItemKind item)
     {
         Emit("discard",
@@ -140,6 +186,9 @@ public sealed class LogicMatchLogger
             ("item", Q(LogicSimNaming.Item(item))));
     }
 
+    /// <summary>
+    /// 掉落事件。
+    /// </summary>
     public void EmitDrop(UnitActor unit, int count)
     {
         Emit("drop",
@@ -147,6 +196,9 @@ public sealed class LogicMatchLogger
             ("count", I(count)));
     }
 
+    /// <summary>
+    /// 超重事件。
+    /// </summary>
     public void EmitOverweight(UnitActor unit)
     {
         Emit("overweight",
@@ -155,6 +207,9 @@ public sealed class LogicMatchLogger
             ("cap", F(unit.Inventory.Capacity)));
     }
 
+    /// <summary>
+    /// 状态变化事件。
+    /// </summary>
     public void EmitStatus(UnitActor unit, StatusType status, string op)
     {
         Emit("status",
@@ -163,11 +218,17 @@ public sealed class LogicMatchLogger
             ("op", Q(op)));
     }
 
+    /// <summary>
+    /// 进入濒死事件。
+    /// </summary>
     public void EmitDying(UnitActor unit)
     {
         Emit("dying", ("actor", Q(LogicSimNaming.Role(unit.Role))));
     }
 
+    /// <summary>
+    /// 死亡事件。
+    /// </summary>
     public void EmitDeath(UnitActor unit)
     {
         string role = LogicSimNaming.Role(unit.Role);
@@ -178,11 +239,17 @@ public sealed class LogicMatchLogger
         Emit("death", ("actor", Q(role)));
     }
 
+    /// <summary>
+    /// 时刻推进事件。
+    /// </summary>
     public void EmitClock(int hour, int fullRound)
     {
         Emit("clock", ("hour", I(hour)), ("full_round", I(fullRound)));
     }
 
+    /// <summary>
+    /// 天气变更事件。
+    /// </summary>
     public void EmitWeather()
     {
         int round = TurnManager.Instance != null ? TurnManager.Instance.RoundNumber : 1;
@@ -192,11 +259,17 @@ public sealed class LogicMatchLogger
             ("lock", I(lockLeft)));
     }
 
+    /// <summary>
+    /// 熔岩缩圈事件。
+    /// </summary>
     public void EmitLavaShrink(int inset)
     {
         Emit("lava_shrink", ("inset", I(inset)));
     }
 
+    /// <summary>
+    /// 全量状态快照（平衡 / 回放都靠它）。
+    /// </summary>
     public void EmitSnapshot()
     {
         var tm = TurnManager.Instance;
@@ -233,6 +306,9 @@ public sealed class LogicMatchLogger
             ("units", unitsJson.ToString())));
     }
 
+    /// <summary>
+    /// 写终局信息（胜者 / 原因 / 回合数）。
+    /// </summary>
     public void FinishMatch(string winnerRole, string reason, int fullRoundsCompleted)
     {
         if (finished)
@@ -247,6 +323,9 @@ public sealed class LogicMatchLogger
             ("full_rounds", I(fullRounds)));
     }
 
+    /// <summary>
+    /// 把 meta.json 与 events.jsonl 落盘。
+    /// </summary>
     public void Save(string matchDir)
     {
         Directory.CreateDirectory(matchDir);

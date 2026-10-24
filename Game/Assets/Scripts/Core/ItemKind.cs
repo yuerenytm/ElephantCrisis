@@ -171,7 +171,9 @@ public static class ItemInfo
     public static int BoomerangRange => GameRulesConfig.BoomerangRange;
     public static int BoomerangDamage => GameRulesConfig.BoomerangDamage;
 
-    /// <summary>玩偶卡 UI / 掉落角标用金色。</summary>
+    /// <summary>
+    /// 玩偶卡 UI / 掉落角标用金色。
+    /// </summary>
     public static Color GetDollGoldFill() => new Color(0.92f, 0.72f, 0.18f, 1f);
     public static Color GetDollGoldBorder() => new Color(0.55f, 0.38f, 0.08f, 1f);
     public static Color GetDollGoldUiBg() => new Color(0.42f, 0.32f, 0.1f, 0.95f);
@@ -198,7 +200,9 @@ public static class ItemInfo
         return GameRulesConfig.ItemWeight;
     }
 
-    /// <summary>支数 = 牌数（一张一支）。</summary>
+    /// <summary>
+    /// 支数 = 牌数（一张一支）。
+    /// </summary>
     public static int AmmoChargesToCards(int charges)
     {
         return Mathf.Max(0, charges);
@@ -283,7 +287,9 @@ public static class ItemInfo
         => kind == ItemKind.Dagger || kind == ItemKind.Longsword
            || kind == ItemKind.ArmorPiercingBlade || kind == ItemKind.CursedBlade;
 
-    /// <summary>近战武器基础攻击距离（不含高地等外部增益）。无近战武器时为 1。</summary>
+    /// <summary>
+    /// 近战武器基础攻击距离（不含高地等外部增益）。无近战武器时为 1。
+    /// </summary>
     public static int GetMeleeWeaponRange(ItemKind kind)
     {
         switch (kind)
@@ -320,7 +326,9 @@ public static class ItemInfo
         return false;
     }
 
-    /// <summary>诅咒之刃已使用次数（下次为 +1）。</summary>
+    /// <summary>
+    /// 诅咒之刃已使用次数（下次为 +1）。
+    /// </summary>
     public static int GetCursedBladeTimesUsed(UnitActor unit)
     {
         if (unit?.Inventory == null)
@@ -333,7 +341,9 @@ public static class ItemInfo
         return 0;
     }
 
-    /// <summary>近战攻击是否无视目标已装备防具提供的防御（不含能量护盾吸收）。</summary>
+    /// <summary>
+    /// 近战攻击是否无视目标已装备防具提供的防御（不含能量护盾吸收）。
+    /// </summary>
     public static bool MeleeIgnoresArmor(UnitActor attacker)
     {
         if (attacker?.Inventory == null)
@@ -351,7 +361,9 @@ public static class ItemInfo
 
     public static bool IsFlashbang(ItemKind kind) => kind == ItemKind.Flashbang;
 
-    /// <summary>点燃汽油瓶投掷：须同时持有打火机与汽油瓶。</summary>
+    /// <summary>
+    /// 点燃汽油瓶投掷：须同时持有打火机与汽油瓶。
+    /// </summary>
     public static bool IsMolotovKit(ItemKind kind)
         => kind == ItemKind.GasolineBottle || kind == ItemKind.Lighter;
 
@@ -433,7 +445,9 @@ public static class ItemInfo
         return false;
     }
 
-    /// <summary>装备橡胶雨衣：免疫雨天防/视减益（不耗耐久）；可挡着火施加（每次耗 1 耐久）。</summary>
+    /// <summary>
+    /// 装备橡胶雨衣：免疫雨天防/视减益（不耗耐久）；可挡着火施加（每次耗 1 耐久）。
+    /// </summary>
     public static bool HasEquippedRubberRaincoat(UnitActor unit)
     {
         if (unit?.Inventory == null)
@@ -446,7 +460,9 @@ public static class ItemInfo
         return false;
     }
 
-    /// <summary>全图视野用曼哈顿半径（覆盖 18×18）。</summary>
+    /// <summary>
+    /// 全图视野用曼哈顿半径（覆盖 18×18）。
+    /// </summary>
     public static int FullMapVisibilityRadius => GameRulesConfig.FullMapVisibility;
 
     public static bool HasEquippedNightVision(UnitActor unit)
@@ -473,7 +489,9 @@ public static class ItemInfo
         return false;
     }
 
-    /// <summary>望远镜生效：已装备且非黑夜。</summary>
+    /// <summary>
+    /// 望远镜生效：已装备且非黑夜。
+    /// </summary>
     public static bool IsTelescopeVisionActive(UnitActor unit)
     {
         if (!HasEquippedTelescope(unit) || unit.IsDead)
@@ -482,7 +500,9 @@ public static class ItemInfo
         return GameClock.GetPeriod(round) != GameClock.Period.Night;
     }
 
-    /// <summary>夜视镜生效：已装备且黑夜。</summary>
+    /// <summary>
+    /// 夜视镜生效：已装备且黑夜。
+    /// </summary>
     public static bool IsNightVisionActive(UnitActor unit)
     {
         if (!HasEquippedNightVision(unit) || unit.IsDead)
@@ -491,7 +511,9 @@ public static class ItemInfo
         return GameClock.GetPeriod(round) == GameClock.Period.Night;
     }
 
-    /// <summary>夜视镜能见度加成：黑夜晴 +3、雨 +2、雾 +1（白天/晨昏 0）。</summary>
+    /// <summary>
+    /// 夜视镜能见度加成：黑夜晴 +3、雨 +2、雾 +1（白天/晨昏 0）。
+    /// </summary>
     public static int GetNightVisionVisibilityBonus(WeatherType weather)
     {
         switch (weather)
@@ -502,7 +524,9 @@ public static class ItemInfo
         }
     }
 
-    /// <summary>望远镜能见度加成：仅白天/晨昏的雾天 +2。</summary>
+    /// <summary>
+    /// 望远镜能见度加成：仅白天/晨昏的雾天 +2。
+    /// </summary>
     public static int GetTelescopeVisibilityBonus(GameClock.Period period, WeatherType weather)
     {
         if (period == GameClock.Period.Night)
@@ -510,11 +534,15 @@ public static class ItemInfo
         return weather == WeatherType.Fog ? GameRulesConfig.TelescopeFog : 0;
     }
 
-    /// <summary>望远镜：非黑夜可看见隐匿单位（仍须在能见度内）。</summary>
+    /// <summary>
+    /// 望远镜：非黑夜可看见隐匿单位（仍须在能见度内）。
+    /// </summary>
     public static bool CanRevealHidden(UnitActor viewer)
         => IsTelescopeVisionActive(viewer);
 
-    /// <summary>望远镜：非黑夜可窥视其他可见角色背包。</summary>
+    /// <summary>
+    /// 望远镜：非黑夜可窥视其他可见角色背包。
+    /// </summary>
     public static bool CanPeekInventories(UnitActor viewer)
         => IsTelescopeVisionActive(viewer);
 

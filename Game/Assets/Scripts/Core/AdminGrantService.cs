@@ -1,7 +1,9 @@
 using System;
 using System.Collections.Generic;
 
-/// <summary>管理员模式：虚空印牌（凭空生成卡牌入背包，不消耗牌库/弃牌）；本行动次数不限。</summary>
+/// <summary>
+/// 管理员模式：虚空印牌（凭空生成卡牌入背包，不消耗牌库/弃牌）；本行动次数不限。
+/// </summary>
 public static class AdminGrantService
 {
     public static bool CanOpenPanel(UnitActor unit, out string reason)
@@ -35,7 +37,9 @@ public static class AdminGrantService
         return true;
     }
 
-    /// <summary>可印的全部卡种（不依赖牌库存量）。</summary>
+    /// <summary>
+    /// 可印的全部卡种（不依赖牌库存量）。
+    /// </summary>
     public static List<ItemKind> ListPrintableKinds()
     {
         var result = new List<ItemKind>();

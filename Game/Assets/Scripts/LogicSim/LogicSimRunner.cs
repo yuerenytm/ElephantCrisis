@@ -212,6 +212,9 @@ public class LogicSimRunner : MonoBehaviour
 #endif
     }
 
+    /// <summary>
+    /// 命令行里是否带某标志。
+    /// </summary>
     public static bool HasArg(string flag)
     {
         var args = Environment.GetCommandLineArgs();
@@ -223,6 +226,9 @@ public class LogicSimRunner : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// 读整数参数，缺省用 fallback。
+    /// </summary>
     public static int GetIntArg(string flag, int fallback)
     {
         var args = Environment.GetCommandLineArgs();
@@ -235,6 +241,9 @@ public class LogicSimRunner : MonoBehaviour
         return fallback;
     }
 
+    /// <summary>
+    /// 读字符串参数，缺省用 fallback。
+    /// </summary>
     public static string GetStringArg(string flag, string fallback)
     {
         var args = Environment.GetCommandLineArgs();

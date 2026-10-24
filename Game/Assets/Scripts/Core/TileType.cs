@@ -11,7 +11,9 @@ public enum TileType
     Lava
 }
 
-/// <summary>地形显示名、色块与数值修正。</summary>
+/// <summary>
+/// 地形显示名、色块与数值修正。
+/// </summary>
 public static class TerrainInfo
 {
     public static string GetDisplayName(TileType type)
@@ -117,7 +119,9 @@ public static class TerrainInfo
         }
     }
 
-    /// <summary>地形法抗修正（百分比，平值相加，下限 0 由 UnitActor.MagicResist 统一夹取）。数值见 game_rules.yaml terrain。</summary>
+    /// <summary>
+    /// 地形法抗修正（百分比，平值相加，下限 0 由 UnitActor.MagicResist 统一夹取）。数值见 game_rules.yaml terrain。
+    /// </summary>
     public static int GetMagicResistMod(TileType type)
     {
         switch (type)
@@ -132,7 +136,9 @@ public static class TerrainInfo
     public static int GetRangeBonus(TileType type)
         => type == TileType.Highland ? GameRulesConfig.HighlandRange : 0;
 
-    /// <summary>世界 Y 抬升（仅高地；单位/掉落跟随 CellToWorld）。</summary>
+    /// <summary>
+    /// 世界 Y 抬升（仅高地；单位/掉落跟随 CellToWorld）。
+    /// </summary>
     public static float GetElevation(TileType type)
         => type == TileType.Highland ? GridManager.HighlandElevation : 0f;
 }

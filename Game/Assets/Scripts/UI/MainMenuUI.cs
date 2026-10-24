@@ -170,7 +170,9 @@ public class MainMenuUI : MonoBehaviour
             roleSelectPanel.SetActive(true);
     }
 
-    /// <summary>预留：联机模式入口（当前禁用）。</summary>
+    /// <summary>
+    /// 预留：联机模式入口（当前禁用）。
+    /// </summary>
     public void OnOnlineClicked()
     {
         Debug.Log("[预留] 联机模式尚未实现");
@@ -323,7 +325,9 @@ public class MainMenuUI : MonoBehaviour
     }
 }
 
-/// <summary>规则面板打开时按实际宽度重算内容高度，保证滚轮可滑到底。</summary>
+/// <summary>
+/// 规则面板打开时按实际宽度重算内容高度，保证滚轮可滑到底。
+/// </summary>
 public class RulesScrollBootstrap : MonoBehaviour
 {
     private ScrollRect scroll;
@@ -372,7 +376,9 @@ public class RulesScrollBootstrap : MonoBehaviour
     }
 }
 
-/// <summary>面向玩家的可读规则（与当前 Demo 能力对齐，略去未实装系统）。数值来自 game_rules.yaml。</summary>
+/// <summary>
+/// 面向玩家的可读规则（与当前 Demo 能力对齐，略去未实装系统）。数值来自 game_rules.yaml。
+/// </summary>
 public static class PlayerRulesText
 {
     public static string Content => Build();

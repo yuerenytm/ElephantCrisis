@@ -26,6 +26,9 @@ public class DeckManager : MonoBehaviour
             Instance = null;
     }
 
+    /// <summary>
+    /// 按 yaml 印数构建牌库并洗牌。
+    /// </summary>
     public void BuildDemoDeck()
     {
         drawPile.Clear();
@@ -84,11 +87,17 @@ public class DeckManager : MonoBehaviour
             drawPile.Add(kind);
     }
 
+    /// <summary>
+    /// 单张牌进弃牌堆。
+    /// </summary>
     public void AddToDiscard(ItemKind kind)
     {
         discardPile.Add(kind);
     }
 
+    /// <summary>
+    /// 批量进弃牌堆。
+    /// </summary>
     public void AddRangeToDiscard(IEnumerable<ItemKind> items)
     {
         if (items == null)
@@ -96,6 +105,9 @@ public class DeckManager : MonoBehaviour
         discardPile.AddRange(items);
     }
 
+    /// <summary>
+    /// 抽一张；牌库空时先把弃牌堆洗回来。
+    /// </summary>
     public bool TryDraw(out ItemKind card)
     {
         card = default;
@@ -111,6 +123,9 @@ public class DeckManager : MonoBehaviour
         return true;
     }
 
+    /// <summary>
+    /// 牌库中某牌的张数。
+    /// </summary>
     public int CountInDraw(ItemKind kind)
     {
         int n = 0;
@@ -122,6 +137,9 @@ public class DeckManager : MonoBehaviour
         return n;
     }
 
+    /// <summary>
+    /// 弃牌堆中某牌的张数。
+    /// </summary>
     public int CountInDiscard(ItemKind kind)
     {
         int n = 0;
@@ -133,10 +151,14 @@ public class DeckManager : MonoBehaviour
         return n;
     }
 
-    /// <summary>牌库+弃牌堆中该牌剩余张数（管理员选牌用）。</summary>
+    /// <summary>
+    /// 牌库+弃牌堆中该牌剩余张数（管理员选牌用）。
+    /// </summary>
     public int CountAvailable(ItemKind kind) => CountInDraw(kind) + CountInDiscard(kind);
 
-    /// <summary>从牌库取出指定牌（牌库无则先洗入弃牌堆）；成功则移出牌库。</summary>
+    /// <summary>
+    /// 从牌库取出指定牌（牌库无则先洗入弃牌堆）；成功则移出牌库。
+    /// </summary>
     public bool TryTakeSpecific(ItemKind kind)
     {
         if (TryRemoveFromDraw(kind))
@@ -157,6 +179,9 @@ public class DeckManager : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    /// 给单位抽一张牌并进背包。
+    /// </summary>
     public void DrawFor(UnitActor unit)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
