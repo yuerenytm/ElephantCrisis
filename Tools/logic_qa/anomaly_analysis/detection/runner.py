@@ -11,6 +11,8 @@ from .detector import AnomalyDetector, score_match, train_from_matches
 
 
 def _default_anomaly_cfg() -> Path:
+    """默认配置路径：anomaly_analysis/config/anomaly.yaml。
+    """
     return Path(__file__).resolve().parent.parent / "config" / "anomaly.yaml"
 
 
@@ -21,6 +23,26 @@ def train_anomaly_model(
     baseline_report_path: Optional[Path] = None,
     only_baseline_pass: bool = True,
 ) -> Dict[str, Any]:
+    """训练并保存孤立森林模型。
+
+    默认只用"基线检查通过"的对局训练：基线已判违规的局若混进训练集，
+    模型会把 bug 当成正常行为学进去。
+
+    产出（model_dir）：
+    iforest.joblib      模型 + 标准化参数 + 阈值
+    feature_meta.json   特征名与维度
+    train_summary.json  本次训练摘要，字段见下：
+    matches_used                  参与训练的对局数
+    matches_skipped_baseline_fail 因基线违规被排除的对局数
+    snapshot_rows                 训练用的快照帧数
+    model_dir                     模型输出目录
+    score_threshold               校准后的异常阈值
+    n_features                    特征维度
+    contamination                 预期异常比例（写入便于复现）
+    n_estimators                  树的数量
+    use_hp_delta                  是否使用 HP 差分特征
+
+    """
     cfg = load_yaml(str(cfg_path or _default_anomaly_cfg()))
     failed_ids: Set[str] = set()
     if only_baseline_pass:
@@ -58,6 +80,9 @@ def train_anomaly_model(
         "model_dir": str(model_dir),
         "score_threshold": det.score_threshold,
         "n_features": len(det.feature_names),
+        "contamination": det.contamination,
+        "n_estimators": det.n_estimators,
+        "use_hp_delta": det.use_hp_delta,
     }
     with (model_dir / "train_summary.json").open("w", encoding="utf-8") as f:
         json.dump(summary, f, ensure_ascii=False, indent=2)
@@ -70,6 +95,14 @@ def run_anomaly(
     out_dir: Path,
     baseline_report_path: Optional[Path] = None,
 ) -> Dict[str, Any]:
+    """加载模型，逐局扫描并贴标签。
+
+    标签优先级：baseline_bug（规则已判违规）> ai_suspect（模型认为可疑）
+    > clean。这样"规则能确认的问题"不会被模型结果掩盖。
+
+    产出：reports/anomaly_report.json
+
+    """
     det = AnomalyDetector.load(model_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
 

@@ -10,6 +10,13 @@ from .checks import Violation, check_match_events
 
 
 def run_baseline(input_dir: Path, out_dir: Path) -> Dict[str, Any]:
+    """对目录下所有对局执行 13 条基线规则。
+
+    产出：
+    baseline_report.json      每局违规明细 + summary（by_rule 计数）
+    baseline_quarantine.txt   仅违规对局路径（不复制大日志）
+
+    """
     out_dir.mkdir(parents=True, exist_ok=True)
     quarantine: List[str] = []
     matches: List[Dict[str, Any]] = []
@@ -56,6 +63,8 @@ def run_baseline(input_dir: Path, out_dir: Path) -> Dict[str, Any]:
 
 
 def match_has_baseline_bug(report: Dict[str, Any], match_id: str) -> bool:
+    """查询某局在基线报告里是否有违规（报告缺该局时视为通过）。
+    """
     for m in report.get("matches") or []:
         if m.get("match_id") == match_id:
             return not m.get("pass", True)
@@ -63,6 +72,8 @@ def match_has_baseline_bug(report: Dict[str, Any], match_id: str) -> bool:
 
 
 def load_baseline_report(path: Path) -> Optional[Dict[str, Any]]:
+    """读取基线报告；文件不存在返回 None。
+    """
     if not path.is_file():
         return None
     with path.open("r", encoding="utf-8") as f:
