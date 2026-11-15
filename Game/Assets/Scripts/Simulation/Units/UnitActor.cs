@@ -887,7 +887,6 @@ public class UnitActor : MonoBehaviour
         statuses.Clear();
     }
 
-    private GameObject selectRing;
 
     /// <summary>
     /// 初始化角色：属性、背包、视觉。
