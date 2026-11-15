@@ -30,7 +30,7 @@ public static class VisibilityService
     /// </summary>
     public static UnitActor FindUnit(RoleType role)
     {
-        var units = GameManager.Instance?.Units ?? TurnManager.Instance?.Units;
+        var units = TurnManager.Instance?.Units;
         if (units == null)
             return null;
         foreach (var u in units)
@@ -125,7 +125,7 @@ public static class VisibilityService
 
     private static void RefreshUnitVisibility(UnitActor viewer)
     {
-        var units = GameManager.Instance?.Units ?? TurnManager.Instance?.Units;
+        var units = TurnManager.Instance?.Units;
         if (units == null)
             return;
         foreach (var u in units)

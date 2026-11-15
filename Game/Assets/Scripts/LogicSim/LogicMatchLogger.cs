@@ -282,9 +282,7 @@ public sealed class LogicMatchLogger
         var unitsJson = new StringBuilder();
         unitsJson.Append('[');
         bool first = true;
-        IEnumerable<UnitActor> units = GameManager.Instance != null
-            ? (IEnumerable<UnitActor>)GameManager.Instance.Units
-            : tm?.Units;
+        IEnumerable<UnitActor> units = tm?.Units;
         if (units != null)
         {
             foreach (var u in units)

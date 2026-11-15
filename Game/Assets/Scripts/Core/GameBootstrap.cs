@@ -270,10 +270,10 @@ public class GameBootstrap : MonoBehaviour
     /// </summary>
     public void StartOnline() => MainMenuUI.Instance?.OnOnlineClicked();
 
-    [ContextMenu("Start Hotseat")]
     /// <summary>
     /// 兼容旧按钮：等同热座开局。
     /// </summary>
+    [ContextMenu("Start Hotseat")]
     public void StartDemo() => StartHotseat();
 
     private void StartMatch()
@@ -303,7 +303,7 @@ public class GameBootstrap : MonoBehaviour
         }
 
         var units = SpawnUnits();
-        GameManager.Instance.RegisterUnits(units);
+        GameManager.Instance.BeginMatch();
         DeckManager.Instance.BuildDemoDeck();
         DeckManager.Instance.ScatterDrawPileOntoMap();
 

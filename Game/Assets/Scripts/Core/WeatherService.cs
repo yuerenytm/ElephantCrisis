@@ -247,7 +247,7 @@ public static class WeatherService
 
     private static void ClearAllBurning()
     {
-        var units = GameManager.Instance?.Units ?? TurnManager.Instance?.Units;
+        var units = TurnManager.Instance?.Units;
         if (units == null)
             return;
         foreach (var u in units)

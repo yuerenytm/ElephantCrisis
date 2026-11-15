@@ -5,7 +5,15 @@ public class GameManager : MonoBehaviour
 {
     public static GameManager Instance;
 
-    public List<UnitActor> Units { get; private set; } = new List<UnitActor>();
+    /// <summary>
+    /// 本局参战单位（只读）。唯一持有者是 <see cref="TurnManager"/>，这里只做转发，
+    /// 避免两份名单各自灌值、各自清理造成不同步。
+    /// </summary>
+    public IReadOnlyList<UnitActor> Units =>
+        TurnManager.Instance != null ? TurnManager.Instance.Units : EmptyRoster;
+
+    private static readonly UnitActor[] EmptyRoster = new UnitActor[0];
+
     public string WinnerText { get; private set; }
     public bool IsGameOver { get; private set; }
     /// <summary>
@@ -26,11 +34,11 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 登记本局参战单位并清空结果状态。
+    /// 开局复位：清空上一局的胜负结果。单位名单由 <see cref="TurnManager.Setup"/> 负责，
+    /// 本类不再另存一份。
     /// </summary>
-    public void RegisterUnits(List<UnitActor> units)
+    public void BeginMatch()
     {
-        Units = new List<UnitActor>(units);
         IsGameOver = false;
         WinnerText = null;
         WinnerRole = null;
@@ -38,11 +46,10 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>
-    /// 清空对局数据（单位名单与结果）。
+    /// 清空对局结果（单位名单由 TurnManager.ResetMatch 清空）。
     /// </summary>
     public void ClearMatch()
     {
-        Units = new List<UnitActor>();
         IsGameOver = false;
         WinnerText = null;
         WinnerRole = null;
