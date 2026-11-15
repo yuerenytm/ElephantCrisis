@@ -12,29 +12,49 @@ public enum StatusType
     Blind     // 致盲：能见度 0
 }
 
+/// <summary>
+/// 状态何时递减。以前这件事散在四个 Tick 函数里、靠注释约定；
+/// 现在变成字段：加新状态时必须显式选一个，选错会被对拍抓出来。
+/// </summary>
+public enum TickPolicy
+{
+    /// <summary>施加者每次行动开始时倒数。</summary>
+    ApplierTurn,
+    /// <summary>持有者自己行动开始时倒数；着火 / 领袖是"先结算伤害再递减"。</summary>
+    OwnTurnStart,
+    /// <summary>完整回合结束时倒数（无施加者的普通状态）。</summary>
+    FullRound,
+    /// <summary>不按回合递减，只靠显式清除（地形毒、隐匿）。</summary>
+    Manual
+}
+
 public struct StatusEffect
 {
     /// <summary>状态类型。</summary>
     public StatusType Type;
     /// <summary>剩余层数 / 回合数；归零时移除。</summary>
     public int RoundsLeft;
+    /// <summary>递减时机；决定它由哪个 Tick 入口处理。</summary>
+    public TickPolicy Policy;
     /// <summary>是否记录了施加者：为 true 时由 SourceRole 决定「按施加者行动开始倒数」。</summary>
     public bool HasSource;
     /// <summary>施加者角色；仅在 HasSource 为 true 时有意义。</summary>
     public RoleType SourceRole;
 
-    public StatusEffect(StatusType type, int rounds)
+    public StatusEffect(StatusType type, int rounds, TickPolicy policy)
     {
         Type = type;
         RoundsLeft = rounds;
+        Policy = policy;
         HasSource = false;
         SourceRole = default;
     }
 
-    public StatusEffect(StatusType type, int rounds, RoleType source)
+    public StatusEffect(StatusType type, int rounds, TickPolicy policy, RoleType source)
     {
         Type = type;
         RoundsLeft = rounds;
+        Policy = policy;
         HasSource = true;
         SourceRole = source;
     }

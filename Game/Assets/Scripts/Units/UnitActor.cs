@@ -616,7 +616,7 @@ public class UnitActor : MonoBehaviour
     {
         if (PoisonStacks >= MaxPoisonStacks)
             return false;
-        statuses.Add(new StatusEffect(StatusType.Poison, GameRulesConfig.SwampPoisonRounds));
+        statuses.Add(new StatusEffect(StatusType.Poison, GameRulesConfig.SwampPoisonRounds, TickPolicy.Manual));
         LogicMatchLogger.Active?.EmitStatus(this, StatusType.Poison, "apply");
         RefreshVisual();
         return true;
@@ -668,6 +668,21 @@ public class UnitActor : MonoBehaviour
     }
 
     /// <summary>
+    /// 由"状态类型 + 是否有施加者"推出递减时机。
+    /// 原先这条规则隐式散在四个 Tick 函数里（靠注释说明谁跳过谁），现在集中成一处映射。
+    /// </summary>
+    private static TickPolicy PolicyFor(StatusType type, bool hasSource)
+    {
+        if (type == StatusType.Burning || type == StatusType.Leader)
+            return TickPolicy.OwnTurnStart;   // 受害者行动开始：先结算伤害，再递减
+        if (type == StatusType.Hidden)
+            return TickPolicy.Manual;         // 靠破隐 / 离林 / 着火清除，不按回合
+        if (type == StatusType.Poison)
+            return hasSource ? TickPolicy.ApplierTurn : TickPolicy.Manual; // 地形层离沼才清
+        return hasSource ? TickPolicy.ApplierTurn : TickPolicy.FullRound;
+    }
+
+    /// <summary>
     /// 施加状态；隐匿 / 着火等有互斥规则。
     /// </summary>
     public void ApplyStatus(StatusType type, int rounds, UnitActor source = null)
@@ -689,20 +704,21 @@ public class UnitActor : MonoBehaviour
         }
 
         StatusEffect next = source != null
-            ? new StatusEffect(type, rounds, source.Role)
-            : new StatusEffect(type, rounds);
+            ? new StatusEffect(type, rounds, PolicyFor(type, true), source.Role)
+            : new StatusEffect(type, rounds, PolicyFor(type, false));
 
         for (int i = 0; i < statuses.Count; i++)
         {
             if (statuses[i].Type != type)
                 continue;
             int keep = Mathf.Max(statuses[i].RoundsLeft, rounds);
+            TickPolicy policy = PolicyFor(type, source != null || statuses[i].HasSource);
             if (source != null)
-                statuses[i] = new StatusEffect(type, keep, source.Role);
+                statuses[i] = new StatusEffect(type, keep, policy, source.Role);
             else if (statuses[i].HasSource)
-                statuses[i] = new StatusEffect(type, keep, statuses[i].SourceRole);
+                statuses[i] = new StatusEffect(type, keep, policy, statuses[i].SourceRole);
             else
-                statuses[i] = new StatusEffect(type, keep);
+                statuses[i] = new StatusEffect(type, keep, policy);
             LogicMatchLogger.Active?.EmitStatus(this, type, "apply");
             if (type == StatusType.Burning)
                 BreakStealthFromBurning();
@@ -734,8 +750,8 @@ public class UnitActor : MonoBehaviour
             return; // 已满 3 层：新施加不生效（含沼泽叠层与角色毒），不覆盖已有层
 
         statuses.Add(source != null
-            ? new StatusEffect(StatusType.Poison, rounds, source.Role)
-            : new StatusEffect(StatusType.Poison, rounds));
+            ? new StatusEffect(StatusType.Poison, rounds, TickPolicy.ApplierTurn, source.Role)
+            : new StatusEffect(StatusType.Poison, rounds, TickPolicy.Manual));
         LogicMatchLogger.Active?.EmitStatus(this, StatusType.Poison, "apply");
         RefreshVisual();
     }
@@ -767,7 +783,7 @@ public class UnitActor : MonoBehaviour
         if (IsDead || IsDying)
             return;
         ClearStatus(StatusType.Hidden, logOp: null);
-        statuses.Add(new StatusEffect(StatusType.Hidden, 99));
+        statuses.Add(new StatusEffect(StatusType.Hidden, 99, TickPolicy.Manual));
         LogicMatchLogger.Active?.EmitStatus(this, StatusType.Hidden, logOp);
         RefreshVisual();
     }
@@ -1255,25 +1271,7 @@ public class UnitActor : MonoBehaviour
                     $"{RoleInfo.GetDisplayName(Role)} 的摩托车熄火（需再次发动）");
         }
 
-        for (int i = statuses.Count - 1; i >= 0; i--)
-        {
-            var s = statuses[i];
-            if (s.HasSource)
-                continue; // 有施加者：在施加者行动开始时倒数
-            if (s.Type == StatusType.Hidden || s.Type == StatusType.Burning)
-                continue;
-            if (s.Type == StatusType.Poison)
-                continue; // 沼泽毒：离开时清除，不按自身行动倒数
-            s.RoundsLeft--;
-            if (s.RoundsLeft <= 0)
-            {
-                TurnManager.Instance?.LogFor(this,
-                    $"{RoleInfo.GetDisplayName(Role)} 的【{StatusInfo.GetDisplayName(s.Type)}】结束");
-                statuses.RemoveAt(i);
-            }
-            else
-                statuses[i] = s;
-        }
+        AdvanceStatuses(TickPolicy.FullRound);
         RefreshVisual();
     }
 
@@ -1282,13 +1280,31 @@ public class UnitActor : MonoBehaviour
     /// </summary>
     public void TickStatusesFromApplier(RoleType applier)
     {
+        AdvanceStatuses(TickPolicy.ApplierTurn, requireApplier: true, applier: applier);
+        RefreshVisual();
+    }
+
+    /// <summary>
+    /// **唯一**的状态递减入口。以前这套规则散在四个 Tick 函数里，各自 skip 掉
+    /// "不该自己管"的类型（靠注释约定）；现在只认 <see cref="TickPolicy"/>。
+    /// </summary>
+    /// <param name="policy">递减哪一类。</param>
+    /// <param name="onlyType">限定单一类型：着火 / 领袖各自在 DoT 之后递减自己。</param>
+    /// <param name="requireApplier">是否要求施加者匹配（施加者回合通道用）。</param>
+    /// <param name="applier">当前行动者角色。</param>
+    private void AdvanceStatuses(TickPolicy policy, StatusType? onlyType = null,
+                                 bool requireApplier = false, RoleType applier = default)
+    {
         for (int i = statuses.Count - 1; i >= 0; i--)
         {
             var s = statuses[i];
-            if (!s.HasSource || s.SourceRole != applier)
+            if (s.Policy != policy)
                 continue;
-            if (s.Type == StatusType.Burning || s.Type == StatusType.Leader)
-                continue; // 着火/领袖在受害者行动开始 DoT 时自行倒数
+            if (onlyType.HasValue && s.Type != onlyType.Value)
+                continue;
+            if (requireApplier && (!s.HasSource || s.SourceRole != applier))
+                continue;
+
             s.RoundsLeft--;
             if (s.RoundsLeft <= 0)
             {
@@ -1299,7 +1315,6 @@ public class UnitActor : MonoBehaviour
             else
                 statuses[i] = s;
         }
-        RefreshVisual();
     }
 
     /// <summary>
@@ -1349,22 +1364,7 @@ public class UnitActor : MonoBehaviour
         TurnManager.Instance?.Log(
             $"{RoleInfo.GetDisplayName(Role)} 处于着火，受到 {dealt} 点法伤（火焰）");
 
-        for (int i = statuses.Count - 1; i >= 0; i--)
-        {
-            if (statuses[i].Type != StatusType.Burning)
-                continue;
-            var s = statuses[i];
-            s.RoundsLeft--;
-            if (s.RoundsLeft <= 0)
-            {
-                TurnManager.Instance?.LogFor(this,
-                    $"{RoleInfo.GetDisplayName(Role)} 的【着火】结束");
-                statuses.RemoveAt(i);
-            }
-            else
-                statuses[i] = s;
-            break;
-        }
+        AdvanceStatuses(TickPolicy.OwnTurnStart, StatusType.Burning);
         RefreshVisual();
     }
 
@@ -1399,22 +1399,7 @@ public class UnitActor : MonoBehaviour
         TurnManager.Instance?.Log(
             $"{RoleInfo.GetDisplayName(Role)} 处于领袖，受到 {dealt} 点真伤");
 
-        for (int i = statuses.Count - 1; i >= 0; i--)
-        {
-            if (statuses[i].Type != StatusType.Leader)
-                continue;
-            var s = statuses[i];
-            s.RoundsLeft--;
-            if (s.RoundsLeft <= 0)
-            {
-                TurnManager.Instance?.LogFor(this,
-                    $"{RoleInfo.GetDisplayName(Role)} 的【领袖】结束");
-                statuses.RemoveAt(i);
-            }
-            else
-                statuses[i] = s;
-            break;
-        }
+        AdvanceStatuses(TickPolicy.OwnTurnStart, StatusType.Leader);
         RefreshVisual();
     }
 
