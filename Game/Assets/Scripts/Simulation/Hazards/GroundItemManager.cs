@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GroundItemManager : MonoBehaviour
+public class GroundItemManager
 {
     public static GroundItemManager Instance;
 
@@ -16,23 +16,14 @@ public class GroundItemManager : MonoBehaviour
 
     private readonly Dictionary<Vector2Int, List<GroundStackEntry>> piles =
         new Dictionary<Vector2Int, List<GroundStackEntry>>();
-    private readonly Dictionary<Vector2Int, GameObject> visuals = new Dictionary<Vector2Int, GameObject>();
-
-    /// <summary>
-    /// 开局散落背面色（与弃置掉落蓝区分；玩偶散落同色）。
-    /// </summary>
-    private static readonly Color ScatterFill = new Color(0.42f, 0.4f, 0.36f, 1f);
-    private static readonly Color ScatterBorder = new Color(0.22f, 0.2f, 0.18f, 1f);
-    /// <summary>
-    /// 弃置/掉落正面普通牌。
-    /// </summary>
-    private static readonly Color DropFill = new Color(0.25f, 0.55f, 0.95f, 1f);
-    private static readonly Color DropBorder = new Color(0.1f, 0.25f, 0.5f, 1f);
-
-    private void Awake()
+    private struct LootVisual
     {
-        Instance = this;
+        public int Handle;
+        public LootStyle Style;
     }
+
+    private readonly Dictionary<Vector2Int, LootVisual> visuals = new Dictionary<Vector2Int, LootVisual>();
+
 
     /// <summary>
     /// 在格子上掉落一组物品（正面可见）。
@@ -381,27 +372,19 @@ public class GroundItemManager : MonoBehaviour
     public void ClearAll()
     {
         foreach (var kv in visuals)
-        {
-            if (kv.Value != null)
-                Destroy(kv.Value);
-        }
+            Presentation.Current.DestroyVisual(kv.Value.Handle);
         visuals.Clear();
         piles.Clear();
     }
 
-    private void OnDestroy()
-    {
-        if (Instance == this)
-            Instance = null;
-    }
 
     private void RefreshVisual(Vector2Int cell)
     {
         bool has = piles.TryGetValue(cell, out var list) && list.Count > 0;
         if (!has)
         {
-            if (visuals.TryGetValue(cell, out var old) && old != null)
-                Destroy(old);
+            if (visuals.TryGetValue(cell, out var old))
+                Presentation.Current.DestroyVisual(old.Handle);
             visuals.Remove(cell);
             return;
         }
@@ -417,41 +400,17 @@ public class GroundItemManager : MonoBehaviour
                 faceUpDoll = true;
         }
 
-        Color fill;
-        Color border;
-        bool emphasize;
-        if (!anyFaceUp)
+        LootStyle style = !anyFaceUp ? LootStyle.Scatter : (faceUpDoll ? LootStyle.Doll : LootStyle.Drop);
+        if (!visuals.TryGetValue(cell, out var visual) || visual.Handle == 0 || visual.Style != style)
         {
-            // 全为开局散落背面
-            fill = ScatterFill;
-            border = ScatterBorder;
-            emphasize = false;
+            if (visual.Handle != 0)
+                Presentation.Current.DestroyVisual(visual.Handle);
+            visual = new LootVisual { Handle = Presentation.Current.CreateLootVisual(cell, style), Style = style };
+            visuals[cell] = visual;
         }
-        else if (faceUpDoll)
-        {
-            fill = ItemInfo.GetDollGoldFill();
-            border = ItemInfo.GetDollGoldBorder();
-            emphasize = true;
-        }
-        else
-        {
-            fill = DropFill;
-            border = DropBorder;
-            emphasize = false;
-        }
-
-        if (!visuals.TryGetValue(cell, out var go) || go == null)
-        {
-            go = new GameObject($"Loot_{cell.x}_{cell.y}");
-            go.transform.SetParent(transform, false);
-            go.AddComponent<SpriteRenderer>();
-            visuals[cell] = go;
-        }
-
-        Presentation.Current.StyleLoot(go, fill, border, cell, emphasize);
 
         var viewer = VisibilityService.GetFogViewer();
-        go.SetActive(viewer == null || VisibilityService.CanSeeCell(viewer, cell));
+        Presentation.Current.SetVisualActive(visual.Handle, viewer == null || VisibilityService.CanSeeCell(viewer, cell));
     }
 
     /// <summary>
@@ -461,10 +420,8 @@ public class GroundItemManager : MonoBehaviour
     {
         foreach (var kv in visuals)
         {
-            if (kv.Value == null)
-                continue;
             bool show = viewer == null || VisibilityService.CanSeeCell(viewer, kv.Key);
-            kv.Value.SetActive(show);
+            Presentation.Current.SetVisualActive(kv.Value.Handle, show);
         }
     }
 

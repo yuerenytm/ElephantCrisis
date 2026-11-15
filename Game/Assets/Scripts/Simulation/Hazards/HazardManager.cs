@@ -4,7 +4,7 @@ using UnityEngine;
 /// <summary>
 /// 场上危险物：香蕉皮 / 定时炸弹 / 地雷 / 汽油火焰地块。
 /// </summary>
-public class HazardManager : MonoBehaviour
+public class HazardManager
 {
     public static HazardManager Instance;
 
@@ -46,37 +46,30 @@ public class HazardManager : MonoBehaviour
 
 
     /// <summary>视觉对象注册表：不挂在逻辑数据结构上，避免"画面当数据"。</summary>
-    private readonly Dictionary<object, GameObject> visuals = new Dictionary<object, GameObject>();
+    private readonly Dictionary<object, int> visuals = new Dictionary<object, int>();
 
     /// <summary>登记某条危险物对应的视觉对象。</summary>
-    private T TrackVisual<T>(T hazard, GameObject visual) where T : class
+    private T TrackVisual<T>(T hazard, int visual) where T : class
     {
-        if (visual != null)
+        if (visual != 0)
             visuals[hazard] = visual;
         return hazard;
     }
 
     /// <summary>取视觉对象（无头模式下为 null）。</summary>
-    private GameObject VisualOf(object hazard)
-        => hazard != null && visuals.TryGetValue(hazard, out var go) ? go : null;
+    private int VisualOf(object hazard)
+        => hazard != null && visuals.TryGetValue(hazard, out int handle) ? handle : 0;
 
     /// <summary>销毁并移除视觉对象。</summary>
     private void UntrackVisual(object hazard)
     {
-        if (hazard == null || !visuals.TryGetValue(hazard, out var go))
+        if (hazard == null || !visuals.TryGetValue(hazard, out int handle))
             return;
-        if (go != null)
-            Destroy(go);
+        Presentation.Current.DestroyVisual(handle);
         visuals.Remove(hazard);
     }
 
-    private void Awake() => Instance = this;
 
-    private void OnDestroy()
-    {
-        if (Instance == this)
-            Instance = null;
-    }
 
     /// <summary>
     /// 清空全部危险物（视觉 + 数据）。
@@ -135,7 +128,7 @@ public class HazardManager : MonoBehaviour
     public void PlaceBananaTrap(Vector2Int cell, RoleType thrower)
     {
         var trap = new BananaTrap { Cell = cell, Thrower = thrower };
-        TrackVisual(trap, CreateRedMarker(cell, "BananaTrap"));
+        TrackVisual(trap, Presentation.Current.CreateMarkerVisual(cell, "BananaTrap"));
         bananas.Add(trap);
         RefreshHazardVisibility();
     }
@@ -147,10 +140,9 @@ public class HazardManager : MonoBehaviour
     {
         int actions = Mathf.Clamp(rounds, GameRulesConfig.TimedBombMinRounds, GameRulesConfig.TimedBombMaxRounds) * GameRulesConfig.ActionsPerRound;
         var bomb = new TimedBombHazard { Cell = cell, ActionsLeft = actions, Owner = owner };
-        TrackVisual(bomb, CreateRedMarker(cell, "TimedBomb"));
+        TrackVisual(bomb, Presentation.Current.CreateMarkerVisual(cell, "TimedBomb"));
         // 倒计时标签纯属表现：无头模式没有 Visual，跳过即可（不影响回合数）
-        if (VisualOf(bomb) != null)
-            Presentation.Current.BuildBombLabel(VisualOf(bomb), actions);
+        Presentation.Current.UpdateMarkerLabel(VisualOf(bomb), actions);
         timedBombs.Add(bomb);
         RefreshHazardVisibility();
     }
@@ -166,7 +158,7 @@ public class HazardManager : MonoBehaviour
                 return;
         }
         var mine = new MineHazard { Cell = cell };
-        TrackVisual(mine, CreateRedMarker(cell, "Mine"));
+        TrackVisual(mine, Presentation.Current.CreateMarkerVisual(cell, "Mine"));
         mines.Add(mine);
     }
 
@@ -251,7 +243,7 @@ public class HazardManager : MonoBehaviour
 
         if (!existed)
         {
-            flames.Add(TrackVisual(new FlamePatch { Cell = cell, ActionsLeft = actions }, CreateFlameVisual(cell)));
+            flames.Add(TrackVisual(new FlamePatch { Cell = cell, ActionsLeft = actions }, Presentation.Current.CreateFlameVisual(cell)));
         }
 
         // 有火的丛林不再提供隐匿
@@ -266,11 +258,7 @@ public class HazardManager : MonoBehaviour
 
 
 
-    private GameObject CreateFlameVisual(Vector2Int cell)
-        => Presentation.Current.BuildFlameVisual(cell, transform);
 
-    private GameObject CreateRedMarker(Vector2Int cell, string name)
-        => Presentation.Current.BuildRedMarker(cell, transform, name);
 
     /// <summary>
     /// 香蕉皮与定时炸弹仅对放置者可见，且须在迷雾视野内；地雷全员可见但受迷雾限制。
@@ -282,29 +270,29 @@ public class HazardManager : MonoBehaviour
         var ownerViewer = MatchConfig.IsAiBattle ? fogViewer : TurnManager.Instance?.CurrentUnit;
         foreach (var b in bananas)
         {
-            if (VisualOf(b) == null) continue;
+            if (VisualOf(b) == 0) continue;
             bool ownerSee = ownerViewer != null && ownerViewer.Role == b.Thrower;
             bool inFog = fogViewer == null || VisibilityService.CanSeeCell(fogViewer, b.Cell);
-            VisualOf(b).SetActive(ownerSee && inFog);
+            Presentation.Current.SetVisualActive(VisualOf(b), ownerSee && inFog);
         }
         foreach (var bomb in timedBombs)
         {
-            if (VisualOf(bomb) == null) continue;
+            if (VisualOf(bomb) == 0) continue;
             bool ownerSee = ownerViewer != null && ownerViewer.Role == bomb.Owner;
             bool inFog = fogViewer == null || VisibilityService.CanSeeCell(fogViewer, bomb.Cell);
-            VisualOf(bomb).SetActive(ownerSee && inFog);
+            Presentation.Current.SetVisualActive(VisualOf(bomb), ownerSee && inFog);
         }
         foreach (var m in mines)
         {
-            if (VisualOf(m) == null) continue;
+            if (VisualOf(m) == 0) continue;
             bool inFog = fogViewer == null || VisibilityService.CanSeeCell(fogViewer, m.Cell);
-            VisualOf(m).SetActive(inFog);
+            Presentation.Current.SetVisualActive(VisualOf(m), inFog);
         }
         foreach (var f in flames)
         {
-            if (VisualOf(f) == null) continue;
+            if (VisualOf(f) == 0) continue;
             bool inFog = fogViewer == null || VisibilityService.CanSeeCell(fogViewer, f.Cell);
-            VisualOf(f).SetActive(inFog);
+            Presentation.Current.SetVisualActive(VisualOf(f), inFog);
         }
     }
 
@@ -511,13 +499,7 @@ public class HazardManager : MonoBehaviour
         {
             var bomb = timedBombs[i];
             bomb.ActionsLeft--;
-            if (VisualOf(bomb) != null)
-            {
-                var bombGo = VisualOf(bomb);
-                var tm = bombGo != null ? bombGo.GetComponentInChildren<TextMesh>() : null;
-                if (tm != null)
-                    tm.text = Mathf.Max(0, bomb.ActionsLeft).ToString();
-            }
+            Presentation.Current.UpdateMarkerLabel(VisualOf(bomb), Mathf.Max(0, bomb.ActionsLeft));
 
             if (bomb.ActionsLeft > 0)
             {

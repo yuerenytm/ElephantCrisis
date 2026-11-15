@@ -160,13 +160,13 @@ public class GameBootstrap : MonoBehaviour
         if (GroundItemManager.Instance != null)
         {
             GroundItemManager.Instance.ClearAll();
-            Destroy(GroundItemManager.Instance.gameObject);
+            GroundItemManager.Instance = null;
         }
 
         if (HazardManager.Instance != null)
         {
             HazardManager.Instance.ClearAll();
-            Destroy(HazardManager.Instance.gameObject);
+            HazardManager.Instance = null;
         }
 
         if (GridManager.Instance != null)
@@ -218,13 +218,13 @@ public class GameBootstrap : MonoBehaviour
         if (GroundItemManager.Instance != null)
         {
             GroundItemManager.Instance.ClearAll();
-            DestroyImmediate(GroundItemManager.Instance.gameObject);
+            GroundItemManager.Instance = null;
         }
 
         if (HazardManager.Instance != null)
         {
             HazardManager.Instance.ClearAll();
-            DestroyImmediate(HazardManager.Instance.gameObject);
+            HazardManager.Instance = null;
         }
 
         if (GridManager.Instance != null)
@@ -399,13 +399,13 @@ public class GameBootstrap : MonoBehaviour
         if (GroundItemManager.Instance == null)
         {
             var lootGo = new GameObject("GroundItems");
-            lootGo.AddComponent<GroundItemManager>();
+            GroundItemManager.Instance = new GroundItemManager();
         }
 
         if (HazardManager.Instance == null)
         {
             var hz = new GameObject("Hazards");
-            hz.AddComponent<HazardManager>();
+            HazardManager.Instance = new HazardManager();
         }
 
         if (DeckManager.Instance == null)

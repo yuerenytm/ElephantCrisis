@@ -1,10 +1,24 @@
 using UnityEngine;
 
+/// <summary>掉落物的外观风格：具体颜色由表现层决定，逻辑层只说"这是哪一类"。</summary>
+public enum LootStyle
+{
+    /// <summary>开局散落的背面牌。</summary>
+    Scatter,
+    /// <summary>正面朝上的玩偶（金色强调）。</summary>
+    Doll,
+    /// <summary>弃置 / 濒死掉落的普通牌。</summary>
+    Drop
+}
+
 /// <summary>
 /// 表现层出口：逻辑层只通过这里要画面，不直接操作任何具体表现类。
 ///
 /// 无头模式（LogicSim）下装配点不注入实现，<see cref="Presentation.Current"/> 保持空实现，
-/// 于是所有调用都变成空操作——**调用点不需要写任何 if**。
+/// 于是所有调用都变成空操作——调用点不需要写任何 if。
+///
+/// 视觉对象一律用 <c>int</c> 句柄表达：逻辑层不认识 GameObject / Transform，
+/// 这样 Simulation 程序集可以脱离 Unity 编译。
 /// </summary>
 public interface IPresentation
 {
@@ -20,44 +34,46 @@ public interface IPresentation
     /// <summary>请求刷新 HUD。</summary>
     void RequestHud();
 
+    /// <summary>把战报镜射到控制台（无头批跑时抑制，避免刷出巨量堆栈）。</summary>
+    void LogConsole(string message);
+
     /// <summary>进入"选格子 / 选单位 / 选方向"模式；具体模式按物品类型分派。</summary>
     void BeginItemTargeting(int itemIndex, ItemKind kind);
 
     /// <summary>进入射击模式并指定弹药。</summary>
     void BeginShootWithAmmo(int weaponIndex, ItemKind ammo);
 
+    /// <summary>隐藏主菜单（开始对局时）。</summary>
+    void HideMenu();
+
     /// <summary>开始一局对局（菜单 / 流程控制用）。</summary>
     void StartMatch(GameMode mode, RoleType human);
 
-    /// <summary>重开一局（表现层负责销毁重建）。</summary>
+    /// <summary>重开一局。</summary>
     void RestartMatch();
 
     /// <summary>回到主菜单。</summary>
     void ReturnToMenu();
 
-    /// <summary>把战报镜射到控制台（无头批跑时抑制，避免刷出巨量堆栈）。</summary>
-    void LogConsole(string message);
+    // ---------------------------------------------------------- 视觉句柄
 
-    /// <summary>隐藏主菜单（开始对局时）。</summary>
-    void HideMenu();
+    /// <summary>创建火焰视觉，返回句柄（0 = 无）。</summary>
+    int CreateFlameVisual(Vector2Int cell);
 
-    /// <summary>给掉落物对象挂上精灵与广告牌。</summary>
-    void StyleLoot(GameObject go, Color fill, Color border, Vector2Int cell, bool emphasize);
+    /// <summary>创建标记视觉（地雷 / 定时炸弹 / 香蕉皮），返回句柄。</summary>
+    int CreateMarkerVisual(Vector2Int cell, string kind);
 
-    /// <summary>创建火焰地块的视觉对象。</summary>
-    GameObject BuildFlameVisual(Vector2Int cell, Transform parent);
+    /// <summary>创建掉落物视觉，返回句柄。</summary>
+    int CreateLootVisual(Vector2Int cell, LootStyle style);
 
-    /// <summary>创建红色标记（地雷 / 定时炸弹）。</summary>
-    GameObject BuildRedMarker(Vector2Int cell, Transform parent, string name);
+    /// <summary>按句柄显示 / 隐藏。</summary>
+    void SetVisualActive(int handle, bool active);
 
-    /// <summary>构建角色模型。</summary>
+    /// <summary>更新定时炸弹的倒计时数字。</summary>
+    void UpdateMarkerLabel(int handle, int actions);
 
-    /// <summary>构建选中环。</summary>
-
-    /// <summary>给定时炸弹挂倒计时标签（纯表现）。</summary>
-    void BuildBombLabel(GameObject marker, int actions);
-
-    /// <summary>移除对象上的广告牌组件（棋子要直立）。</summary>
+    /// <summary>销毁某个视觉。</summary>
+    void DestroyVisual(int handle);
 }
 
 /// <summary>
@@ -66,24 +82,26 @@ public interface IPresentation
 /// </summary>
 public static class Presentation
 {
-    /// <summary>空实现：所有方法什么都不做。</summary>
+    /// <summary>空实现：所有方法什么都不做，句柄一律返回 0。</summary>
     private sealed class NullPresentation : IPresentation
     {
         public void ApplyFog(UnitActor viewer) { }
         public void RefreshTiles() { }
         public void RefreshHints() { }
         public void RequestHud() { }
+        public void LogConsole(string message) { }
         public void BeginItemTargeting(int itemIndex, ItemKind kind) { }
         public void BeginShootWithAmmo(int weaponIndex, ItemKind ammo) { }
+        public void HideMenu() { }
         public void StartMatch(GameMode mode, RoleType human) { }
         public void RestartMatch() { }
         public void ReturnToMenu() { }
-        public void LogConsole(string message) { }
-        public void HideMenu() { }
-        public void StyleLoot(GameObject go, Color fill, Color border, Vector2Int cell, bool emphasize) { }
-        public GameObject BuildFlameVisual(Vector2Int cell, Transform parent) => null;
-        public GameObject BuildRedMarker(Vector2Int cell, Transform parent, string name) => null;
-        public void BuildBombLabel(GameObject marker, int actions) { }
+        public int CreateFlameVisual(Vector2Int cell) => 0;
+        public int CreateMarkerVisual(Vector2Int cell, string kind) => 0;
+        public int CreateLootVisual(Vector2Int cell, LootStyle style) => 0;
+        public void SetVisualActive(int handle, bool active) { }
+        public void UpdateMarkerLabel(int handle, int actions) { }
+        public void DestroyVisual(int handle) { }
     }
 
     private static IPresentation current = new NullPresentation();

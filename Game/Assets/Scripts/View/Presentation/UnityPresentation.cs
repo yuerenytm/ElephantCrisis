@@ -92,13 +92,101 @@ public sealed class UnityPresentation : IPresentation
         MainMenuUI.Instance?.Hide();
     }
 
+    // ------------------------------------------------------------ 视觉句柄
+    //
+    // 逻辑层只拿 int，不碰 GameObject —— 这样 Simulation 能在没有 Unity 的环境里编译。
+
+    private readonly System.Collections.Generic.Dictionary<int, GameObject> visualHandles
+        = new System.Collections.Generic.Dictionary<int, GameObject>();
+    private int nextHandle = 1;
+    private Transform visualRoot;
+
+    private Transform VisualRoot
+    {
+        get
+        {
+            if (visualRoot == null)
+                visualRoot = new GameObject("VisualRoot").transform;
+            return visualRoot;
+        }
+    }
+
+    private int Register(GameObject go)
+    {
+        if (go == null)
+            return 0;
+        int handle = nextHandle++;
+        visualHandles[handle] = go;
+        return handle;
+    }
+
+    public int CreateFlameVisual(Vector2Int cell)
+        => Register(BuildFlameVisual(cell, VisualRoot));
+
+    public int CreateMarkerVisual(Vector2Int cell, string kind)
+    {
+        var go = BuildRedMarker(cell, VisualRoot, kind);
+        if (go != null && kind == "TimedBomb")
+            BuildBombLabel(go, 0);
+        return Register(go);
+    }
+
+    public int CreateLootVisual(Vector2Int cell, LootStyle style)
+    {
+        var go = new GameObject($"Loot_{cell.x}_{cell.y}");
+        go.transform.SetParent(VisualRoot, false);
+        go.AddComponent<SpriteRenderer>();
+
+        Color fill, border;
+        bool emphasize;
+        switch (style)
+        {
+            case LootStyle.Scatter:
+                fill = ScatterFill; border = ScatterBorder; emphasize = false; break;
+            case LootStyle.Doll:
+                fill = ItemInfo.GetDollGoldFill(); border = ItemInfo.GetDollGoldBorder(); emphasize = true; break;
+            default:
+                fill = DropFill; border = DropBorder; emphasize = false; break;
+        }
+        StyleLoot(go, fill, border, cell, emphasize);
+        return Register(go);
+    }
+
+    public void SetVisualActive(int handle, bool active)
+    {
+        if (handle != 0 && visualHandles.TryGetValue(handle, out var go) && go != null)
+            go.SetActive(active);
+    }
+
+    public void UpdateMarkerLabel(int handle, int actions)
+    {
+        if (handle == 0 || !visualHandles.TryGetValue(handle, out var go) || go == null)
+            return;
+        var tm = go.GetComponentInChildren<TextMesh>();
+        if (tm != null)
+            tm.text = actions.ToString();
+    }
+
+    public void DestroyVisual(int handle)
+    {
+        if (handle == 0 || !visualHandles.TryGetValue(handle, out var go))
+            return;
+        if (go != null)
+            Object.Destroy(go);
+        visualHandles.Remove(handle);
+    }
+
     // 视觉常量：原在 HazardManager 里，随创建代码一起搬过来
+    private static readonly Color ScatterFill = new Color(0.42f, 0.4f, 0.36f, 1f);
+    private static readonly Color ScatterBorder = new Color(0.22f, 0.2f, 0.18f, 1f);
+    private static readonly Color DropFill = new Color(0.25f, 0.55f, 0.95f, 1f);
+    private static readonly Color DropBorder = new Color(0.1f, 0.25f, 0.5f, 1f);
     private static readonly Color HazardRed = new Color(0.92f, 0.22f, 0.18f, 1f);
     private static readonly Color HazardRedBorder = new Color(0.45f, 0.08f, 0.06f, 1f);
     private static readonly Color FlameEdge = new Color(0.95f, 0.15f, 0.05f, 0.55f);
     private static readonly Color FlameGlow = new Color(1f, 0.75f, 0.2f, 0.35f);
 
-    public void StyleLoot(GameObject go, Color fill, Color border, Vector2Int cell, bool emphasize)
+    private void StyleLoot(GameObject go, Color fill, Color border, Vector2Int cell, bool emphasize)
     {
         var grid = GridManager.Instance;
         var sr = go.GetComponent<SpriteRenderer>();
@@ -110,7 +198,7 @@ public sealed class UnityPresentation : IPresentation
             go.AddComponent<CameraBillboard>();
     }
 
-    public GameObject BuildFlameVisual(Vector2Int cell, Transform parent)
+    private GameObject BuildFlameVisual(Vector2Int cell, Transform parent)
     {
         var grid = GridManager.Instance;
         var go = new GameObject("Flame");
@@ -152,7 +240,7 @@ public sealed class UnityPresentation : IPresentation
         return go;
     }
 
-    public GameObject BuildRedMarker(Vector2Int cell, Transform parent, string name)
+    private GameObject BuildRedMarker(Vector2Int cell, Transform parent, string name)
     {
         var go = new GameObject(name);
         go.transform.SetParent(parent, false);
@@ -166,7 +254,7 @@ public sealed class UnityPresentation : IPresentation
         return go;
     }
 
-    public void BuildBombLabel(GameObject marker, int actions)
+    private void BuildBombLabel(GameObject marker, int actions)
     {
         var labelGo = new GameObject("Label");
         labelGo.transform.SetParent(marker.transform, false);
