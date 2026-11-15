@@ -51,6 +51,13 @@ public static class ConfigExport
     }
 
     [Serializable]
+    public class RoleRow
+    {
+        public string id;
+        public string name;
+    }
+
+    [Serializable]
     public class Table
     {
         public int schema;
@@ -58,6 +65,7 @@ public static class ConfigExport
         public CardRow[] cards;
         public TileRow[] tiles;
         public StatusRow[] statuses;
+        public RoleRow[] roles;
     }
 
     /// <summary>命令行入口：导出后立即退出编辑器。</summary>
@@ -79,7 +87,8 @@ public static class ConfigExport
 
         File.WriteAllText(fullPath, JsonUtility.ToJson(table, true), new UTF8Encoding(false));
         Debug.Log($"[ConfigExport] schema={table.schema} 卡牌 {table.cards.Length} / " +
-                  $"地形 {table.tiles.Length} / 状态 {table.statuses.Length} → {fullPath}");
+                  $"地形 {table.tiles.Length} / 状态 {table.statuses.Length} / " +
+                  $"角色 {table.roles.Length} → {fullPath}");
     }
 
     private static Table Build()
@@ -122,13 +131,24 @@ public static class ConfigExport
             });
         }
 
+        var roles = new List<RoleRow>();
+        foreach (RoleType type in Enum.GetValues(typeof(RoleType)))
+        {
+            roles.Add(new RoleRow
+            {
+                id = GameRulesConfig.ToSnakeCase(type.ToString()),
+                name = RoleInfo.GetDisplayName(type)
+            });
+        }
+
         return new Table
         {
             schema = SchemaVersion,
             source = "game_code_export",
             cards = cards.ToArray(),
             tiles = tiles.ToArray(),
-            statuses = statuses.ToArray()
+            statuses = statuses.ToArray(),
+            roles = roles.ToArray()
         };
     }
 }
