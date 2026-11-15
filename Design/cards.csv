@@ -1,0 +1,47 @@
+﻿id,名字,一句话描述,装备槽,使用方式,印数
+doll_elephant,象玩偶,金色·持有增益/集齐获胜,,None,1
+doll_human,人玩偶,金色·持有增益/集齐获胜,,None,1
+doll_monkey,猴玩偶,金色·持有增益/集齐获胜,,None,1
+doll_cat,猫玩偶,金色·持有增益/集齐获胜,,None,1
+small_potion,小血瓶,+9血,,Instant,10
+bomb,炸弹,掷地，15物伤，半径2,,TargetCell,10
+mega_bomb,高爆炸弹,掷地，24物伤，半径2,,TargetCell,4
+timed_bomb,定时炸弹,安放，1–5回合(×4行动)后爆半径4，仅自己可见,,ChooseDelay,6
+reinforce,强化剂,攻/防/移 永久+1（三选一）,,ChooseStat,10
+bow,弓,攻+2 射距3，耗1弹药（须装备）,Weapon,EquipToggle,6
+crossbow,弩,攻+10 射距5，耗1；须蓄力，同行动不可射,Weapon,EquipToggle,2
+arrow,弓箭,弹药，1支/张，重1，可合并,,None,30
+poison_arrow,毒箭,1支/张，命中中毒1回合,,None,12
+fire_rocket,火箭,1支/张，命中着火1回合,,None,12
+banana_peel,香蕉皮,投掷隐身陷阱，踩踏跌倒,,TargetCell,10
+flamethrower,火焰喷射器,须装备+耗1汽油；直线5格10法伤+着火；路径火焰2回合(×4行动),Weapon,EquipToggle,2
+wood_armor,木甲,装备防+4；物伤即耗耐久,Armor,EquipToggle,6
+iron_armor,铁甲,装备防+8；物伤即耗耐久,Armor,EquipToggle,2
+rubber_raincoat,橡胶雨衣,装备防+3；免雨天减益；免着火耗耐久；耐久3,Armor,EquipToggle,6
+energy_shield,能量护盾,装备，吸收物伤/法伤（不挡真伤）,Armor,EquipToggle,6
+thorns_armor,荆棘护甲,装备防+2；近战反伤实际伤害50%真伤,Armor,EquipToggle,6
+tactical_vest,战术背心,装备防+2 包+5；炸/雷额外-2；耐久6,Armor,EquipToggle,6
+adrenaline,肾上腺素,HP低于30%：移+2攻+3，3回合,,Instant,10
+mine,地雷,放置陷阱，踩中15法伤；弃置可捡,,TargetCell,10
+large_potion,大血瓶,+15血,,Instant,4
+skill_upgrade,技能升级卡,集齐3张：技能等级+1,,Instant,24
+night_vision,夜视镜,装备；黑夜晴+3/雨+2/雾+1 能见度,Accessory,EquipToggle,4
+telescope,望远镜,装备；昼间雾+2；非黑夜窥隐匿与背包,Accessory,EquipToggle,4
+skateboard,滑板,装备；移动力+2,Vehicle,EquipToggle,6
+motorcycle,摩托车,装备；耗1油发动3回合：移+3/冲击6–10宽3,Vehicle,EquipToggle,2
+ice_skates,滑行靴,装备；冰地移+2且不跌倒,Vehicle,EquipToggle,4
+grapple_hook,抢夺勾爪,装备；半径3抢一件，用后毁,Accessory,EquipToggle,6
+amulet,护身符,装备；致命伤免伤一次+护盾+隐匿,Accessory,EquipToggle,2
+flashbang,闪光弹,投掷；爆点半径2致盲1回合,,TargetCell,6
+dagger,匕首,装备；近战距1 伤害+6,Weapon,EquipToggle,6
+longsword,长剑,装备；近战距2 伤害+8,Weapon,EquipToggle,4
+armor_piercing_blade,破甲刃,装备；近战距1 伤害+6；无视防具,Weapon,EquipToggle,8
+cursed_blade,诅咒之刃,装备；第x次：己1x/敌2x真伤；移动后不可用,Weapon,EquipToggle,2
+gasoline_bottle,汽油瓶,弹药：喷火耗1；或+打火机投掷燃瓶,,TargetCell,20
+lighter,打火机,点燃汽油瓶投掷（保留打火机）,,TargetCell,8
+boomerang,回旋镖,射程4，15物伤；击杀回手否则弃牌,,TargetUnit,6
+milk,牛奶,清除自身中毒/着火/跌倒,,Instant,8
+weather_clear,晴天弹,立刻将天气转为晴天,,Instant,6
+weather_rain,雨天弹,立刻将天气转为雨天,,Instant,6
+weather_fog,雾天弹,立刻将天气转为雾天,,Instant,6
+red_bull,红牛,行动结束后额外行动1次,,Instant,12

@@ -1,0 +1,8 @@
+﻿id,名字,提示文案,攻击修正,防御修正,移动修正,最大层数,其它参数
+trip,跌倒,防-3 移-1,,-3,-1,,rounds=3
+poison,中毒,每层攻防移-2 视2；终每层2毒伤；最多3层,-2,-2,-2,3,end_damage_per_stack=2; visibility=2; rounds=1
+burning,着火,行动开始10火焰法伤,,,,,rounds=1
+hidden,隐匿,非邻接不可被攻,,,,,reveal_range=1
+leader,领袖,攻防+9 移+3；行动开始6真伤,9,9,3,,start_damage=6
+stun,晕眩,跳过本次行动,,,,,rounds=1
+blind,致盲,能见度0,,,,,visibility=0; rounds=1

@@ -1,0 +1,98 @@
+﻿分组,键,值,说明
+grid,width,18,
+grid,height,18,
+combat,melee_range,1,
+combat,lava_true_damage,20,
+combat,burning_magic_damage,10,
+combat,cursed_blade_target_mult,2,
+combat,cursed_blade_self_mult,1,
+combat,move_min_alive,1,
+clock,start_hour,6,
+clock,hours_per_round,2,
+clock,period_dawn_start,4,
+clock,period_day_start,8,
+clock,period_dusk_start,16,
+clock,period_night_start,20,
+clock,dawn_rep_hour,6,
+clock,day_rep_hour,12,
+clock,dusk_rep_hour,18,
+clock,night_rep_hour,0,
+visibility,full_map,40,
+visibility,night_clear,5,
+visibility,night_rain,4,
+visibility,night_fog,3,
+visibility,fog_day,8,
+visibility,fog_dawn_dusk,6,
+weather,rain_def_mod,-3,
+weather,rain_magic_resist,25,
+weather,fog_magic_resist,10,
+weather,lock_min,6,
+weather,lock_max,10,
+lava,shrink_every_rounds,5,
+match,max_full_rounds,80,
+match,actions_per_round,4,
+match,pickup_range,1,
+skills,human_cooldown_lv1,8,
+skills,human_cooldown_lv2,6,
+skills,human_cooldown_lv3,5,
+skills,human_reinforce_amount,1,
+skills,monkey_cooldown_lv1,5,
+skills,monkey_cooldown_lv2,4,
+skills,monkey_cooldown_lv3,3,
+skills,monkey_radius_lv1,2,
+skills,monkey_radius_lv2,3,
+skills,monkey_radius_lv3,4,
+skills,cat_cooldown_lv1,5,
+skills,cat_cooldown_lv2,4,
+skills,cat_cooldown_lv3,3,
+skills,deterrence_outer_lv1,3,
+skills,deterrence_outer_lv2,5,
+skills,deterrence_outer_lv3,7,
+skills,deterrence_inner_radius,2,
+skills,deterrence_inner_penalty,2,
+skills,deterrence_outer_penalty,1,
+leader,duration,10,
+leader,random_draw,5,
+leader,doll_required,3,
+terrain,sand_move,-1,
+terrain,ice_move,1,
+terrain,ice_trip_chance,0.2,
+terrain,highland_atk,3,
+terrain,highland_def,3,
+terrain,highland_range,1,
+terrain,jungle_magic_resist,20,
+terrain,sand_magic_resist,-10,
+terrain,swamp_magic_resist,-20,
+terrain,biome_ratio,0.1,
+terrain,biome_min_cells,8,
+terrain,biome_blob_min,1,
+terrain,biome_blob_max,2,
+terrain,biome_split_min_ratio,0.3,
+terrain,biome_split_min_cells,4,
+terrain,spawn_protect_radius,2,
+terrain,biome_seed_spacing,4,
+items,molotov_damage,10,全局参数，或键名与条目 id 不一致，暂未进专表
+items,molotov_radius,2,全局参数，或键名与条目 id 不一致，暂未进专表
+items,molotov_range,5,全局参数，或键名与条目 id 不一致，暂未进专表
+items,molotov_flame_rounds,2,全局参数，或键名与条目 id 不一致，暂未进专表
+items,thorns_reflect_pct,50,全局参数，或键名与条目 id 不一致，暂未进专表
+items,ammo_per_card,1,全局参数，或键名与条目 id 不一致，暂未进专表
+items,shoot_ammo_cost,1,全局参数，或键名与条目 id 不一致，暂未进专表
+items,fuel_cost,1,全局参数，或键名与条目 id 不一致，暂未进专表
+items,armor_durability_loss,1,全局参数，或键名与条目 id 不一致，暂未进专表
+items,weight_per_card,1,全局参数，或键名与条目 id 不一致，暂未进专表
+status,adrenaline_move,2,全局参数，或键名与条目 id 不一致，暂未进专表
+status,adrenaline_atk,3,全局参数，或键名与条目 id 不一致，暂未进专表
+status,adrenaline_duration,3,全局参数，或键名与条目 id 不一致，暂未进专表
+status,adrenaline_hp_threshold_pct,30,全局参数，或键名与条目 id 不一致，暂未进专表
+status,dying_visibility,1,全局参数，或键名与条目 id 不一致，暂未进专表
+status,dying_actions,12,全局参数，或键名与条目 id 不一致，暂未进专表
+status,swamp_poison_rounds,1,全局参数，或键名与条目 id 不一致，暂未进专表
+terrain,biome_ratio,0.1,全局参数，或键名与条目 id 不一致，暂未进专表
+terrain,biome_min_cells,8,全局参数，或键名与条目 id 不一致，暂未进专表
+terrain,biome_blob_min,1,全局参数，或键名与条目 id 不一致，暂未进专表
+terrain,biome_blob_max,2,全局参数，或键名与条目 id 不一致，暂未进专表
+terrain,biome_split_min_ratio,0.3,全局参数，或键名与条目 id 不一致，暂未进专表
+terrain,biome_split_min_cells,4,全局参数，或键名与条目 id 不一致，暂未进专表
+terrain,spawn_protect_radius,2,全局参数，或键名与条目 id 不一致，暂未进专表
+terrain,biome_seed_spacing,4,全局参数，或键名与条目 id 不一致，暂未进专表
