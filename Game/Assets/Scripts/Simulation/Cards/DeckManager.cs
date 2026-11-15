@@ -5,7 +5,7 @@ using UnityEngine;
 /// 共用限量牌库：开局构建后背面散落到地图格；结算进弃牌；场上弃置/散落物被熔岩吞噬后进弃牌。
 /// 行动开始不再摸牌；管理员虚空印牌不走牌库。
 /// </summary>
-public class DeckManager : MonoBehaviour
+public class DeckManager
 {
     public static DeckManager Instance;
 
@@ -15,16 +15,6 @@ public class DeckManager : MonoBehaviour
     public int DrawCount => drawPile.Count;
     public int DiscardCount => discardPile.Count;
 
-    private void Awake()
-    {
-        Instance = this;
-    }
-
-    private void OnDestroy()
-    {
-        if (Instance == this)
-            Instance = null;
-    }
 
     /// <summary>
     /// 按 yaml 印数构建牌库并洗牌。
@@ -68,7 +58,7 @@ public class DeckManager : MonoBehaviour
         Shuffle(cells);
         Shuffle(drawPile);
 
-        int n = Mathf.Min(drawPile.Count, cells.Count);
+        int n = System.Math.Min(drawPile.Count, cells.Count);
         for (int i = 0; i < n; i++)
             ground.ScatterFaceDown(cells[i], InventoryItem.CreateFresh(drawPile[i]));
 

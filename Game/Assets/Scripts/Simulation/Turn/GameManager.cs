@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GameManager : MonoBehaviour
+public class GameManager
 {
     public static GameManager Instance;
 
@@ -22,16 +22,6 @@ public class GameManager : MonoBehaviour
     public RoleType? WinnerRole { get; private set; }
     public string EndReason { get; private set; }
 
-    private void Awake()
-    {
-        Instance = this;
-    }
-
-    private void OnDestroy()
-    {
-        if (Instance == this)
-            Instance = null;
-    }
 
     /// <summary>
     /// 开局复位：清空上一局的胜负结果。单位名单由 <see cref="TurnManager.Setup"/> 负责，
@@ -148,7 +138,7 @@ public class GameManager : MonoBehaviour
         if (LogicMatchLogger.IsRecording)
         {
             int full = TurnManager.Instance != null
-                ? Mathf.Max(0, TurnManager.Instance.RoundNumber - 1)
+                ? System.Math.Max(0, TurnManager.Instance.RoundNumber - 1)
                 : 0;
             string w = winnerRole.HasValue ? LogicSimNaming.Role(winnerRole.Value) : null;
             LogicMatchLogger.Active.FinishMatch(w, reason, full);

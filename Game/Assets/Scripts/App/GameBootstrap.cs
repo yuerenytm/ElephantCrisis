@@ -374,7 +374,7 @@ public class GameBootstrap : MonoBehaviour
         }
 
         if (GameManager.Instance == null)
-            gameObject.AddComponent<GameManager>();
+            GameManager.Instance = new GameManager();
         if (TurnManager.Instance == null)
             gameObject.AddComponent<TurnManager>();
         if (PlayerInputController.Instance == null)
@@ -412,7 +412,7 @@ public class GameBootstrap : MonoBehaviour
         }
 
         if (DeckManager.Instance == null)
-            gameObject.AddComponent<DeckManager>();
+            DeckManager.Instance = new DeckManager();
     }
 
     private void SetupCamera()
