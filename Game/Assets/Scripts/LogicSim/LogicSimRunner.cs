@@ -82,7 +82,7 @@ public class LogicSimRunner : MonoBehaviour
             yield break;
         }
 
-        MainMenuUI.Instance?.Hide();
+        Presentation.Current.HideMenu();
         Time.timeScale = 20f;
 
         var results = new List<Dictionary<string, object>>();

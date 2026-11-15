@@ -150,16 +150,7 @@ public static class ItemUseService
                 return true;
 
             case ItemUseKind.TargetCell:
-                if (kind == ItemKind.BananaPeel)
-                    PlayerInputController.Instance?.StartBananaMode(itemIndex);
-                else if (kind == ItemKind.Mine)
-                    PlayerInputController.Instance?.StartMineMode(itemIndex);
-                else if (kind == ItemKind.Flashbang)
-                    PlayerInputController.Instance?.StartFlashbangMode(itemIndex);
-                else if (ItemInfo.IsMolotovKit(kind))
-                    PlayerInputController.Instance?.StartMolotovMode(itemIndex);
-                else
-                    PlayerInputController.Instance?.StartBombMode(itemIndex);
+                Presentation.Current.BeginItemTargeting(itemIndex, kind);
                 return true;
 
             case ItemUseKind.ChooseDelay:
@@ -168,14 +159,11 @@ public static class ItemUseService
                 return true;
 
             case ItemUseKind.ChooseDirection:
-                PlayerInputController.Instance?.StartFlameMode(itemIndex);
+                Presentation.Current.BeginItemTargeting(itemIndex, ItemKind.Flamethrower);
                 return true;
 
             case ItemUseKind.TargetUnit:
-                if (kind == ItemKind.Boomerang)
-                    PlayerInputController.Instance?.StartBoomerangMode(itemIndex);
-                else
-                    PlayerInputController.Instance?.StartShootMode(itemIndex);
+                Presentation.Current.BeginItemTargeting(itemIndex, kind);
                 return true;
 
             case ItemUseKind.EquipToggle:
@@ -225,7 +213,7 @@ public static class ItemUseService
             TurnManager.Instance.LogFor(unit, $"【{ItemInfo.GetDisplayName(ammo)}】不足（需要{need}）");
             return false;
         }
-        PlayerInputController.Instance?.StartShootModeWithAmmo(weaponIndex, ammo);
+        Presentation.Current.BeginShootWithAmmo(weaponIndex, ammo);
         return true;
     }
 }
@@ -534,8 +522,7 @@ public static class ActionService
                 $"{RoleInfo.GetDisplayName(unit.Role)} 移动到 ({unit.Cell.x},{unit.Cell.y})");
         }
         StealthService.CheckAll();
-        if (!MatchConfig.IsLogicSim)
-            VisibilityService.RefreshWorld();
+        VisibilityService.RefreshWorld();
         return true;
     }
 
@@ -747,7 +734,7 @@ public static class ActionService
                 TurnManager.Instance.LogFor(unit, "弹药不足");
                 return false;
             }
-            PlayerInputController.Instance?.StartShootMode(itemIndex);
+            Presentation.Current.BeginItemTargeting(itemIndex, entry.Kind);
             return true;
         }
         if (entry.Kind == ItemKind.Crossbow)
@@ -773,7 +760,7 @@ public static class ActionService
                 TurnManager.Instance.LogFor(unit, "弹药不足");
                 return false;
             }
-            PlayerInputController.Instance?.StartShootMode(itemIndex);
+            Presentation.Current.BeginItemTargeting(itemIndex, entry.Kind);
             return true;
         }
         if (entry.Kind == ItemKind.Flamethrower)
@@ -783,7 +770,7 @@ public static class ActionService
                 TurnManager.Instance.LogFor(unit, "火焰喷射器需要【汽油瓶】作为弹药，无法单独喷射");
                 return false;
             }
-            PlayerInputController.Instance?.StartFlameMode(itemIndex);
+            Presentation.Current.BeginItemTargeting(itemIndex, ItemKind.Flamethrower);
             return true;
         }
         if (entry.Kind == ItemKind.Motorcycle)
@@ -795,12 +782,12 @@ public static class ActionService
                 return TryStartMotorcycle(unit, itemIndex);
             if (TurnManager.Instance.HasMoved)
                 return TryToggleEquip(unit, itemIndex);
-            PlayerInputController.Instance?.StartMotorcycleRamMode(itemIndex);
+            Presentation.Current.BeginItemTargeting(itemIndex, ItemKind.Motorcycle);
             return true;
         }
         if (entry.Kind == ItemKind.GrappleHook)
         {
-            PlayerInputController.Instance?.StartHookMode(itemIndex);
+            Presentation.Current.BeginItemTargeting(itemIndex, ItemKind.GrappleHook);
             return true;
         }
 
@@ -845,8 +832,7 @@ public static class ActionService
 
         TurnManager.Instance.LogFor(unit, $"{RoleInfo.GetDisplayName(unit.Role)} {log}");
         unit.RefreshBagCapacity();
-        if (!MatchConfig.IsLogicSim)
-            VisibilityService.RefreshWorld();
+        VisibilityService.RefreshWorld();
         TurnManager.Instance.NotifyActionDone();
         return true;
     }

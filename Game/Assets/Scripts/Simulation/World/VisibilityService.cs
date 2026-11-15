@@ -105,11 +105,11 @@ public static class VisibilityService
     public static void RefreshWorld()
     {
         var viewer = GetFogViewer();
-        MapVisual.Instance?.ApplyFog(viewer);
+        Presentation.Current.ApplyFog(viewer);
         RefreshUnitVisibility(viewer);
         GroundItemManager.Instance?.RefreshAllVisibility(viewer);
         HazardManager.Instance?.RefreshHazardVisibility();
-        AtmosphereVisual.Instance?.Refresh();
+        
     }
 
     /// <summary>
@@ -118,9 +118,9 @@ public static class VisibilityService
     public static void RefreshAfterVisionRuleChange()
     {
         RefreshWorld();
-        PlayerInputController.Instance?.RefreshHints();
+        Presentation.Current.RefreshHints();
         // 状态栏「视」等：延后刷新，避免在用牌按钮回调里拆毁 UI
-        GameUI.Instance?.RequestRefresh();
+        Presentation.Current.RequestHud();
     }
 
     private static void RefreshUnitVisibility(UnitActor viewer)

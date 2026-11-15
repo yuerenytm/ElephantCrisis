@@ -190,8 +190,8 @@ public class AiController : MonoBehaviour
                 yield break;
 
             bool acted = SimpleHeuristicAi.TryActOnce(unit);
-            GameUI.Instance?.RequestRefresh();
-            PlayerInputController.Instance?.RefreshHints();
+            Presentation.Current.RequestHud();
+            Presentation.Current.RefreshHints();
 
             if (!acted)
                 break;
@@ -209,7 +209,7 @@ public class AiController : MonoBehaviour
             !(GameManager.Instance?.IsGameOver ?? false))
         {
             endTurn.RequestEndTurn();
-            GameUI.Instance?.RequestRefresh();
+            Presentation.Current.RequestHud();
         }
 
         running = null;

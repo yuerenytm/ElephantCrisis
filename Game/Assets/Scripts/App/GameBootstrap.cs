@@ -154,6 +154,7 @@ public class GameBootstrap : MonoBehaviour
 
         TurnManager.Instance?.ResetMatch();
         GameManager.Instance?.ClearMatch();
+        Presentation.Clear();
 
         if (PlayerInputController.Instance != null && !MatchConfig.IsLeanRuntime)
             PlayerInputController.Instance.enabled = true;
@@ -212,6 +213,7 @@ public class GameBootstrap : MonoBehaviour
 
         TurnManager.Instance?.ResetMatch();
         GameManager.Instance?.ClearMatch();
+        Presentation.Clear();
     }
 
     /// <summary>
@@ -286,6 +288,10 @@ public class GameBootstrap : MonoBehaviour
         GameRulesConfig.ValidateKeysOnce();
 
         bool lean = MatchConfig.IsLeanRuntime;
+        if (lean)
+            Presentation.Clear();   // 无头：表现层全部空转
+        else
+            Presentation.Wire(new UnityPresentation());
         EnsureSystems(lean);
         if (!lean)
             SetupCamera();

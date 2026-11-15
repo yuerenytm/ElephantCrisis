@@ -66,8 +66,7 @@ public class GameManager : MonoBehaviour
         {
             int swallowed = GroundItemManager.Instance.SwallowCellsToDiscard(changed);
             HazardManager.Instance?.SwallowCells(changed);
-            if (!MatchConfig.IsLeanRuntime)
-                MapVisual.Instance?.RefreshAllTiles(GridManager.Instance);
+            Presentation.Current.RefreshTiles();
             // 高地被熔岩覆盖后高度归零，单位需贴回新高度
             if (Units != null)
             {

@@ -534,8 +534,7 @@ public class TurnManager : MonoBehaviour
                 WeatherService.OnFullRoundAdvanced(RoundNumber);
 
                 Log($"—— 进入第{RoundNumber}回合 · {GameClock.GetStatusLine(RoundNumber)} · {WeatherService.GetDisplayName()}（矩阵视 {GameClock.GetBaseVisibility(RoundNumber)}）——");
-                if (!MatchConfig.IsLogicSim)
-                    VisibilityService.RefreshWorld();
+                VisibilityService.RefreshWorld();
 
                 if (LogicMatchLogger.IsRecordingEvents)
                 {
