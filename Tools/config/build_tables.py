@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+from collections import Counter
 import sys
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
@@ -25,6 +26,7 @@ from typing import Dict, List, Optional, Tuple
 import yaml
 
 REPO = Path(__file__).resolve().parents[2]
+SCRIPTS = REPO / "Game" / "Assets" / "Scripts"
 RULE_YAML = REPO / "Game" / "Assets" / "StreamingAssets" / "Config" / "game_rules.yaml"
 META_JSON = REPO / "Design" / "meta" / "meta.json"
 DESIGN = REPO / "Design"
@@ -68,19 +70,16 @@ def write_csv(path: Path, rows: List[dict], check_only: bool) -> Optional[str]:
             old_rows = [{k: (v or "") for k, v in row.items()} for row in csv.DictReader(handle)]
         if old_rows == new_rows:
             return None
-        key = fields[0]
-        old_by = {r.get(key, ""): r for r in old_rows}
-        new_by = {r.get(key, ""): r for r in new_rows}
-        added = sorted(set(new_by) - set(old_by))
-        removed = sorted(set(old_by) - set(new_by))
-        changed = sorted(k for k in set(old_by) & set(new_by) if old_by[k] != new_by[k])
+        # 按整行比对（长表里同一个 id 有多行，用单列当 key 会互相覆盖）
+        old_set = Counter(tuple(r.get(c, "") for c in fields) for r in old_rows)
+        new_set = Counter(tuple(r.get(c, "") for c in fields) for r in new_rows)
+        added = list((new_set - old_set).elements())
+        removed = list((old_set - new_set).elements())
         parts = []
         if added:
-            parts.append(f"新增 {len(added)}（{', '.join(added[:4])}）")
+            parts.append(f"新增 {len(added)} 行，如 {added[0]}")
         if removed:
-            parts.append(f"删除 {len(removed)}（{', '.join(removed[:4])}）")
-        if changed:
-            parts.append(f"修改 {len(changed)}（{', '.join(changed[:4])}）")
+            parts.append(f"删除 {len(removed)} 行，如 {removed[0]}")
         return f"{path.name}: " + " / ".join(parts)
 
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -95,12 +94,14 @@ def write_csv(path: Path, rows: List[dict], check_only: bool) -> Optional[str]:
 # ---------------------------------------------------------------- 各张表
 
 
-# 这些列一旦进表就该由人维护，重跑脚本不该覆盖
-IDENTITY_COLUMNS = {
-    "cards.csv": ["名字", "一句话描述"],
-    "tiles.csv": ["名字", "效果摘要"],
-    "statuses.csv": ["名字", "提示文案"],
-    "roles.csv": ["名字"],
+# 每张表的主键列：实体表用 id，长表用复合键
+KEY_COLUMNS = {
+    "roles.csv": ["id"],
+    "cards.csv": ["id"],
+    "tiles.csv": ["id"],
+    "statuses.csv": ["id"],
+    "card_stats.csv": ["卡牌", "参数"],
+    "rules.csv": ["分组", "键"],
 }
 
 
@@ -113,24 +114,31 @@ def read_existing(name: str) -> List[dict]:
         return list(csv.DictReader(handle))
 
 
-def preserve_identity(tables: List[Tuple[str, List[dict]]]) -> None:
-    """保留表里已有的名字 / 描述。
+def merge_existing(tables: List[Tuple[str, List[dict]]]) -> None:
+    """**只补空，不覆盖已有值。**
 
-    权威已经切到 CSV：策划改名后如果重跑本脚本又被代码值盖回去，
-    "可编辑"就是假的。所以默认保留，只有 --reset-identity 才用代码值覆盖。
+    权威已经切到 CSV：`game_rules.yaml` 只是退役快照。如果重跑本脚本
+    用 yaml 的值覆盖表，等于每次重跑都悄悄撤销策划的改动。
+
+    所以：按主键匹配已有行，保留非空单元格；只补新增的行（新卡 / 新地形 /
+    新状态 / 新参数）。要从 yaml 全量重建请显式加 `--rebuild`。
     """
     for name, rows in tables:
-        columns = IDENTITY_COLUMNS.get(name)
-        if not columns:
+        key_columns = KEY_COLUMNS.get(name)
+        if not key_columns or not rows:
             continue
-        old = {row.get("id"): row for row in read_existing(name)}
+
+        def key_of(row: dict, columns=key_columns):
+            return tuple(row.get(c, "") for c in columns)
+
+        existing = {key_of(row): row for row in read_existing(name)}
         for row in rows:
-            previous = old.get(row.get("id"))
+            previous = existing.get(key_of(row))
             if not previous:
                 continue
-            for column in columns:
-                if previous.get(column):
-                    row[column] = previous[column]
+            for column, value in previous.items():
+                if column in row and value != "":
+                    row[column] = value
 
 
 def build_roles(rules: dict, meta: dict) -> List[dict]:
@@ -291,6 +299,27 @@ Game/Assets/StreamingAssets/Config/game_rules.gen.yaml  ← 游戏优先读它
 | 数据 | CSV 反向合成 250 个键，逐键比对 + 整文档解析比对 | 0 差异 |
 | 行为 | 同种子 50000 起 100 局，对拍切换前基线 | 0 差异 |
 
+## 加一张新卡的完整流程
+
+| 步 | 谁做 | 做什么 |
+|---|---|---|
+| 1 | 程序 | `ItemKind` 加枚举值；需要新玩法才加 `Try*` |
+| 2 | 程序 | 跑 `ConfigExport`（**必须重跑**，否则 meta.json 过期） |
+| 3 | — | `python Tools/config/build_tables.py` → 表里自动多一行（印数 0、名字取代码兜底） |
+| 4 | 策划 | 改表：名字、描述、印数、数值 |
+| 5 | — | `python Tools/config/build.py` → 配置生效 |
+
+**第 3 步是"只补空、不覆盖"**：已有行的非空值一律保留，所以重跑脚本
+不会撤销任何手工改动。只想补新行就正常跑；要从 yaml 全量重建才用 `--rebuild`。
+
+## meta.json 的定位
+
+它**不是数据源**，而是"代码契约快照"：有哪些卡 / 地形 / 状态、各自的装备槽与使用方式。
+用途只有两个：① 引导新行；② 让校验知道"代码里合法的 id 有哪些"。
+
+所以它被 `.gitignore` 忽略、随时可重生成；`build_tables.py` 发现它比 C# 源码旧时会告警
+——"改了代码没重新导出"是最常见的踩坑。
+
 ## 六张表
 
 | 文件 | 内容 | 谁能改 |
@@ -360,9 +389,9 @@ def main(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(description="合成策划表 Design/*.csv")
     parser.add_argument("--check", action="store_true", help="只比对不写文件")
     parser.add_argument(
-        "--reset-identity",
+        "--rebuild",
         action="store_true",
-        help="用代码里的名字/描述覆盖表（默认保留表里已有的，因为权威已切到 CSV）",
+        help="以 yaml + 代码为准全量重建表（会覆盖表里已有的值；仅用于初始化或纠正）",
     )
     parser.add_argument("--out", default=str(DESIGN), help="输出目录")
     args = parser.parse_args(argv)
@@ -371,6 +400,15 @@ def main(argv: List[str]) -> int:
     if not META_JSON.is_file():
         print(f"缺少 {META_JSON}，请先跑 ConfigExport（见 Design/README.md）", file=sys.stderr)
         return 2
+
+    # meta.json 是代码导出的快照：比脚本还旧就说明可能过期（改了 C# 没重新导出）
+    newest_cs = max(
+        (p.stat().st_mtime for p in (SCRIPTS / "Core").glob("*.cs")),
+        default=0.0,
+    )
+    if META_JSON.stat().st_mtime < newest_cs:
+        print("⚠ meta.json 比 C# 源码旧，可能过期；建议先重跑 ConfigExport 再生成表"
+              "（当前继续，但名字/槽位/用法可能不是最新的）", file=sys.stderr)
 
     rules = yaml.safe_load(RULE_YAML.read_text(encoding="utf-8-sig"))
     meta = json.loads(META_JSON.read_text(encoding="utf-8"))
@@ -391,8 +429,8 @@ def main(argv: List[str]) -> int:
         )),
     ]
 
-    if not args.reset_identity:
-        preserve_identity(tables)
+    if not args.rebuild:
+        merge_existing(tables)
 
     problems = []
     for name, rows in tables:
