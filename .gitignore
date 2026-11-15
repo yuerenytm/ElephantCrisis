@@ -78,3 +78,7 @@ Design/meta/
 # 引擎无关性检查工程的构建产物
 Tools/core_check/bin/
 Tools/core_check/obj/
+
+# 跑批器构建产物
+Tools/sim_runner/bin/
+Tools/sim_runner/obj/
