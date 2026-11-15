@@ -295,7 +295,7 @@ public static class StealthService
             preferred.Add(new Vector2Int(occupied.x, occupied.y + sy));
 
         // 等距时打乱顺序再按可落点筛选
-        if (preferred.Count == 2 && Random.value < 0.5f)
+        if (preferred.Count == 2 && Rng.Value < 0.5f)
             (preferred[0], preferred[1]) = (preferred[1], preferred[0]);
 
         for (int i = 0; i < preferred.Count; i++)

@@ -116,7 +116,7 @@ public class GroundItemManager : MonoBehaviour
         var cells = new List<Vector2Int>(piles.Keys);
         for (int i = cells.Count - 1; i > 0; i--)
         {
-            int j = Random.Range(0, i + 1);
+            int j = Rng.Range(0, i + 1);
             (cells[i], cells[j]) = (cells[j], cells[i]);
         }
 
@@ -130,7 +130,7 @@ public class GroundItemManager : MonoBehaviour
                 && piles.TryGetValue(cell, out var list)
                 && list.Count > 0)
             {
-                int idx = Random.Range(0, list.Count);
+                int idx = Rng.Range(0, list.Count);
                 if (!TryPickupOne(cell, idx, inventory))
                     break;
                 picked++;

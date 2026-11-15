@@ -47,7 +47,7 @@ public static class TerrainGenerator
         var usedSeeds = new List<Vector2Int>();
         foreach (var biome in Biomes)
         {
-            int blobCount = Random.Range(GameRulesConfig.BiomeBlobMin, GameRulesConfig.BiomeBlobMax + 1);
+            int blobCount = Rng.Range(GameRulesConfig.BiomeBlobMin, GameRulesConfig.BiomeBlobMax + 1);
             int[] sizes = SplitSize(perBiome, blobCount);
             for (int b = 0; b < blobCount; b++)
             {
@@ -107,7 +107,7 @@ public static class TerrainGenerator
             sizes[1] = total - sizes[0];
             return sizes;
         }
-        sizes[0] = Random.Range(min, max + 1);
+        sizes[0] = Rng.Range(min, max + 1);
         sizes[1] = total - sizes[0];
         return sizes;
     }
@@ -159,7 +159,7 @@ public static class TerrainGenerator
 
         if (candidates.Count == 0)
             return false;
-        seed = candidates[Random.Range(0, candidates.Count)];
+        seed = candidates[Rng.Range(0, candidates.Count)];
         return true;
     }
 
@@ -175,13 +175,13 @@ public static class TerrainGenerator
 
         while (placed < target && frontier.Count > 0)
         {
-            int idx = Random.Range(0, frontier.Count);
+            int idx = Rng.Range(0, frontier.Count);
             var cur = frontier[idx];
             // 打乱邻接顺序
             var dirs = new List<Vector2Int>(Ortho);
             for (int i = dirs.Count - 1; i > 0; i--)
             {
-                int j = Random.Range(0, i + 1);
+                int j = Rng.Range(0, i + 1);
                 (dirs[i], dirs[j]) = (dirs[j], dirs[i]);
             }
 

@@ -287,6 +287,10 @@ public class GameBootstrap : MonoBehaviour
         MainMenuUI.Instance?.Hide();
         GameRulesConfig.ValidateKeysOnce();
 
+        // 有头游玩用时间播种；无头跑批由 LogicSimRunner 按 seed 播种
+        if (!BootFlags.HeadlessRequested)
+            Rng.Reset((int)(System.DateTime.Now.Ticks & 0x7FFFFFFF));
+
         bool lean = MatchConfig.IsLogicSim;
         if (lean)
             Presentation.Clear();   // 无头：表现层全部空转

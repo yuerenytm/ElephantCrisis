@@ -184,7 +184,7 @@ public static class WeatherService
         // 变更后第 lock_min～lock_max 回合（含）内必变一次；见 game_rules.yaml weather
         int min = GameRulesConfig.WeatherLockMin;
         int max = GameRulesConfig.WeatherLockMax;
-        nextChangeRound = fromRound + Random.Range(min, max + 1);
+        nextChangeRound = fromRound + Rng.Range(min, max + 1);
     }
 
     /// <summary>
@@ -200,7 +200,7 @@ public static class WeatherService
                 options.Add(w);
         }
 
-        WeatherType next = options[Random.Range(0, options.Count)];
+        WeatherType next = options[Rng.Range(0, options.Count)];
         ApplyWeather(next, round, ChangeSource.Auto);
     }
 

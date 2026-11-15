@@ -105,7 +105,8 @@ public class LogicSimRunner : MonoBehaviour
 
     private IEnumerator CoRunOne(int seed, List<Dictionary<string, object>> results)
     {
-        UnityEngine.Random.InitState(seed);
+        Rng.Reset(seed);                    // 逻辑随机流（确定性）
+        UnityEngine.Random.InitState(seed); // 表现随机流（火焰闪烁等），与结算无关
 
         var strategies = new Dictionary<string, string>
         {

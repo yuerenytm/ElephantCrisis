@@ -650,7 +650,7 @@ public class UnitActor : MonoBehaviour
             return;
         if (ItemInfo.HasEquippedIceSkates(this))
             return;
-        if (Random.value >= GameRulesConfig.IceTripChance)
+        if (Rng.Value >= GameRulesConfig.IceTripChance)
             return;
         ApplyStatus(StatusType.Trip, GameRulesConfig.TripRounds, this);
         TurnManager.Instance?.Log(
