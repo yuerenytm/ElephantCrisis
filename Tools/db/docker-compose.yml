@@ -1,0 +1,33 @@
+# 本地开发用 MySQL（数据仓库，不是游戏运行时的依赖）
+#
+# 启动：  docker compose -f Tools/db/docker-compose.yml up -d
+# 停止：  docker compose -f Tools/db/docker-compose.yml down
+# 清库：  docker compose -f Tools/db/docker-compose.yml down -v
+#
+# 首次启动会自动执行 schema.sql 建库建表。
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: ec-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ec_root_pw
+      MYSQL_DATABASE: elephant_crisis
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_0900_ai_ci
+    volumes:
+      - ec-mysql-data:/var/lib/mysql
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pec_root_pw"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  ec-mysql-data:
