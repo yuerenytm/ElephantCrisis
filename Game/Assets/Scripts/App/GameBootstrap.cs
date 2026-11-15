@@ -35,7 +35,7 @@ public class GameBootstrap : MonoBehaviour
 
     private void Start()
     {
-        if (LogicSimRunner.IsRequested)
+        if (BootFlags.HeadlessRequested)
             return;
         ShowMainMenu();
     }

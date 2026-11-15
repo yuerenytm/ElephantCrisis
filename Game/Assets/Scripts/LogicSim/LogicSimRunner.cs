@@ -26,6 +26,7 @@ public class LogicSimRunner : MonoBehaviour
     private static void Boot()
     {
         IsRequested = HasArg("-logicSim");
+        BootFlags.HeadlessRequested = IsRequested;
         if (!IsRequested)
             return;
 
