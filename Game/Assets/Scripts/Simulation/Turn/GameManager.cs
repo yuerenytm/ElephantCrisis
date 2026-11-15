@@ -160,7 +160,7 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void Restart()
     {
-        GameBootstrap.Instance?.RequestRestartMatch();
+        Presentation.Current.RestartMatch();
     }
 
     /// <summary>
@@ -168,6 +168,6 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void ReturnToMenu()
     {
-        GameBootstrap.Instance?.RequestReturnToMenu();
+        Presentation.Current.ReturnToMenu();
     }
 }

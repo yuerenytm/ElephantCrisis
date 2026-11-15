@@ -55,6 +55,16 @@ public sealed class UnityPresentation : IPresentation
         PlayerInputController.Instance?.StartShootModeWithAmmo(weaponIndex, ammo);
     }
 
+    public void RestartMatch()
+    {
+        GameBootstrap.Instance?.RequestRestartMatch();
+    }
+
+    public void ReturnToMenu()
+    {
+        GameBootstrap.Instance?.RequestReturnToMenu();
+    }
+
     public void LogConsole(string message)
     {
         Debug.Log(message);

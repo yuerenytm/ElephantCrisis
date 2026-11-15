@@ -26,6 +26,12 @@ public interface IPresentation
     /// <summary>进入射击模式并指定弹药。</summary>
     void BeginShootWithAmmo(int weaponIndex, ItemKind ammo);
 
+    /// <summary>重开一局（表现层负责销毁重建）。</summary>
+    void RestartMatch();
+
+    /// <summary>回到主菜单。</summary>
+    void ReturnToMenu();
+
     /// <summary>把战报镜射到控制台（无头批跑时抑制，避免刷出巨量堆栈）。</summary>
     void LogConsole(string message);
 
@@ -69,6 +75,8 @@ public static class Presentation
         public void RequestHud() { }
         public void BeginItemTargeting(int itemIndex, ItemKind kind) { }
         public void BeginShootWithAmmo(int weaponIndex, ItemKind ammo) { }
+        public void RestartMatch() { }
+        public void ReturnToMenu() { }
         public void LogConsole(string message) { }
         public void HideMenu() { }
         public void StyleLoot(GameObject go, Color fill, Color border, Vector2Int cell, bool emphasize) { }

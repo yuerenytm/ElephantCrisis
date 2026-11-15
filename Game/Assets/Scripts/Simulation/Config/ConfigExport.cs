@@ -71,10 +71,22 @@ public static class ConfigExport
     /// <summary>命令行入口：导出后立即退出编辑器。</summary>
     public static void Run()
     {
-        string relative = LogicSimRunner.GetStringArg("-configOut", "Design/meta/meta.json");
+        string relative = GetArg("-configOut") ?? "Design/meta/meta.json";
         string full = Path.GetFullPath(relative);
         Export(full);
         EditorApplication.Exit(0);
+    }
+
+    /// <summary>读命令行里某个参数的值（本文件只用于 -configOut）。</summary>
+    private static string GetArg(string flag)
+    {
+        string[] args = System.Environment.GetCommandLineArgs();
+        for (int i = 0; i < args.Length - 1; i++)
+        {
+            if (string.Equals(args[i], flag, System.StringComparison.OrdinalIgnoreCase))
+                return args[i + 1];
+        }
+        return null;
     }
 
     /// <summary>导出到指定绝对路径（也供编辑器菜单/测试直接调用）。</summary>
