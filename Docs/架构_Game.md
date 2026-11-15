@@ -1,166 +1,108 @@
 # 架构 · Game
 
-> 适用：`Game/Assets/Scripts/`（48 个 .cs，约 1.6 万行）
-> 引擎：Unity 6（6000.5.3f1），运行时无场景切换，所有系统由代码创建。
+> 适用：`Game/Assets/Scripts/`（62 个 .cs，约 1.72 万行）
+> 配套：[`架构_总纲.md`](./架构_总纲.md)（验收标准）、[`架构_Tools.md`](./架构_Tools.md)（工具链）
 
 ---
 
-## 1. 一句话
+## 一、五个顶层目录
 
-**一个单进程、单场景、代码自举的回合制桌游引擎**：`GameBootstrap` 在运行时造出全部系统，`TurnManager` 驱动回合，`ActionService` 收口所有动作，`UnitActor` 承担全部结算，表现层（UI / 地图 / 氛围）全部可裁剪。
+| 目录 | 文件 | 行数 | 一句话 | 谁依赖它 |
+|---|---|---|---|---|
+| `Simulation/` | 33 | 8,714 | 规则核心，纯 C# | 所有人 |
+| `View/` | 24 | 7,016 | 表现与交互（画面 / 输入 / UI / 相机） | `App` 与 Unity 宿主 |
+| `App/` | 1 | 310 | 装配与生命周期 | 无（最上层） |
+| `AI/` | 2 | 837 | 决策 + 演出节奏 | — |
+| `Editor/` | 2 | 312 | 仅编辑器：配置构建、元数据导出 | — |
 
----
-
-## 2. 分层
+**依赖只能向下**，其中两条由 asmdef 在**编译期**强制：
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│ 表现层   GameUI / MainMenuUI / MapVisual / AtmosphereVisual │
-│          BoardCameraController / PlayerInputController     │
-│          SpriteFactory / RoleModelFactory / UiTheme         │
-└───────────────▲──────────────────────────┬────────────────┘
-                │ 读状态                     │ 发动作
-┌───────────────┴──────────────────────────▼────────────────┐
-│ 编排层   GameBootstrap（装配）  TurnManager（节拍/结算顺序）  │
-│          GameManager（胜负/缩圈）  AiController（AI 触发）    │
-└───────────────▲──────────────────────────┬────────────────┘
-                │                          │
-┌───────────────┴──────────────────────────▼────────────────┐
-│ 服务层   ActionService（动作唯一入口）  SkillService         │
-│          VisibilityService  StealthService                 │
-│          WeatherService  HazardManager  GroundItemManager   │
-│          DeckManager  LeaderDeclarationService             │
-└───────────────▲──────────────────────────┬────────────────┘
-                │                          │
-┌───────────────┴──────────────────────────▼────────────────┐
-│ 领域层   UnitActor（状态+结算） Inventory  StatusEffect      │
-│          ItemInfo/ItemKind  GameRulesConfig  GameClock      │
-│          GridManager  TerrainGenerator  MatchConfig         │
-└───────────────────────────────────────────────────────────┘
+ElephantCrisis.Simulation   references: []            ← 不许引用任何人
+ElephantCrisis.View         references: Simulation    ← 不许引用 App
+Assembly-CSharp             App / AI / Editor         ← 自动引用上面两个
 ```
 
-**依赖方向只有一条**：表现 → 编排 → 服务 → 领域。领域层不引用上层。
+在 `Simulation/` 里写一行 `MapVisual.Instance` 或 `GameBootstrap.Instance`，**编译直接失败**。
 
 ---
 
-## 3. 模块清单
+## 二、Simulation 的子模块
 
-| 目录 | 文件数 | 职责 | 代表文件 |
+| 子目录 | 文件 | 行数 | 职责 |
 |---|---|---|---|
-| `Core/` | 24 | 启动、回合、动作、配置、时钟、能见度、UI 外壳 | `GameBootstrap` `TurnManager` `ActionService` `GameRulesConfig` |
-| `Units/` | 5 | 角色状态与结算、背包、AI 决策 | `UnitActor` `Inventory` `SimpleHeuristicAi` |
-| `World/` | 8 | 地图、地形、天气表现、危险物、地面掉落 | `TerrainGenerator` `HazardManager` `GroundItemManager` `MapVisual` |
-| `Cards/` | 1 | 共用牌库（构建 / 散落 / 弃牌） | `DeckManager` |
-| `Skills/` | 3 | 主动技能、隐匿、领袖宣言 | `SkillService` `LeaderDeclarationService` |
-| `AI/` | 2 | AI 触发与启发式策略 | `AiController` `SimpleHeuristicAi` |
-| `LogicSim/` | 4 | 无头跑批 + 事件日志 | `LogicSimRunner` `LogicMatchLogger` |
-| `UI/` | 4 | HUD、主菜单、设置、主题 | `GameUI` `UiTheme` |
-| 根目录 | 1 | 网格数据与坐标转换 | `GridManager.cs` |
+| `Turn/` | 3 | 827 | 回合节拍（`TurnManager`）、胜负（`GameManager`）、虚拟时钟 |
+| `Units/` | 5 | 1,814 | 单位（`UnitActor`，属性现算）、背包、角色定义 |
+| `Actions/` | 1 | 1,566 | **唯一**允许改状态的地方：35 个 `Try*` |
+| `Hazards/` | 2 | 921 | 火焰 / 炸弹 / 地雷 / 香蕉皮；地面牌堆 |
+| `World/` | 5 | 867 | 网格、地形生成、能见度、天气 |
+| `Cards/` | 2 | 735 | 牌库与卡牌元数据 |
+| `Logging/` | 2 | 538 | 事件流（`events.jsonl`）与成绩单（`meta.json`） |
+| `Skills/` | 3 | 461 | 四角色技能、领袖宣言 |
+| `Config/` | 1 | 656 | 读 `game_rules.json`、键登记与校验 |
+| `Host/` | 2 | 147 | `MatchSetup` / `MatchDriver`：一局的装配与推进 |
+| `Status/` | 1 | 96 | 7 种状态 + `TickPolicy` |
+| `Presentation/` | 1 | 102 | 表现层门面 + 空实现 |
+
+根目录另有 5 个小文件：`Int2`（坐标）、`DeterministicRng`（随机）、`Rgba`（颜色）、`Log`（日志出口）、`MatchConfig`（模式）。
+
+### 三条设计原则
+
+1. **属性不存储，每次现算**
+   `UnitActor.CurrentAtk` = 基础 + 永久 + 临时 − 状态减益 + 装备。不用维护"改装备要刷新攻击力"。
+
+2. **状态变更只有一个入口**
+   所有操作走 `ActionService.Try*`，返回 `bool` 表示"规则允许吗"。UI 不允许直接改血量。
+
+3. **表现层只用句柄**
+   视觉对象一律 `int` 句柄，逻辑层不认识 `GameObject`。无头模式下 `IPresentation` 是空实现，调用自动空转。
 
 ---
 
-## 4. 运行时形态
+## 三、一局是怎么跑的
 
 ```
-Unity 进程（单场景，无 LoadScene）
-  ├─ GameBootstrap（DontDestroyOnLoad）
-  │    ├─ 主菜单模式：只建 UI
-  │    └─ 对局模式：EnsureSystems 造出所有系统
-  ├─ 四种模式（MatchConfig）
-  │    ├─ Hotseat   四人手动
-  │    ├─ AiBattle  一人手动 + 三 AI
-  │    ├─ AdminMode 可印牌 / 切天气 / 切时段
-  │    └─ LogicSim  四人全 AI + 无 UI + 写日志
-  └─ 重开 / 回菜单 = 销毁重建，不切场景
+MatchSetup.AssembleLean()        // 建系统 → 生成地图 → 造单位 → 造牌库 → 开回合
+   └─ TurnManager.Setup(units)
+        └─ BeginTurnFor(unit)    // 行动开始结算链（状态 → 着火 → 熔岩/冰地 → 晕眩…）
+             ├─ 人类：View/Input → ActionService.Try*
+             └─ AI  ：SimpleHeuristicAi.TryActOnce → ActionService.Try*
+                  └─ RequestEndTurn → 下一个单位 → GameManager 判胜负
 ```
 
-**四个模式共用同一套规则代码**，差异全部收敛在 `MatchConfig` 与少量 `if (!IsLogicSim)` 判断里。
+两个宿主（Unity / dotnet）**共用 `MatchSetup` 与 `MatchDriver`**，区别只在：
 
----
-
-## 5. 关键数据流
-
-### 5.1 开局
-
-```
-GameBootstrap.StartMatch
-  ├─ ValidateKeysOnce            校验 yaml 键名
-  ├─ EnsureSystems(lean)         造单例（lean 跳过 UI/地图/氛围）
-  ├─ GridManager.InitTiles       → TerrainGenerator.Generate
-  ├─ SpawnUnits                  → UnitActor.Setup
-  ├─ GameManager.RegisterUnits
-  ├─ DeckManager.BuildDemoDeck   → ScatterDrawPileOntoMap
-  ├─ LogicMatchLogger.EmitSnapshot   必须在 Setup 之前
-  └─ TurnManager.Setup           → BeginTurnFor(第一位)
-```
-
-### 5.2 一个行动
-
-```
-BeginTurnFor（行动开始结算链：护身符→着火→领袖→状态→沼泽毒→熔岩→火焰→冰→晕眩）
-   ↓ OnTurnChanged
-   ├─ 玩家：PlayerInputController → ActionService.Try*
-   └─ AI：AiController → SimpleHeuristicAi.TryActOnce（一次一个动作，循环调用）
-   ↓
-ActionService → UnitActor.TakeDamage / ApplyStatus / ...
-   ↓
-TurnManager.RequestEndTurn（超重拦截）→ EndTurn（行动结束结算）
-   ↓ 推进下一位；回到 0 号位则跨轮结算（状态/冷却/熔岩/天气）
-   ↓
-GameManager.CheckWinConditions
-```
-
-### 5.3 无头跑批
-
-```
-LogicSimRunner.CoRunOne
-  ├─ Random.InitState(seed)     全局随机流起点
-  ├─ MatchConfig.SetLogicSim
-  ├─ GameBootstrap.StartLogicSimMatch
-  └─ 帧循环等待结束 / 回合上限 / 180 秒超时
-       └─ AiController.PumpLogicSim（同步泵，避免递归爆栈）
-            └─ PlayTurnSync → SimpleHeuristicAi.TryActOnce
-```
-
----
-
-## 6. 配置与真源
-
-| 事实 | 真源 | 读取方 |
+| | Unity 宿主 | dotnet 宿主 |
 |---|---|---|
-| 数值（HP/攻防/印数/天气/地形比例） | `StreamingAssets/Config/game_rules.yaml` | `GameRulesConfig` |
-| 规则语义 | `Docs/规则_*.md` | 人 |
-| 实际行为 | `Assets/Scripts/*.cs` | 引擎 |
-| 平衡数据 | `Tools/sim/output/match_*` | `Tools/balance_analysis` |
-
-`GameRulesConfig.ValidateKeysOnce()` 会比对"yaml 里的键"与"代码读过的键"，**拼错或废弃的键会告警**——这是防止"改 yaml 不生效"的唯一机制。
+| 入口 | `GameBootstrap`（`RuntimeInitializeOnLoadMethod`） | `Tools/runner/SimRunner/Program.cs` |
+| 表现层 | `UnityPresentation`（真实绘制） | `NullPresentation`（空转） |
+| 推进 | `AiController` 协程（每手有延时） | `MatchDriver` 同步跑完 |
 
 ---
 
-## 7. 扩展点
+## 四、配置怎么进来
 
-| 要加什么 | 标准动作 |
-|---|---|
-| **新卡牌/物品** | `ItemKind` 加枚举 → `ItemInfo` 补元数据 → `ActionService.TryUse*` 加分支 → yaml 加印数 |
-| **新角色** | `RoleType` → yaml `roles` 与 `spawn_cells` → `SkillService`/`SkillInfo` 加技能 → `SimpleHeuristicAi` 补评估 |
-| **新地形** | `TileType` → `TerrainGenerator.Biomes` → `TerrainInfo` 修正 → `MapVisual` 贴图 |
-| **新状态** | `StatusType` → `UnitActor.ApplyStatus/Tick*` → `StatusInfo` 显示 |
-| **新逻辑校验** | `Tools/logic_qa/anomaly_analysis/baseline/checks.py` 加 `_check_*` 并注册 |
-| **新 UI 面板** | 只读 `GameManager/TurnManager` 状态，动作一律走 `ActionService` |
+```
+Design/rules.csv ─┐
+Design/roles.csv  ├─ build.py（校验 6 类）─▶ game_rules.json（1,876 行）
+Design/cards.csv  │                          │
+Design/tiles.csv  │                          ▼
+Design/statuses.csv┘                 GameRulesConfig 静态属性
+```
+
+当前规模：**46 张卡 / 7 种地形 / 7 种状态 / 4 个角色**。
+
+- 校验拦"错误"（必填键缺失、未知键、数值越界、重复、引用不存在、牌库总数不符），不拦设计选择
+- 键登记：`GetInt("terrain","sand_move")` 会记下键名，启动时与配置比对，拼错会告警
+- 宿主注入：配置目录与 JSON 解析器都由宿主给（Unity 用 `JsonUtility`，dotnet 用 `System.Text.Json`）
 
 ---
 
-## 8. 目录速查
+## 五、怎么读这个模块
 
-```
-Scripts/
-├─ Core/        启动 · 回合 · 动作 · 配置 · 时钟 · 能见度 · UI 外壳
-├─ Units/       角色 · 背包 · AI 决策
-├─ World/       网格表现 · 地形 · 天气表现 · 危险物 · 掉落
-├─ Cards/       牌库
-├─ Skills/      技能 · 隐匿 · 领袖宣言
-├─ AI/          AI 触发与策略
-├─ LogicSim/    跑批与日志
-├─ UI/          HUD · 菜单 · 主题
-└─ GridManager  网格数据（根目录）
-```
+1. `Simulation/Host/MatchSetup.cs` + `MatchDriver.cs`（147 行，看清全局）
+2. `Simulation/Turn/TurnManager.cs` 的 `BeginTurnFor`（一回合发生了什么）
+3. `Simulation/Units/UnitActor.cs` 的属性计算（`CurrentAtk` 那一片）
+4. `Simulation/Actions/ActionService.cs` 挑三个 `Try*` 看（移动 / 近战 / 用道具）
+
+**前两步读完，就掌握了 80% 的运行原理。**
