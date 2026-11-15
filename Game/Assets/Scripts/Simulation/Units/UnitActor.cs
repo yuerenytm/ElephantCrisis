@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class UnitActor : MonoBehaviour
+public class UnitActor
 {
     public RoleType Role { get; private set; }
     public Vector2Int Cell { get; private set; }
@@ -928,7 +928,6 @@ public class UnitActor : MonoBehaviour
         IsDead = false;
         DyingActionsLeft = 0;
 
-        Presentation.Current.AttachUnit(this);   // 有头模式才真的挂外皮
         PlaceAt(startCell, true);
         RefreshVisual();
     }
@@ -1383,7 +1382,7 @@ public class UnitActor : MonoBehaviour
 
         LogicMatchLogger.Active?.EmitDeath(this);
         RefreshVisual();
-        gameObject.SetActive(false);
+        View?.SetWorldVisible(this, false);
     }
 
     /// <summary>

@@ -184,10 +184,4 @@ public sealed class UnityPresentation : IPresentation
             mr.sortingOrder = 6;
     }
 
-    public void AttachUnit(UnitActor unit)
-    {
-        var view = unit.gameObject.AddComponent<UnitView>();
-        view.Attach(unit);
-        unit.AttachView(view);
-    }
 }

@@ -245,7 +245,7 @@ public static class StealthService
         var go = GridManager.Instance?.GetOccupant(cell);
         if (go == null)
             return null;
-        var u = go.GetComponent<UnitActor>();
+        var u = go;
         if (u == null || u.IsDead)
             return null;
         return u;

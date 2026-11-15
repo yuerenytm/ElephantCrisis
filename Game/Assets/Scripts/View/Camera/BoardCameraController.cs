@@ -176,8 +176,9 @@ public class BoardCameraController : MonoBehaviour
     private Vector3 GetAnchorPoint()
     {
         var unit = GetFollowUnit();
-        if (unit != null && !unit.IsDead)
-            return unit.transform.position;
+        var host = UnitHost.Of(unit);
+        if (unit != null && !unit.IsDead && host != null)
+            return host.transform.position;
         return new Vector3(boardW * 0.5f, 0f, boardD * 0.5f);
     }
 

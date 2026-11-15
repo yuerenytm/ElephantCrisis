@@ -152,7 +152,7 @@ public class PlayerInputController : MonoBehaviour
         }
 
         var occ = GridManager.Instance.GetOccupant(cell);
-        var unit = occ != null ? occ.GetComponent<UnitActor>() : null;
+        var unit = occ != null ? occ : null;
         var fogViewer = VisibilityService.GetFogViewer();
         if (unit != null && !unit.IsDead && VisibilityService.CanSeeUnit(fogViewer, unit))
         {
@@ -233,7 +233,7 @@ public class PlayerInputController : MonoBehaviour
             case TurnPhase.SelectingHookTarget:
             {
                 var occ = GridManager.Instance.GetOccupant(cell);
-                var target = occ != null ? occ.GetComponent<UnitActor>() : null;
+                var target = occ != null ? occ : null;
                 if (target == null || target == unit || target.IsDead)
                 {
                     turn.LogFor(unit, $"请点击半径 {GameRulesConfig.GrappleHookRange} 内可见的其他角色");
@@ -266,7 +266,7 @@ public class PlayerInputController : MonoBehaviour
             case TurnPhase.SelectingShootTarget:
             {
                 var occ = GridManager.Instance.GetOccupant(cell);
-                var target = occ != null ? occ.GetComponent<UnitActor>() : null;
+                var target = occ != null ? occ : null;
                 if (target == null || target == unit || target.IsDead)
                 {
                     turn.LogFor(unit, "请点击射程内的敌方角色");
@@ -296,7 +296,7 @@ public class PlayerInputController : MonoBehaviour
             case TurnPhase.SelectingMonkeyStealTarget:
             {
                 var occ = GridManager.Instance.GetOccupant(cell);
-                var target = occ != null ? occ.GetComponent<UnitActor>() : null;
+                var target = occ != null ? occ : null;
                 if (target == null || target == unit || target.IsDead)
                 {
                     turn.LogFor(unit, "请点击半径内的其他角色");
@@ -316,7 +316,7 @@ public class PlayerInputController : MonoBehaviour
         var occupant = GridManager.Instance.GetOccupant(cell);
         if (occupant != null)
         {
-            var target = occupant.GetComponent<UnitActor>();
+            var target = occupant;
             if (target != null && target != unit && !target.IsDead
                 && VisibilityService.CanSeeUnit(unit, target))
             {

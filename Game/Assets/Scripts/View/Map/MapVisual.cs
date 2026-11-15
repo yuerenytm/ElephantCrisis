@@ -968,7 +968,7 @@ public class MapVisual : MonoBehaviour
                 var occ = grid.GetOccupant(cell);
                 if (occ == null)
                     continue;
-                var target = occ.GetComponent<UnitActor>();
+                var target = occ;
                 if (target == null || target.IsDead)
                     continue;
                 if (!VisibilityService.CanSeeCell(unit, cell))
@@ -1196,7 +1196,7 @@ public class MapVisual : MonoBehaviour
                 var occ = grid.GetOccupant(cell);
                 if (occ == null)
                     continue;
-                var target = occ.GetComponent<UnitActor>();
+                var target = occ;
                 if (target == null || target.IsDead || target == unit)
                     continue;
                 overlayRenderers[x, y].color = AttackHint;

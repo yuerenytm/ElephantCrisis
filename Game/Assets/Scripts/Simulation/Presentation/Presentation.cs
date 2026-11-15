@@ -57,9 +57,6 @@ public interface IPresentation
     /// <summary>给定时炸弹挂倒计时标签（纯表现）。</summary>
     void BuildBombLabel(GameObject marker, int actions);
 
-    /// <summary>给单位挂上外皮（模型 / 选中环 / 名字牌）。无头模式空转。</summary>
-    void AttachUnit(UnitActor unit);
-
     /// <summary>移除对象上的广告牌组件（棋子要直立）。</summary>
 }
 
@@ -87,7 +84,6 @@ public static class Presentation
         public GameObject BuildFlameVisual(Vector2Int cell, Transform parent) => null;
         public GameObject BuildRedMarker(Vector2Int cell, Transform parent, string name) => null;
         public void BuildBombLabel(GameObject marker, int actions) { }
-        public void AttachUnit(UnitActor unit) { }
     }
 
     private static IPresentation current = new NullPresentation();

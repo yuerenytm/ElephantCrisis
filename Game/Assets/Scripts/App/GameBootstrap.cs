@@ -447,7 +447,12 @@ public class GameBootstrap : MonoBehaviour
         {
             var go = new GameObject(RoleInfo.GetDisplayName(roles[i]));
             go.transform.SetParent(root, false);
-            var unit = go.AddComponent<UnitActor>();
+
+            // 逻辑单位是普通类；场景对象由 UnitHost 承载（无头模式不挂外皮）
+            var unit = new UnitActor();
+            if (!MatchConfig.IsLogicSim)
+                go.AddComponent<UnitHost>().Bind(unit);
+
             unit.Setup(roles[i], starts[i]);
             list.Add(unit);
         }

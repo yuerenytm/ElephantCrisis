@@ -1408,7 +1408,7 @@ public static class ActionService
                 break;
             var occ = grid.GetOccupant(cell);
             if (occ == null) continue;
-            var other = occ.GetComponent<UnitActor>();
+            var other = occ;
             if (other == null || other.IsDead || other == unit) continue;
             hits++;
             BreakStealthIfAttacked(other);
@@ -1432,7 +1432,7 @@ public static class ActionService
                 break;
             var occ = grid.GetOccupant(cell);
             if (occ == null) continue;
-            var other = occ.GetComponent<UnitActor>();
+            var other = occ;
             if (other == null || other.IsDead)
                 continue;
             HazardManager.Instance?.ResolveFlameOnCell(other);
