@@ -41,7 +41,4 @@ public static class SkillInfo
 public static class StealMarks
 {
     public static void Reset() { }
-    public static void Mark(int instanceId) { }
-    public static bool IsMarked(int instanceId) => false;
-    public static void Unmark(int instanceId) { }
 }

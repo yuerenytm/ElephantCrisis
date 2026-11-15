@@ -125,15 +125,6 @@ public class GameUI : MonoBehaviour
         bagDrawerOpen = open;
         ApplyDrawerVisibility();
     }
-
-    public void SetAllDrawers(bool open)
-    {
-        actionDrawerOpen = open;
-        logDrawerOpen = open;
-        bagDrawerOpen = open;
-        ApplyDrawerVisibility();
-    }
-
     private void ApplyDrawerVisibility()
     {
         if (leftPanelRt != null)

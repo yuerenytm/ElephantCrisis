@@ -79,11 +79,6 @@ public static class UiTheme
             cachedRoundSprite = CreateRoundedSprite(64, 10);
         return cachedRoundSprite;
     }
-
-    public static Sprite PanelSprite() => RoundSprite();
-    public static Sprite ButtonSprite() => RoundSprite();
-    public static Sprite HeaderSprite() => RoundSprite();
-
     public static Sprite SoftBgSprite()
     {
         if (cachedSoftBgSprite == null)

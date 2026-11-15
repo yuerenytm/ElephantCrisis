@@ -220,8 +220,6 @@ public static class ItemInfo
     }
 
     [System.Obsolete("用 AmmoChargesToCards")]
-    public static int ArrowChargesToCards(int charges) => AmmoChargesToCards(charges);
-
     public enum EquipSlot
     {
         None,
@@ -369,9 +367,6 @@ public static class ItemInfo
 
     public static bool IsThrowableBomb(ItemKind kind)
         => kind == ItemKind.Bomb || kind == ItemKind.MegaBomb;
-
-    public static bool IsFlashbang(ItemKind kind) => kind == ItemKind.Flashbang;
-
     /// <summary>
     /// 点燃汽油瓶投掷：须同时持有打火机与汽油瓶。
     /// </summary>
@@ -395,13 +390,6 @@ public static class ItemInfo
         }
         return false;
     }
-
-    public static bool CanFireFlamethrower(UnitActor unit)
-        => unit != null
-           && unit.Inventory != null
-           && unit.Inventory.CountOf(ItemKind.GasolineBottle) > 0
-           && HasEquippedFlamethrower(unit);
-
     public static int GetVehicleMoveBonus(ItemKind kind)
     {
         switch (kind)
@@ -679,9 +667,6 @@ public static class ItemInfo
                 return ItemUseKind.None;
         }
     }
-
-    public static bool CanDiscard(ItemKind kind) => true;
-
     public static bool IsWeatherBullet(ItemKind kind)
         => kind == ItemKind.WeatherClear
            || kind == ItemKind.WeatherRain

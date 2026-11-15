@@ -14,7 +14,7 @@ ensure_path()
 
 from anomaly_analysis.baseline.runner import run_baseline  # noqa: E402
 from anomaly_analysis.detection.runner import run_anomaly, train_anomaly_model  # noqa: E402
-from elephant_sim.unity_batch import run_unity_logic_sim  # noqa: E402
+from elephant_sim.batch import run_logic_sim  # noqa: E402
 
 
 def main() -> int:
@@ -34,7 +34,7 @@ def main() -> int:
 
     if args.matches > 0:
         print(f"[1/4] batch {args.matches} matches engine=unity")
-        code = run_unity_logic_sim(
+        code = run_logic_sim(
             matches=args.matches,
             out_dir=input_dir,
             base_seed=args.seed,

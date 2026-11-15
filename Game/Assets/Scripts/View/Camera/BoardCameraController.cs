@@ -109,10 +109,6 @@ public class BoardCameraController : MonoBehaviour
         ApplyOutdoorClearColor();
         ApplyTransform(true);
     }
-
-    public void ApplyClearColorForTable(TableStyle style)
-        => ApplyOutdoorClearColor();
-
     public void ApplyOutdoorClearColor()
     {
         if (AtmosphereVisual.Instance != null)

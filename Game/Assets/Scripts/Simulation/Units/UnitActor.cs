@@ -330,22 +330,6 @@ public class UnitActor
             return System.Math.Clamp(lv, GameRulesConfig.SkillLevelBase, GameRulesConfig.SkillLevelMax);
         }
     }
-
-    /// <summary>
-    /// 已装备武器的攻击加成。
-    /// </summary>
-    public int GetEquippedWeaponAtkBonus()
-    {
-        if (Inventory == null) return 0;
-        foreach (var item in Inventory.Items)
-        {
-            if (!item.Equipped || !ItemInfo.IsRangedWeapon(item.Kind))
-                continue;
-            return ItemInfo.GetWeaponAtkBonus(item.Kind);
-        }
-        return 0;
-    }
-
     /// <summary>
     /// 查找已装备物品的索引；没有则 -1。
     /// </summary>
@@ -877,16 +861,6 @@ public class UnitActor
         RefreshVisual();
         return detail;
     }
-
-    /// <summary>
-    /// 清空全部状态（濒死 / 死亡时用）。
-    /// </summary>
-    public void ClearAllStatuses()
-    {
-        statuses.Clear();
-    }
-
-
     /// <summary>
     /// 初始化角色：属性、背包、视觉。
     /// </summary>
@@ -1426,17 +1400,6 @@ public class UnitActor
     /// 刷新颜色 / 模型等表现。
     /// </summary>
     public void RefreshVisual() => View?.Refresh(this);
-
-    /// <summary>
-    /// 状态栏文本。
-    /// </summary>
-    public string GetStatusText()
-    {
-        if (IsDead) return "已死亡";
-        if (IsDying) return $"濒死(剩余{DyingActionsLeft}行动) 能见度{GameRulesConfig.DyingVisibility}";
-        return $"移{CurrentMove} 血{Hp}/{MaxHp} 攻{CurrentAtk} 防{CurrentDef} 法抗{MagicResist}% 视{CurrentVisibility} 包{Inventory.UsedWeight:0.##}/{CurrentBagCapacity:0.##} 偶{Inventory.CountDolls()} 技{SkillInfo.GetSkillName(Role)}Lv{SkillLevel}";
-    }
-
     /// <summary>
     /// 悬停时的详细状态文本。
     /// </summary>

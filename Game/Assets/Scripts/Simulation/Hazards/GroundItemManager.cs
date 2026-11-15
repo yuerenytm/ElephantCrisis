@@ -76,25 +76,6 @@ public class GroundItemManager
     {
         return piles.TryGetValue(cell, out var list) && list.Count > 0;
     }
-
-    /// <summary>
-    /// 曼哈顿半径内是否有掉落物（无分配；供动作掩码/寻路预判用）。
-    /// </summary>
-    public bool HasItemsAround(Int2 center, int radius)
-    {
-        for (int dx = -radius; dx <= radius; dx++)
-        {
-            for (int dy = -radius; dy <= radius; dy++)
-            {
-                if (System.Math.Abs(dx) + System.Math.Abs(dy) > radius)
-                    continue;
-                if (HasItems(center + new Int2(dx, dy)))
-                    return true;
-            }
-        }
-        return false;
-    }
-
     /// <summary>
     /// 全图随机收集至多 count 张牌进背包（领袖宣言等效果用）；不消耗行动、不限距离、允许超重。返回实际收集张数。
     /// </summary>
@@ -151,17 +132,6 @@ public class GroundItemManager
             return new List<GroundStackEntry>(list);
         return new List<GroundStackEntry>();
     }
-
-    /// <summary>
-    /// 该格第 index 张是否背面朝下。
-    /// </summary>
-    public bool IsFaceDown(Int2 cell, int index)
-    {
-        if (!piles.TryGetValue(cell, out var list) || index < 0 || index >= list.Count)
-            return false;
-        return list[index].FaceDown;
-    }
-
     public struct GroundLootEntry
     {
         public Int2 Cell;
@@ -201,35 +171,6 @@ public class GroundItemManager
         }
         return result;
     }
-
-    /// <summary>
-    /// 偷看该格第 index 张牌。
-    /// </summary>
-    public bool TryPeek(Int2 cell, int index, out InventoryItem item)
-    {
-        item = default;
-        if (!piles.TryGetValue(cell, out var list) || index < 0 || index >= list.Count)
-            return false;
-        item = list[index].Item;
-        return true;
-    }
-
-    /// <summary>
-    /// 取走该格第 index 张牌。
-    /// </summary>
-    public bool TryTakeAt(Int2 cell, int index, out InventoryItem item)
-    {
-        item = default;
-        if (!piles.TryGetValue(cell, out var list) || index < 0 || index >= list.Count)
-            return false;
-        item = list[index].Item;
-        list.RemoveAt(index);
-        if (list.Count == 0)
-            piles.Remove(cell);
-        RefreshVisual(cell);
-        return true;
-    }
-
     /// <summary>
     /// 拾取指定格上指定下标的一件物品（允许暂时超重）。
     /// </summary>

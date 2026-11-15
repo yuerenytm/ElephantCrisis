@@ -107,20 +107,6 @@ public static class GameRulesConfig
             ApplyFallbacks();
         }
     }
-
-    /// <summary>
-    /// 仅供测试/热重载：清空后再次 EnsureLoaded。
-    /// </summary>
-    public static void ReloadForEditor()
-    {
-        loaded = false;
-        sections.Clear();
-        deckCounts.Clear();
-        roleStats.Clear();
-        spawnCells.Clear();
-        EnsureLoaded();
-    }
-
     public static RoleBaseStats GetRoleStats(RoleType role)
     {
         EnsureLoaded();
@@ -671,20 +657,6 @@ public static class GameRulesConfig
             }
         }
     }
-
-
-    private static RoleType ParseRole(string key)
-    {
-        switch (key.ToLowerInvariant())
-        {
-            case "elephant": return RoleType.Elephant;
-            case "human": return RoleType.Human;
-            case "monkey": return RoleType.Monkey;
-            case "cat": return RoleType.Cat;
-            default: return RoleType.Human;
-        }
-    }
-
 
     private static void ApplyFallbacks()
     {

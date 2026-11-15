@@ -40,14 +40,6 @@ public static class TableSurface
 
     public static string GetDisplayName(TableStyle style)
         => style == TableStyle.Parchment ? "羊皮纸桌面" : "木纹桌面";
-
-    public static Color GetClearColor(TableStyle style)
-    {
-        return style == TableStyle.Parchment
-            ? new Color(0.84f, 0.76f, 0.58f)
-            : new Color(0.32f, 0.2f, 0.11f);
-    }
-
     public static Sprite CreateTableSprite(TableStyle style, int size = 256)
     {
         if (style == TableStyle.Parchment)
@@ -61,21 +53,6 @@ public static class TableSurface
             cachedWood = LoadOrBake("Table/wood", CreateWoodSprite, size);
         return cachedWood;
     }
-
-    public static Sprite CreateBoardFeltSprite(int size = 128)
-    {
-        if (cachedFelt == null)
-            cachedFelt = CreateFeltSprite(size);
-        return cachedFelt;
-    }
-
-    public static Sprite CreateBoardRimSprite(int size = 128)
-    {
-        if (cachedRim == null)
-            cachedRim = CreateRimSprite(size);
-        return cachedRim;
-    }
-
     /// <summary>
     /// 一张贴图约覆盖的世界单位；越小越清晰、重复越密。
     /// </summary>
@@ -93,14 +70,6 @@ public static class TableSurface
         }
         return tex;
     }
-
-    public static Material CreateTableMaterial(TableStyle style, float worldSize)
-    {
-        var mat = new Material(FindTableShader()) { name = "TableSurface" };
-        ApplyTableMaterial(mat, style, worldSize);
-        return mat;
-    }
-
     public static void ApplyTableMaterial(Material mat, TableStyle style, float worldSize)
     {
         if (mat == null)

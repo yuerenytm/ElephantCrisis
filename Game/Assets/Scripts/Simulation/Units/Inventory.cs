@@ -125,31 +125,6 @@ public class Inventory
         Items.RemoveAt(index);
         return true;
     }
-
-    /// <summary>
-    /// 按索引取物品。
-    /// </summary>
-    public bool TryGet(int index, out InventoryItem item)
-    {
-        if (index < 0 || index >= Items.Count)
-        {
-            item = default;
-            return false;
-        }
-        item = Items[index];
-        return true;
-    }
-
-    /// <summary>
-    /// 按索引覆盖物品。
-    /// </summary>
-    public void SetAt(int index, InventoryItem item)
-    {
-        if (index < 0 || index >= Items.Count)
-            return;
-        Items[index] = item;
-    }
-
     /// <summary>
     /// 弹药返回支数；其它返回件数。
     /// </summary>
@@ -407,25 +382,5 @@ public class Inventory
         }
         Items.Clear();
         return copy;
-    }
-
-    /// <summary>
-    /// 旧接口：非弓箭按件移除；弓箭请用 TryConsumeArrows。
-    /// </summary>
-    public int RemoveUpTo(ItemKind kind, int count, List<ItemKind> removed)
-    {
-        if (kind == ItemKind.Arrow)
-            return TryConsumeArrows(count, removed) ? count : 0;
-
-        int got = 0;
-        for (int i = Items.Count - 1; i >= 0 && got < count; i--)
-        {
-            if (Items[i].Kind != kind)
-                continue;
-            removed?.Add(Items[i].Kind);
-            Items.RemoveAt(i);
-            got++;
-        }
-        return got;
     }
 }

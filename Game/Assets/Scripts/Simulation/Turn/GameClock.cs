@@ -95,21 +95,6 @@ public static class GameClock
     /// </summary>
     public static int GetBaseVisibility(int roundNumber)
         => WeatherService.GetPeriodWeatherVisibility(GetPeriod(roundNumber), WeatherService.Current);
-
-    /// <summary>
-    /// 仅按时段的标称值（不含天气）；展示/兼容用。现行结算见 WeatherService.GetPeriodWeatherVisibility。
-    /// </summary>
-    public static int GetBaseVisibilityForPeriod(Period period)
-    {
-        switch (period)
-        {
-            case Period.Day: return ItemInfo.FullMapVisibilityRadius;
-            case Period.Dawn:
-            case Period.Dusk: return ItemInfo.FullMapVisibilityRadius;
-            default: return GameRulesConfig.NightClearVisibility; // Night clear
-        }
-    }
-
     /// <summary>
     /// 形如 08:00 的时刻文本。
     /// </summary>

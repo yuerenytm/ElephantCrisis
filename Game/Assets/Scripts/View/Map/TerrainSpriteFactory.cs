@@ -89,43 +89,6 @@ public static class TerrainSpriteFactory
         tex.Apply();
         return Sprite.Create(tex, new Rect(0, 0, size, size), new Vector2(0.5f, 0.5f), size);
     }
-
-    /// <summary>
-    /// 高地侧面：岩层条纹；枢轴在底边，从地面长到台面。
-    /// </summary>
-    public static Sprite CreateHighlandCliff(int width = 32, int height = 24)
-    {
-        var tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
-        tex.filterMode = FilterMode.Point;
-        var top = new Color(0.5f, 0.44f, 0.36f);
-        var mid = new Color(0.36f, 0.3f, 0.24f);
-        var dark = new Color(0.22f, 0.17f, 0.13f);
-        var seam = new Color(0.16f, 0.12f, 0.09f);
-
-        for (int y = 0; y < height; y++)
-        {
-            // y=0 贴地（暗），y=max 接台面（亮）
-            float t = y / (float)(height - 1);
-            var row = Color.Lerp(dark, top, t);
-            for (int x = 0; x < width; x++)
-            {
-                var c = row;
-                if (y == height - 1)
-                    c = top;
-                else if (y % 4 == 0)
-                    c = Color.Lerp(c, seam, 0.55f);
-                else if ((x + y) % 9 == 0)
-                    c = Color.Lerp(c, mid, 0.4f);
-                if (x == 0 || x == width - 1)
-                    c = seam;
-                tex.SetPixel(x, y, c);
-            }
-        }
-
-        tex.Apply();
-        return Sprite.Create(tex, new Rect(0, 0, width, height), new Vector2(0.5f, 0f), width);
-    }
-
     /// <summary>
     /// 棋盘外装饰林地坪（不可交互）。
     /// </summary>

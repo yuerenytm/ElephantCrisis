@@ -301,27 +301,6 @@ public class TurnManager
         PendingItemIndex = -1;
         NotifyActionDone();
     }
-
-    /// <summary>
-    /// 进入猴子技能的分支选择态。
-    /// </summary>
-    public void EnterMonkeySkillChoice()
-    {
-        Phase = TurnPhase.SelectingMonkeySkillMode;
-        PendingSkillTargetUnit = null;
-        NotifyActionDone();
-    }
-
-    /// <summary>
-    /// 进入猴子标记的目标选择态。
-    /// </summary>
-    public void EnterMonkeyMarkTarget()
-    {
-        Phase = TurnPhase.SelectingMonkeyMarkTarget;
-        PendingSkillTargetUnit = null;
-        NotifyActionDone();
-    }
-
     /// <summary>
     /// 进入猴子标记的物品选择态。
     /// </summary>

@@ -93,17 +93,6 @@ public sealed class LogicMatchLogger
     {
         Emit("stun_skip", ("actor", Q(LogicSimNaming.Role(unit.Role))));
     }
-
-    /// <summary>
-    /// 抽牌事件。
-    /// </summary>
-    public void EmitDraw(UnitActor unit, ItemKind item)
-    {
-        Emit("draw",
-            ("actor", Q(LogicSimNaming.Role(unit.Role))),
-            ("item", Q(LogicSimNaming.Item(item))));
-    }
-
     /// <summary>
     /// 移动事件。
     /// </summary>
@@ -174,27 +163,6 @@ public sealed class LogicMatchLogger
             ("actor", Q(LogicSimNaming.Role(unit.Role))),
             ("count", I(count)));
     }
-
-    /// <summary>
-    /// 弃置事件。
-    /// </summary>
-    public void EmitDiscard(UnitActor unit, ItemKind item)
-    {
-        Emit("discard",
-            ("actor", Q(LogicSimNaming.Role(unit.Role))),
-            ("item", Q(LogicSimNaming.Item(item))));
-    }
-
-    /// <summary>
-    /// 掉落事件。
-    /// </summary>
-    public void EmitDrop(UnitActor unit, int count)
-    {
-        Emit("drop",
-            ("actor", Q(LogicSimNaming.Role(unit.Role))),
-            ("count", I(count)));
-    }
-
     /// <summary>
     /// 超重事件。
     /// </summary>

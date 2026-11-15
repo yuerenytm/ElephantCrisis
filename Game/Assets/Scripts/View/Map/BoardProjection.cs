@@ -19,17 +19,6 @@ public static class BoardProjection
             grid.GetCellHeight(cell),
             cell.y * size + size * 0.5f);
     }
-
-    /// <summary>由世界坐标粗映射格子（用 XZ）。</summary>
-    public static Int2 WorldToCell(Vector3 worldPos)
-    {
-        var grid = GridManager.Instance;
-        Vector3 local = worldPos - Origin;
-        return new Int2(
-            (int)System.Math.Floor(local.x / grid.cellSize),
-            (int)System.Math.Floor(local.z / grid.cellSize));
-    }
-
     /// <summary>斜视正交相机下的点选：射线与各格顶面求交，取最近命中。</summary>
     public static bool TryScreenToCell(Camera cam, Vector2 screenPos, out Int2 cell)
     {

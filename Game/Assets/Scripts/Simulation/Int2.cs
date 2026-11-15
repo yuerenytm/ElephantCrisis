@@ -64,7 +64,4 @@ public readonly struct Int2 : System.IEquatable<Int2>
     // 反方向不设隐式：双向隐式会让 Int2 + Vector2Int 这类表达式产生歧义。
     // 需要 Int2 → Vector2Int 时用 View 层的 ToV2() 扩展。
 #endif
-
-    /// <summary>曼哈顿距离。</summary>
-    public int ManhattanTo(Int2 other) => System.Math.Abs(X - other.X) + System.Math.Abs(Y - other.Y);
 }

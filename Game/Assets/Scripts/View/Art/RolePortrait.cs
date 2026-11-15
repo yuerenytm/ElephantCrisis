@@ -39,16 +39,6 @@ public static class RolePortrait
         fromArt[role] = false;
         return art;
     }
-
-    /// <summary>
-    /// 若来自美术资源，地图上可不再叠文字。
-    /// </summary>
-    public static bool IsArtSprite(RoleType role)
-    {
-        GetSprite(role);
-        return fromArt.TryGetValue(role, out bool art) && art;
-    }
-
     private static Sprite CreateFallbackIcon(RoleType role)
     {
         Color fill = RoleInfo.GetColor(role).ToColor();

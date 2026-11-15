@@ -13,7 +13,7 @@ from pathsetup import SIM_ROOT, ensure_path  # noqa: E402
 ensure_path()
 
 from anomaly_analysis.detection.runner import train_anomaly_model  # noqa: E402
-from elephant_sim.unity_batch import run_unity_logic_sim  # noqa: E402
+from elephant_sim.batch import run_logic_sim  # noqa: E402
 
 PKG = ROOT / "anomaly_analysis"
 
@@ -37,7 +37,7 @@ def main() -> int:
 
     if args.matches and args.matches > 0:
         print(f"generating {args.matches} Game LogicSim matches → {input_dir}")
-        code = run_unity_logic_sim(
+        code = run_logic_sim(
             matches=args.matches,
             out_dir=input_dir,
             base_seed=args.seed,

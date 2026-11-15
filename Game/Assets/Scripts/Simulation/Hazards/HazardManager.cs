@@ -294,12 +294,6 @@ public class HazardManager
             Presentation.Current.SetVisualActive(VisualOf(f), inFog);
         }
     }
-
-    /// <summary>
-    /// 兼容旧调用名。
-    /// </summary>
-    public void RefreshBananaVisibility() => RefreshHazardVisibility();
-
     /// <summary>
     /// 视野角色能否看见该格的香蕉皮。
     /// </summary>
@@ -367,18 +361,6 @@ public class HazardManager
             return null;
         return string.Join("\n", lines);
     }
-
-    /// <summary>
-    /// 该格是否有可见的陷阱标记。
-    /// </summary>
-    public bool HasVisibleMarkerAt(Int2 cell, UnitActor viewer)
-    {
-        foreach (var mine in mines)
-            if (mine.Cell == cell) return true;
-        if (HasFlameAt(cell)) return true;
-        return CanSeeBananaAt(cell, viewer) || CanSeeTimedBombAt(cell, viewer);
-    }
-
     /// <summary>
     /// 移动踩踏语义：仅在移动落地后结算。行动开始时已站在陷阱上不触发。
     /// </summary>

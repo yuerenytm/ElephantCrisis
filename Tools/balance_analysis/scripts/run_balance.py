@@ -18,7 +18,7 @@ from aggregate import (  # noqa: E402
     format_console_table,
     write_report,
 )
-from elephant_sim.unity_batch import run_unity_logic_sim  # noqa: E402
+from elephant_sim.batch import run_logic_sim  # noqa: E402
 
 SIM_OUT = SIM / "output"
 
@@ -41,7 +41,7 @@ def main() -> int:
 
     if args.matches and args.matches > 0:
         print(f"[1/2] batch {args.matches} matches engine=unity → {input_dir}")
-        code = run_unity_logic_sim(
+        code = run_logic_sim(
             matches=args.matches,
             out_dir=input_dir,
             base_seed=args.seed,

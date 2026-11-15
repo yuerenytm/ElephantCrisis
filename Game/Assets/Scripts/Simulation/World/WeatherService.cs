@@ -79,21 +79,6 @@ public static class WeatherService
             return period == GameClock.Period.Day ? GameRulesConfig.FogDayVisibility : GameRulesConfig.FogDawnDuskVisibility;
         return GameRulesConfig.FullMapVisibility;
     }
-
-    /// <summary>
-    /// 兼容旧接口：按当前时段与天气算能见度。
-    /// </summary>
-    public static int GetVisibilityAfterWeather(int periodBaseVisibility, UnitActor unit = null)
-    {
-        // 兼容旧调用：改走时段×天气矩阵（忽略 periodBaseVisibility）
-        int round = TurnManager.Instance != null ? TurnManager.Instance.RoundNumber : 1;
-        var period = GameClock.GetPeriod(round);
-        var weather = Current;
-        if (weather == WeatherType.Rain && ItemInfo.HasEquippedRubberRaincoat(unit))
-            weather = WeatherType.Clear;
-        return GetPeriodWeatherVisibility(period, weather);
-    }
-
     /// <summary>
     /// 开局：设为晴天并排出第一次变更。
     /// </summary>
