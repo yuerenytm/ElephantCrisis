@@ -71,3 +71,6 @@ ignore.conf
 
 # Optional: keep Packages/ and ProjectSettings/ tracked
 # (do not ignore Packages/manifest.json or packages-lock.json)
+
+# 代码导出的配置元数据（由 ConfigExport 生成，勿手改）
+Design/meta/
