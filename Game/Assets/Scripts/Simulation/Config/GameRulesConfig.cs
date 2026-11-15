@@ -134,7 +134,7 @@ public static class GameRulesConfig
     {
         EnsureLoaded();
         if (deckCounts.TryGetValue(kind, out int n))
-            return Mathf.Max(0, n);
+            return System.Math.Max(0, n);
         return 0;
     }
 
@@ -170,18 +170,18 @@ public static class GameRulesConfig
         }
     }
 
-    public static int LavaShrinkEveryRounds => Mathf.Max(1, GetInt("lava", "shrink_every_rounds", 5));
-    public static int LavaTrueDamage => Mathf.Max(0, GetInt("combat", "lava_true_damage", 20));
-    public static int BurningMagicDamage => Mathf.Max(0, GetInt("combat", "burning_magic_damage", 10));
+    public static int LavaShrinkEveryRounds => System.Math.Max(1, GetInt("lava", "shrink_every_rounds", 5));
+    public static int LavaTrueDamage => System.Math.Max(0, GetInt("combat", "lava_true_damage", 20));
+    public static int BurningMagicDamage => System.Math.Max(0, GetInt("combat", "burning_magic_damage", 10));
 
-    public static int WeatherLockMin => Mathf.Max(1, GetInt("weather", "lock_min", 6));
+    public static int WeatherLockMin => System.Math.Max(1, GetInt("weather", "lock_min", 6));
     public static int WeatherLockMax
     {
         get
         {
             int min = WeatherLockMin;
             int max = GetInt("weather", "lock_max", 10);
-            return Mathf.Max(min, max);
+            return System.Math.Max(min, max);
         }
     }
 
@@ -190,14 +190,14 @@ public static class GameRulesConfig
     public static int FogMagicResist => GetInt("weather", "fog_magic_resist", 10);
 
     public static int ClockStartHour => ((GetInt("clock", "start_hour", 6) % 24) + 24) % 24;
-    public static int HoursPerRound => Mathf.Max(1, GetInt("clock", "hours_per_round", 2));
+    public static int HoursPerRound => System.Math.Max(1, GetInt("clock", "hours_per_round", 2));
 
-    public static int MaxFullRounds => Mathf.Max(1, GetInt("match", "max_full_rounds", 80));
-    public static int ActionsPerRound => Mathf.Max(1, GetInt("match", "actions_per_round", 4));
-    public static int PickupRange => Mathf.Max(1, GetInt("match", "pickup_range", 1));
+    public static int MaxFullRounds => System.Math.Max(1, GetInt("match", "max_full_rounds", 80));
+    public static int ActionsPerRound => System.Math.Max(1, GetInt("match", "actions_per_round", 4));
+    public static int PickupRange => System.Math.Max(1, GetInt("match", "pickup_range", 1));
 
-    public static int GridWidth => Mathf.Max(1, GetInt("grid", "width", 18));
-    public static int GridHeight => Mathf.Max(1, GetInt("grid", "height", 18));
+    public static int GridWidth => System.Math.Max(1, GetInt("grid", "width", 18));
+    public static int GridHeight => System.Math.Max(1, GetInt("grid", "height", 18));
 
     /// <summary>
     /// 出生格（来自 grid.spawn_cells）。
@@ -215,15 +215,15 @@ public static class GameRulesConfig
         get
         {
             float v = GetFloat("terrain", "ice_trip_chance", 0.2f);
-            return Mathf.Clamp01(v);
+            return System.Math.Clamp(v, 0f, 1f);
         }
     }
 
     // ---------- 战斗基础 ----------
-    public static int MeleeRange => Mathf.Max(1, GetInt("combat", "melee_range", 1));
+    public static int MeleeRange => System.Math.Max(1, GetInt("combat", "melee_range", 1));
     public static int CursedBladeTargetMult => GetInt("combat", "cursed_blade_target_mult", 2);
     public static int CursedBladeSelfMult => GetInt("combat", "cursed_blade_self_mult", 1);
-    public static int MoveMinAlive => Mathf.Max(1, GetInt("combat", "move_min_alive", 1));
+    public static int MoveMinAlive => System.Math.Max(1, GetInt("combat", "move_min_alive", 1));
 
     // ---------- 虚拟时钟时段 ----------
     public static int PeriodDawnStart => GetInt("clock", "period_dawn_start", 4);
@@ -236,7 +236,7 @@ public static class GameRulesConfig
     public static int NightRepHour => GetInt("clock", "night_rep_hour", 0);
 
     // ---------- 能见度矩阵 ----------
-    public static int FullMapVisibility => Mathf.Max(1, GetInt("visibility", "full_map", 40));
+    public static int FullMapVisibility => System.Math.Max(1, GetInt("visibility", "full_map", 40));
     public static int NightClearVisibility => GetInt("visibility", "night_clear", 5);
     public static int NightRainVisibility => GetInt("visibility", "night_rain", 4);
     public static int NightFogVisibility => GetInt("visibility", "night_fog", 3);
@@ -252,7 +252,7 @@ public static class GameRulesConfig
     public static int PoisonPerStackMove => GetInt("status", "poison_per_stack_move", -2);
     public static int PoisonEndDamagePerStack => GetInt("status", "poison_end_damage_per_stack", 2);
     public static int PoisonVisibility => GetInt("status", "poison_visibility", 2);
-    public static int PoisonMaxStacks => Mathf.Max(1, GetInt("status", "poison_max_stacks", 3));
+    public static int PoisonMaxStacks => System.Math.Max(1, GetInt("status", "poison_max_stacks", 3));
     public static int LeaderAtk => GetInt("status", "leader_atk", 9);
     public static int LeaderDef => GetInt("status", "leader_def", 9);
     public static int LeaderMove => GetInt("status", "leader_move", 3);
@@ -265,14 +265,14 @@ public static class GameRulesConfig
     public static int DyingActions => GetInt("status", "dying_actions", 12);
     public static int BlindVisibility => GetInt("status", "blind_visibility", 0);
     public static int HiddenRevealRange => GetInt("status", "hidden_reveal_range", 1);
-    public static int PoisonRounds => Mathf.Max(1, GetInt("status", "poison_rounds", 1));
+    public static int PoisonRounds => System.Math.Max(1, GetInt("status", "poison_rounds", 1));
     /// <summary>
     /// 沼泽地形每次施加的中毒持续回合（无施加者，按回合倒数）。
     /// </summary>
-    public static int SwampPoisonRounds => Mathf.Max(1, GetInt("status", "swamp_poison_rounds", 1));
-    public static int BurningRounds => Mathf.Max(1, GetInt("status", "burning_rounds", 1));
-    public static int StunRounds => Mathf.Max(1, GetInt("status", "stun_rounds", 1));
-    public static int BlindRounds => Mathf.Max(1, GetInt("status", "blind_rounds", 1));
+    public static int SwampPoisonRounds => System.Math.Max(1, GetInt("status", "swamp_poison_rounds", 1));
+    public static int BurningRounds => System.Math.Max(1, GetInt("status", "burning_rounds", 1));
+    public static int StunRounds => System.Math.Max(1, GetInt("status", "stun_rounds", 1));
+    public static int BlindRounds => System.Math.Max(1, GetInt("status", "blind_rounds", 1));
 
     // ---------- 技能 ----------
     public static int HumanCooldown(int level) => GetInt("skills", "human_cooldown_lv" + level, LevelFallback(level, 8, 6, 5));
@@ -301,8 +301,8 @@ public static class GameRulesConfig
     public static int SwampMagicResist => GetInt("terrain", "swamp_magic_resist", -20);
     public static float BiomeRatio => GetFloat("terrain", "biome_ratio", 0.10f);
     public static int BiomeMinCells => GetInt("terrain", "biome_min_cells", 8);
-    public static int BiomeBlobMin => Mathf.Max(1, GetInt("terrain", "biome_blob_min", 1));
-    public static int BiomeBlobMax => Mathf.Max(1, GetInt("terrain", "biome_blob_max", 2));
+    public static int BiomeBlobMin => System.Math.Max(1, GetInt("terrain", "biome_blob_min", 1));
+    public static int BiomeBlobMax => System.Math.Max(1, GetInt("terrain", "biome_blob_max", 2));
     public static float BiomeSplitMinRatio => GetFloat("terrain", "biome_split_min_ratio", 0.30f);
     public static int BiomeSplitMinCells => GetInt("terrain", "biome_split_min_cells", 4);
     public static int SpawnProtectRadius => GetInt("terrain", "spawn_protect_radius", 2);
@@ -385,8 +385,8 @@ public static class GameRulesConfig
     public static int ReinforceAmount => Item(ItemKind.Reinforce, "amount", 1);
     public static int RedBullExtraActions => Item(ItemKind.RedBull, "extra_actions", 1);
     public static float ItemWeight => GetFloat("items", "weight_per_card", 1f);
-    public static int ArmorDurabilityLoss => Mathf.Max(1, GetInt("items", "armor_durability_loss", 1));
-    public static int AmuletShieldCharges => Mathf.Max(1, GetInt("items", "amulet_shield_charges", 1));
+    public static int ArmorDurabilityLoss => System.Math.Max(1, GetInt("items", "armor_durability_loss", 1));
+    public static int AmuletShieldCharges => System.Math.Max(1, GetInt("items", "amulet_shield_charges", 1));
 
     /// <summary>
     /// 按 ItemKind 蛇形名读取 items 段下 kind_field 的整数值。
@@ -415,7 +415,7 @@ public static class GameRulesConfig
         if (int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int v))
             return v;
         if (float.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out float f))
-            return Mathf.RoundToInt(f);
+            return (int)System.Math.Round(f, System.MidpointRounding.AwayFromZero);
         return fallback;
     }
 
@@ -664,7 +664,7 @@ public static class GameRulesConfig
             if (map.TryGetValue(key, out string raw)
                 && int.TryParse(raw, NumberStyles.Integer, CultureInfo.InvariantCulture, out int n))
             {
-                deckCounts[kind] = Mathf.Max(0, n);
+                deckCounts[kind] = System.Math.Max(0, n);
             }
             else
             {

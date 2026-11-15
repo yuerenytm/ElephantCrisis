@@ -42,7 +42,7 @@ public static class TerrainGenerator
 
         var protectedCells = BuildProtectedSet(w, h);
         // 各特殊地形比例接近 biome_ratio；余下为普通
-        int perBiome = Mathf.Max(GameRulesConfig.BiomeMinCells, Mathf.RoundToInt(total * GameRulesConfig.BiomeRatio));
+        int perBiome = System.Math.Max(GameRulesConfig.BiomeMinCells, (int)System.Math.Round(total * GameRulesConfig.BiomeRatio, System.MidpointRounding.AwayFromZero));
 
         var usedSeeds = new List<Vector2Int>();
         foreach (var biome in Biomes)
@@ -99,7 +99,7 @@ public static class TerrainGenerator
         }
 
         // 两块：随机切分，每块至少约 biome_split_min_ratio
-        int min = Mathf.Max(GameRulesConfig.BiomeSplitMinCells, Mathf.RoundToInt(total * GameRulesConfig.BiomeSplitMinRatio));
+        int min = System.Math.Max(GameRulesConfig.BiomeSplitMinCells, (int)System.Math.Round(total * GameRulesConfig.BiomeSplitMinRatio, System.MidpointRounding.AwayFromZero));
         int max = total - min;
         if (max < min)
         {

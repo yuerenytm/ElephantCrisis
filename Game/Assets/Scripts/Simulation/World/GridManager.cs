@@ -183,8 +183,8 @@ public class GridManager
     public Vector2Int WorldToCell(Vector3 worldPos)
     {
         Vector3 localPos = worldPos - originPosition;
-        int x = Mathf.FloorToInt(localPos.x / cellSize);
-        int y = Mathf.FloorToInt(localPos.z / cellSize);
+        int x = (int)System.Math.Floor(localPos.x / cellSize);
+        int y = (int)System.Math.Floor(localPos.z / cellSize);
         return new Vector2Int(x, y);
     }
 
@@ -198,7 +198,7 @@ public class GridManager
             return false;
 
         Ray ray = cam.ScreenPointToRay(screenPos);
-        if (Mathf.Abs(ray.direction.y) < 1e-5f)
+        if (System.Math.Abs(ray.direction.y) < 1e-5f)
             return false;
 
         float bestT = float.MaxValue;
@@ -245,7 +245,7 @@ public class GridManager
     /// </summary>
     public int GetManhattanDistance(Vector2Int a, Vector2Int b)
     {
-        return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+        return System.Math.Abs(a.x - b.x) + System.Math.Abs(a.y - b.y);
     }
 
 #if UNITY_EDITOR

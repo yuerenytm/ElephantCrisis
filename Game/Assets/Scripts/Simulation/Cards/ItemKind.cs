@@ -208,7 +208,7 @@ public static class ItemInfo
     public static float GetWeight(InventoryItem item)
     {
         if (IsStackableAmmo(item.Kind))
-            return Mathf.Max(GameRulesConfig.ItemWeight, item.Charges * GameRulesConfig.ItemWeight);
+            return System.Math.Max(GameRulesConfig.ItemWeight, item.Charges * GameRulesConfig.ItemWeight);
         return GameRulesConfig.ItemWeight;
     }
 
@@ -217,7 +217,7 @@ public static class ItemInfo
     /// </summary>
     public static int AmmoChargesToCards(int charges)
     {
-        return Mathf.Max(0, charges);
+        return System.Math.Max(0, charges);
     }
 
     [System.Obsolete("用 AmmoChargesToCards")]
@@ -348,7 +348,7 @@ public static class ItemInfo
         foreach (var it in unit.Inventory.Items)
         {
             if (it.Equipped && it.Kind == ItemKind.CursedBlade)
-                return Mathf.Max(0, it.Charges);
+                return System.Math.Max(0, it.Charges);
         }
         return 0;
     }

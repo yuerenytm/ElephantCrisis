@@ -138,7 +138,7 @@ public class HazardManager
     /// </summary>
     public void PlaceTimedBomb(Vector2Int cell, int rounds, RoleType owner)
     {
-        int actions = Mathf.Clamp(rounds, GameRulesConfig.TimedBombMinRounds, GameRulesConfig.TimedBombMaxRounds) * GameRulesConfig.ActionsPerRound;
+        int actions = System.Math.Clamp(rounds, GameRulesConfig.TimedBombMinRounds, GameRulesConfig.TimedBombMaxRounds) * GameRulesConfig.ActionsPerRound;
         var bomb = new TimedBombHazard { Cell = cell, ActionsLeft = actions, Owner = owner };
         TrackVisual(bomb, Presentation.Current.CreateMarkerVisual(cell, "TimedBomb"));
         // 倒计时标签纯属表现：无头模式没有 Visual，跳过即可（不影响回合数）
@@ -235,7 +235,7 @@ public class HazardManager
             if (flames[i].Cell != cell)
                 continue;
             var f = flames[i];
-            f.ActionsLeft = Mathf.Max(f.ActionsLeft, actions);
+            f.ActionsLeft = System.Math.Max(f.ActionsLeft, actions);
             flames[i] = f;
             existed = true;
             break;
@@ -499,7 +499,7 @@ public class HazardManager
         {
             var bomb = timedBombs[i];
             bomb.ActionsLeft--;
-            Presentation.Current.UpdateMarkerLabel(VisualOf(bomb), Mathf.Max(0, bomb.ActionsLeft));
+            Presentation.Current.UpdateMarkerLabel(VisualOf(bomb), System.Math.Max(0, bomb.ActionsLeft));
 
             if (bomb.ActionsLeft > 0)
             {

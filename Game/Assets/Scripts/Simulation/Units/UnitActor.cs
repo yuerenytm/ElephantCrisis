@@ -144,7 +144,7 @@ public class UnitActor
             if (ItemInfo.IsTelescopeVisionActive(this))
                 v += ItemInfo.GetTelescopeVisibilityBonus(period, WeatherService.Current);
 
-            return Mathf.Max(0, v);
+            return System.Math.Max(0, v);
         }
     }
 
@@ -237,7 +237,7 @@ public class UnitActor
         get
         {
             if (IsDead) return 0;
-            return Mathf.Max(0, BaseMagicResist + GetTerrainMagicResistMod() + WeatherService.GetMagicResistMod(this));
+            return System.Math.Max(0, BaseMagicResist + GetTerrainMagicResistMod() + WeatherService.GetMagicResistMod(this));
         }
     }
 
@@ -255,7 +255,7 @@ public class UnitActor
             int m = BaseMove + PermMove + TempMove + GetDollMoveBonus() + GetStatusMoveMod()
                 + GetTerrainMoveMod() + GetVehicleMoveBonus();
             m -= GetDeterrencePenalty();
-            return Mathf.Max(GameRulesConfig.MoveMinAlive, m);
+            return System.Math.Max(GameRulesConfig.MoveMinAlive, m);
         }
     }
 
@@ -290,10 +290,10 @@ public class UnitActor
             if (item.Kind == ItemKind.IceSkates)
             {
                 if (CurrentTile == TileType.Ice)
-                    best = Mathf.Max(best, GameRulesConfig.IceSkatesIceMove);
+                    best = System.Math.Max(best, GameRulesConfig.IceSkatesIceMove);
                 continue;
             }
-            best = Mathf.Max(best, ItemInfo.GetVehicleMoveBonus(item.Kind));
+            best = System.Math.Max(best, ItemInfo.GetVehicleMoveBonus(item.Kind));
         }
         return best;
     }
@@ -302,7 +302,7 @@ public class UnitActor
     /// <summary>
     /// 结算用防御；各类减防叠完后下限为 0（不允许破防使物伤超过攻击）。
     /// </summary>
-    public int CurrentDef => IsDead ? 0 : Mathf.Max(0, Def);
+    public int CurrentDef => IsDead ? 0 : System.Math.Max(0, Def);
 
     /// <summary>
     /// 物伤结算用防御；ignoreArmor 时不计装备防具提供的防御加成。
@@ -313,7 +313,7 @@ public class UnitActor
         if (!ignoreArmor)
             return CurrentDef;
         int armor = Inventory?.GetArmorDefenseBonus() ?? 0;
-        return Mathf.Max(0, Def - armor);
+        return System.Math.Max(0, Def - armor);
     }
 
     public float CurrentBagCapacity => BagCapacity + GetDollBagBonus() + ItemInfo.GetTacticalVestBagBonus(this);
@@ -328,7 +328,7 @@ public class UnitActor
             int lv = GameRulesConfig.SkillLevelBase + SkillUpgradeBonus;
             if (Inventory != null && Inventory.Contains(RoleInfo.GetOwnDoll(Role)))
                 lv++;
-            return Mathf.Clamp(lv, GameRulesConfig.SkillLevelBase, GameRulesConfig.SkillLevelMax);
+            return System.Math.Clamp(lv, GameRulesConfig.SkillLevelBase, GameRulesConfig.SkillLevelMax);
         }
     }
 
@@ -717,7 +717,7 @@ public class UnitActor
         {
             if (statuses[i].Type != type)
                 continue;
-            int keep = Mathf.Max(statuses[i].RoundsLeft, rounds);
+            int keep = System.Math.Max(statuses[i].RoundsLeft, rounds);
             TickPolicy policy = PolicyFor(type, source != null || statuses[i].HasSource);
             if (source != null)
                 statuses[i] = new StatusEffect(type, keep, policy, source.Role);
@@ -799,7 +799,7 @@ public class UnitActor
     /// </summary>
     public void SetSkillCooldown(int rounds)
     {
-        SkillCooldownLeft = Mathf.Max(0, rounds);
+        SkillCooldownLeft = System.Math.Max(0, rounds);
     }
 
     /// <summary>
@@ -874,7 +874,7 @@ public class UnitActor
                 break;
         }
         if (SkillLevel >= GameRulesConfig.SkillLevelMax)
-            SkillShieldCharges = Mathf.Max(SkillShieldCharges, 1);
+            SkillShieldCharges = System.Math.Max(SkillShieldCharges, 1);
         RefreshVisual();
         return detail;
     }
@@ -1009,7 +1009,7 @@ public class UnitActor
             return;
 
         bool wasDying = IsDying;
-        Hp = Mathf.Min(MaxHp, Hp + amount);
+        Hp = System.Math.Min(MaxHp, Hp + amount);
         if (wasDying && Hp >= 1)
         {
             IsDying = false;
@@ -1075,9 +1075,9 @@ public class UnitActor
         else if (magicDamage)
             applied = Mathf.FloorToInt(amount * (1f - MagicResist * 0.01f));
         else
-            applied = Mathf.Max(0, amount - GetDefenseForPhysicalHit(ignoreArmorDefense));
+            applied = System.Math.Max(0, amount - GetDefenseForPhysicalHit(ignoreArmorDefense));
         if (fromBombOrMine && !trueDamage && ItemInfo.HasEquippedTacticalVest(this))
-            applied = Mathf.Max(0, applied - GameRulesConfig.TacticalVestExtraMitigation);
+            applied = System.Math.Max(0, applied - GameRulesConfig.TacticalVestExtraMitigation);
 
         if (applied <= 0)
             return 0;

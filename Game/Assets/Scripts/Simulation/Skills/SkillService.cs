@@ -275,8 +275,8 @@ public static class StealthService
         var preferred = new System.Collections.Generic.List<Vector2Int>(2);
         if (sx != 0 && sy != 0)
         {
-            int adx = Mathf.Abs(from.x - occupied.x);
-            int ady = Mathf.Abs(from.y - occupied.y);
+            int adx = System.Math.Abs(from.x - occupied.x);
+            int ady = System.Math.Abs(from.y - occupied.y);
             var alongX = new Vector2Int(occupied.x + sx, occupied.y);
             var alongY = new Vector2Int(occupied.x, occupied.y + sy);
             if (adx == ady)

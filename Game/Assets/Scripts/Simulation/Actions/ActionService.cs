@@ -317,7 +317,7 @@ public static class ActionService
         if (idx < 0)
             return false;
 
-        int x = Mathf.Max(0, attacker.Inventory.Items[idx].Charges) + 1;
+        int x = System.Math.Max(0, attacker.Inventory.Items[idx].Charges) + 1;
         int targetRaw = GameRulesConfig.CursedBladeTargetMult * x;
         int selfRaw = GameRulesConfig.CursedBladeSelfMult * x;
 
@@ -949,7 +949,7 @@ public static class ActionService
 
         unit.Inventory.Remove(ItemKind.RedBull);
         DeckManager.Instance?.AddToDiscard(ItemKind.RedBull);
-        unit.PendingExtraActions = Mathf.Max(0, unit.PendingExtraActions) + GameRulesConfig.RedBullExtraActions;
+        unit.PendingExtraActions = System.Math.Max(0, unit.PendingExtraActions) + GameRulesConfig.RedBullExtraActions;
         TurnManager.Instance.CancelTargeting();
         TurnManager.Instance.LogFor(unit,
             $"{RoleInfo.GetDisplayName(unit.Role)} 喝下【红牛】（行动结束后额外行动×{unit.PendingExtraActions}）");
@@ -1388,7 +1388,7 @@ public static class ActionService
         int dx = dirCell.x - unit.Cell.x;
         int dy = dirCell.y - unit.Cell.y;
         // 四向之一
-        if (!((dx == 0 && Mathf.Abs(dy) == 1) || (dy == 0 && Mathf.Abs(dx) == 1)))
+        if (!((dx == 0 && System.Math.Abs(dy) == 1) || (dy == 0 && System.Math.Abs(dx) == 1)))
             return false;
 
         // 开火瞬间耗油（与弓耗箭一致：先扣弹药再结算）
@@ -1551,7 +1551,7 @@ public static class ActionService
         var grid = GridManager.Instance;
         int dx = target.x - unit.Cell.x;
         int dy = target.y - unit.Cell.y;
-        int dist = Mathf.Abs(dx) + Mathf.Abs(dy);
+        int dist = System.Math.Abs(dx) + System.Math.Abs(dy);
         if (dist < GameRulesConfig.MotorcycleRamMin || dist > GameRulesConfig.MotorcycleRamMax)
             return false;
         if (!((dx == 0 && dy != 0) || (dy == 0 && dx != 0)))

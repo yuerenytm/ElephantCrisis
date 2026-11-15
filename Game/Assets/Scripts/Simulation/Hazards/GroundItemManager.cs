@@ -87,7 +87,7 @@ public class GroundItemManager
         {
             for (int dy = -radius; dy <= radius; dy++)
             {
-                if (Mathf.Abs(dx) + Mathf.Abs(dy) > radius)
+                if (System.Math.Abs(dx) + System.Math.Abs(dy) > radius)
                     continue;
                 if (HasItems(center + new Vector2Int(dx, dy)))
                     return true;
@@ -182,7 +182,7 @@ public class GroundItemManager
         {
             for (int dy = -maxDist; dy <= maxDist; dy++)
             {
-                if (Mathf.Abs(dx) + Mathf.Abs(dy) > maxDist)
+                if (System.Math.Abs(dx) + System.Math.Abs(dy) > maxDist)
                     continue;
                 var cell = center + new Vector2Int(dx, dy);
                 if (!piles.TryGetValue(cell, out var list) || list.Count == 0)
@@ -322,7 +322,7 @@ public class GroundItemManager
         {
             for (int dy = -radius; dy <= radius; dy++)
             {
-                if (Mathf.Abs(dx) + Mathf.Abs(dy) > radius)
+                if (System.Math.Abs(dx) + System.Math.Abs(dy) > radius)
                     continue;
                 total += TryPickupAll(center + new Vector2Int(dx, dy), inventory);
             }

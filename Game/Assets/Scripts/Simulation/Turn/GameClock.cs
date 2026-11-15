@@ -63,7 +63,7 @@ public static class GameClock
     {
         if (HasAdminOverride)
             return adminHour;
-        int r = UnityEngine.Mathf.Max(1, roundNumber);
+        int r = System.Math.Max(1, roundNumber);
         int start = GameRulesConfig.ClockStartHour;
         int step = GameRulesConfig.HoursPerRound;
         return (start + (r - 1) * step) % 24;

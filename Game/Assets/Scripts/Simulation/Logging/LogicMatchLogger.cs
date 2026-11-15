@@ -233,7 +233,7 @@ public sealed class LogicMatchLogger
     {
         string role = LogicSimNaming.Role(unit.Role);
         int full = TurnManager.Instance != null
-            ? Mathf.Max(0, TurnManager.Instance.RoundNumber - 1)
+            ? System.Math.Max(0, TurnManager.Instance.RoundNumber - 1)
             : 0;
         deathRounds[role] = full;
         Emit("death", ("actor", Q(role)));
@@ -253,7 +253,7 @@ public sealed class LogicMatchLogger
     public void EmitWeather()
     {
         int round = TurnManager.Instance != null ? TurnManager.Instance.RoundNumber : 1;
-        int lockLeft = Mathf.Max(0, WeatherService.NextChangeRound - round);
+        int lockLeft = System.Math.Max(0, WeatherService.NextChangeRound - round);
         Emit("weather",
             ("weather", Q(LogicSimNaming.Weather(WeatherService.Current))),
             ("lock", I(lockLeft)));
@@ -274,7 +274,7 @@ public sealed class LogicMatchLogger
     {
         var tm = TurnManager.Instance;
         var grid = GridManager.Instance;
-        int round = tm != null ? Mathf.Max(0, tm.RoundNumber - 1) : 0;
+        int round = tm != null ? System.Math.Max(0, tm.RoundNumber - 1) : 0;
         int hour = GameClock.GetHour(tm != null ? tm.RoundNumber : 1);
         int lava = grid != null ? grid.LavaInset : 0;
         int deck = DeckManager.Instance != null ? DeckManager.Instance.DrawCount : 0;

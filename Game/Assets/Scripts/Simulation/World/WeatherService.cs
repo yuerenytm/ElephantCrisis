@@ -101,7 +101,7 @@ public static class WeatherService
     public static void ResetForMatch(int roundNumber = 1)
     {
         Current = WeatherType.Clear;
-        lastChangeRound = Mathf.Max(1, roundNumber);
+        lastChangeRound = System.Math.Max(1, roundNumber);
         if (MatchConfig.IsAdminMode)
             nextChangeRound = int.MaxValue;
         else
@@ -208,7 +208,7 @@ public static class WeatherService
     {
         var prev = Current;
         Current = weather;
-        lastChangeRound = Mathf.Max(1, round);
+        lastChangeRound = System.Math.Max(1, round);
 
         if (source == ChangeSource.Admin || MatchConfig.IsAdminMode)
             nextChangeRound = int.MaxValue;

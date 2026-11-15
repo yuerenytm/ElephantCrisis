@@ -49,7 +49,7 @@ public static class TerrainInfo
         {
             case TileType.Sand: return $"移动力{GameRulesConfig.SandMove}；法抗{GameRulesConfig.SandMagicResist}";
             case TileType.Swamp: return $"中毒；每行动始叠层；离开清地形层；法抗{GameRulesConfig.SwampMagicResist}";
-            case TileType.Ice: return $"移动力+{GameRulesConfig.IceMove}；行动开始{Mathf.RoundToInt(GameRulesConfig.IceTripChance * 100)}%跌倒；不铺火焰";
+            case TileType.Ice: return $"移动力+{GameRulesConfig.IceMove}；行动开始{(int)System.Math.Round(GameRulesConfig.IceTripChance * 100, System.MidpointRounding.AwayFromZero)}%跌倒；不铺火焰";
             case TileType.Jungle: return $"进入获得隐匿（有火除外）；法抗+{GameRulesConfig.JungleMagicResist}";
             case TileType.Highland: return $"攻击+{GameRulesConfig.HighlandAtk} 防御+{GameRulesConfig.HighlandDef} 射程+{GameRulesConfig.HighlandRange}";
             case TileType.Lava: return $"行动开始{GameRulesConfig.LavaTrueDamage}真伤";
