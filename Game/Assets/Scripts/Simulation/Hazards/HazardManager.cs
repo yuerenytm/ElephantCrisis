@@ -12,7 +12,6 @@ public class HazardManager : MonoBehaviour
     {
         public Vector2Int Cell;
         public RoleType Thrower;
-        public GameObject Visual;
     }
 
     public class TimedBombHazard
@@ -23,13 +22,11 @@ public class HazardManager : MonoBehaviour
         /// </summary>
         public int ActionsLeft;
         public RoleType Owner;
-        public GameObject Visual;
     }
 
     public class MineHazard
     {
         public Vector2Int Cell;
-        public GameObject Visual;
     }
 
     public class FlamePatch
@@ -39,7 +36,6 @@ public class HazardManager : MonoBehaviour
         /// 剩余行动数（铺设时 = 规则回合×4；每次行动结束 −1）。
         /// </summary>
         public int ActionsLeft;
-        public GameObject Visual;
     }
 
     private readonly List<BananaTrap> bananas = new List<BananaTrap>();
@@ -47,6 +43,32 @@ public class HazardManager : MonoBehaviour
     private readonly List<MineHazard> mines = new List<MineHazard>();
     private readonly List<FlamePatch> flames = new List<FlamePatch>();
 
+
+
+    /// <summary>视觉对象注册表：不挂在逻辑数据结构上，避免"画面当数据"。</summary>
+    private readonly Dictionary<object, GameObject> visuals = new Dictionary<object, GameObject>();
+
+    /// <summary>登记某条危险物对应的视觉对象。</summary>
+    private T TrackVisual<T>(T hazard, GameObject visual) where T : class
+    {
+        if (visual != null)
+            visuals[hazard] = visual;
+        return hazard;
+    }
+
+    /// <summary>取视觉对象（无头模式下为 null）。</summary>
+    private GameObject VisualOf(object hazard)
+        => hazard != null && visuals.TryGetValue(hazard, out var go) ? go : null;
+
+    /// <summary>销毁并移除视觉对象。</summary>
+    private void UntrackVisual(object hazard)
+    {
+        if (hazard == null || !visuals.TryGetValue(hazard, out var go))
+            return;
+        if (go != null)
+            Destroy(go);
+        visuals.Remove(hazard);
+    }
 
     private void Awake() => Instance = this;
 
@@ -62,13 +84,14 @@ public class HazardManager : MonoBehaviour
     public void ClearAll()
     {
         foreach (var b in bananas)
-            if (b.Visual != null) Destroy(b.Visual);
+            UntrackVisual(b);
         foreach (var t in timedBombs)
-            if (t.Visual != null) Destroy(t.Visual);
+            UntrackVisual(t);
         foreach (var m in mines)
-            if (m.Visual != null) Destroy(m.Visual);
+            UntrackVisual(m);
         foreach (var f in flames)
-            if (f.Visual != null) Destroy(f.Visual);
+            UntrackVisual(f);
+        visuals.Clear();
         bananas.Clear();
         timedBombs.Clear();
         mines.Clear();
@@ -84,8 +107,7 @@ public class HazardManager : MonoBehaviour
         for (int i = flames.Count - 1; i >= 0; i--)
         {
             cells.Add(flames[i].Cell);
-            if (flames[i].Visual != null)
-                Destroy(flames[i].Visual);
+            UntrackVisual(flames[i]);
             flames.RemoveAt(i);
         }
         for (int i = 0; i < cells.Count; i++)
@@ -113,7 +135,7 @@ public class HazardManager : MonoBehaviour
     public void PlaceBananaTrap(Vector2Int cell, RoleType thrower)
     {
         var trap = new BananaTrap { Cell = cell, Thrower = thrower };
-        trap.Visual = CreateRedMarker(cell, "BananaTrap");
+        TrackVisual(trap, CreateRedMarker(cell, "BananaTrap"));
         bananas.Add(trap);
         RefreshHazardVisibility();
     }
@@ -125,10 +147,10 @@ public class HazardManager : MonoBehaviour
     {
         int actions = Mathf.Clamp(rounds, GameRulesConfig.TimedBombMinRounds, GameRulesConfig.TimedBombMaxRounds) * GameRulesConfig.ActionsPerRound;
         var bomb = new TimedBombHazard { Cell = cell, ActionsLeft = actions, Owner = owner };
-        bomb.Visual = CreateRedMarker(cell, "TimedBomb");
+        TrackVisual(bomb, CreateRedMarker(cell, "TimedBomb"));
         // 倒计时标签纯属表现：无头模式没有 Visual，跳过即可（不影响回合数）
-        if (bomb.Visual != null)
-            Presentation.Current.BuildBombLabel(bomb.Visual, actions);
+        if (VisualOf(bomb) != null)
+            Presentation.Current.BuildBombLabel(VisualOf(bomb), actions);
         timedBombs.Add(bomb);
         RefreshHazardVisibility();
     }
@@ -144,7 +166,7 @@ public class HazardManager : MonoBehaviour
                 return;
         }
         var mine = new MineHazard { Cell = cell };
-        mine.Visual = CreateRedMarker(cell, "Mine");
+        TrackVisual(mine, CreateRedMarker(cell, "Mine"));
         mines.Add(mine);
     }
 
@@ -229,12 +251,7 @@ public class HazardManager : MonoBehaviour
 
         if (!existed)
         {
-            flames.Add(new FlamePatch
-            {
-                Cell = cell,
-                ActionsLeft = actions,
-                Visual = CreateFlameVisual(cell)
-            });
+            flames.Add(TrackVisual(new FlamePatch { Cell = cell, ActionsLeft = actions }, CreateFlameVisual(cell)));
         }
 
         // 有火的丛林不再提供隐匿
@@ -265,29 +282,29 @@ public class HazardManager : MonoBehaviour
         var ownerViewer = MatchConfig.IsAiBattle ? fogViewer : TurnManager.Instance?.CurrentUnit;
         foreach (var b in bananas)
         {
-            if (b.Visual == null) continue;
+            if (VisualOf(b) == null) continue;
             bool ownerSee = ownerViewer != null && ownerViewer.Role == b.Thrower;
             bool inFog = fogViewer == null || VisibilityService.CanSeeCell(fogViewer, b.Cell);
-            b.Visual.SetActive(ownerSee && inFog);
+            VisualOf(b).SetActive(ownerSee && inFog);
         }
         foreach (var bomb in timedBombs)
         {
-            if (bomb.Visual == null) continue;
+            if (VisualOf(bomb) == null) continue;
             bool ownerSee = ownerViewer != null && ownerViewer.Role == bomb.Owner;
             bool inFog = fogViewer == null || VisibilityService.CanSeeCell(fogViewer, bomb.Cell);
-            bomb.Visual.SetActive(ownerSee && inFog);
+            VisualOf(bomb).SetActive(ownerSee && inFog);
         }
         foreach (var m in mines)
         {
-            if (m.Visual == null) continue;
+            if (VisualOf(m) == null) continue;
             bool inFog = fogViewer == null || VisibilityService.CanSeeCell(fogViewer, m.Cell);
-            m.Visual.SetActive(inFog);
+            VisualOf(m).SetActive(inFog);
         }
         foreach (var f in flames)
         {
-            if (f.Visual == null) continue;
+            if (VisualOf(f) == null) continue;
             bool inFog = fogViewer == null || VisibilityService.CanSeeCell(fogViewer, f.Cell);
-            f.Visual.SetActive(inFog);
+            VisualOf(f).SetActive(inFog);
         }
     }
 
@@ -435,8 +452,7 @@ public class HazardManager : MonoBehaviour
             // 施加者=踩到者自己，持续按本人行动开始倒数
             unit.ApplyStatus(StatusType.Trip, GameRulesConfig.TripRounds, unit);
             DeckManager.Instance?.AddToDiscard(ItemKind.BananaPeel);
-            if (bananas[i].Visual != null)
-                Destroy(bananas[i].Visual);
+            UntrackVisual(bananas[i]);
             bananas.RemoveAt(i);
         }
     }
@@ -458,8 +474,7 @@ public class HazardManager : MonoBehaviour
             TurnManager.Instance?.Log(
                 $"⚠ {RoleInfo.GetDisplayName(unit.Role)} 踩到地雷，受到 {dealt} 点法伤");
             DeckManager.Instance?.AddToDiscard(ItemKind.Mine);
-            if (mines[i].Visual != null)
-                Destroy(mines[i].Visual);
+            UntrackVisual(mines[i]);
             mines.RemoveAt(i);
             GameManager.Instance?.CheckWinConditions();
             break;
@@ -481,8 +496,7 @@ public class HazardManager : MonoBehaviour
                 continue;
             }
             var cell = f.Cell;
-            if (f.Visual != null)
-                Destroy(f.Visual);
+            UntrackVisual(f);
             flames.RemoveAt(i);
             NotifyJungleStealthAt(cell);
         }
@@ -497,9 +511,10 @@ public class HazardManager : MonoBehaviour
         {
             var bomb = timedBombs[i];
             bomb.ActionsLeft--;
-            if (bomb.Visual != null)
+            if (VisualOf(bomb) != null)
             {
-                var tm = bomb.Visual.GetComponentInChildren<TextMesh>();
+                var bombGo = VisualOf(bomb);
+                var tm = bombGo != null ? bombGo.GetComponentInChildren<TextMesh>() : null;
                 if (tm != null)
                     tm.text = Mathf.Max(0, bomb.ActionsLeft).ToString();
             }
@@ -511,8 +526,7 @@ public class HazardManager : MonoBehaviour
             }
 
             ExplodeTimedBomb(bomb);
-            if (bomb.Visual != null)
-                Destroy(bomb.Visual);
+            UntrackVisual(bomb);
             timedBombs.RemoveAt(i);
             DeckManager.Instance?.AddToDiscard(ItemKind.TimedBomb);
         }
@@ -549,28 +563,28 @@ public class HazardManager : MonoBehaviour
         {
             if (!set.Contains(bananas[i].Cell)) continue;
             DeckManager.Instance?.AddToDiscard(ItemKind.BananaPeel);
-            if (bananas[i].Visual != null) Destroy(bananas[i].Visual);
+            UntrackVisual(bananas[i]);
             bananas.RemoveAt(i);
         }
         for (int i = timedBombs.Count - 1; i >= 0; i--)
         {
             if (!set.Contains(timedBombs[i].Cell)) continue;
             DeckManager.Instance?.AddToDiscard(ItemKind.TimedBomb);
-            if (timedBombs[i].Visual != null) Destroy(timedBombs[i].Visual);
+            UntrackVisual(timedBombs[i]);
             timedBombs.RemoveAt(i);
         }
         for (int i = mines.Count - 1; i >= 0; i--)
         {
             if (!set.Contains(mines[i].Cell)) continue;
             DeckManager.Instance?.AddToDiscard(ItemKind.Mine);
-            if (mines[i].Visual != null) Destroy(mines[i].Visual);
+            UntrackVisual(mines[i]);
             mines.RemoveAt(i);
         }
         for (int i = flames.Count - 1; i >= 0; i--)
         {
             if (!set.Contains(flames[i].Cell)) continue;
             var cell = flames[i].Cell;
-            if (flames[i].Visual != null) Destroy(flames[i].Visual);
+            UntrackVisual(flames[i]);
             flames.RemoveAt(i);
             NotifyJungleStealthAt(cell);
         }
