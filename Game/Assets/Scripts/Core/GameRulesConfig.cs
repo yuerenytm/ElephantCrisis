@@ -499,7 +499,15 @@ public static class GameRulesConfig
 
     public static string ResolveRulesPath()
     {
-        string streaming = Path.Combine(Application.streamingAssetsPath, "Config", "game_rules.yaml");
+        string dir = Path.Combine(Application.streamingAssetsPath, "Config");
+
+        // 权威已切到 Design/*.csv：由 Tools/config/build.py 生成的 game_rules.gen.yaml 优先。
+        // 保守迁移：删掉这个生成物即可回退到手写的 game_rules.yaml。
+        string generated = Path.Combine(dir, "game_rules.gen.yaml");
+        if (File.Exists(generated))
+            return generated;
+
+        string streaming = Path.Combine(dir, "game_rules.yaml");
         if (File.Exists(streaming))
             return streaming;
 
