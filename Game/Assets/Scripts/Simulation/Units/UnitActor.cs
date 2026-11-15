@@ -939,13 +939,11 @@ public class UnitActor : MonoBehaviour
     private void EnsureVisuals()
     {
         // 去掉广告牌：3D 棋子直立于地面
-        var billboard = GetComponent<CameraBillboard>();
-        if (billboard != null)
-            Destroy(billboard);
+        Presentation.Current.RemoveBillboard(gameObject);
 
         if (modelRoot == null)
         {
-            var modelGo = RoleModelFactory.Build(Role, transform);
+            var modelGo = Presentation.Current.BuildRoleModel(Role, transform);
             modelRoot = modelGo.transform;
             modelRenderers = modelRoot.GetComponentsInChildren<Renderer>(true);
             modelBaseColors = new Color[modelRenderers.Length];
@@ -954,7 +952,7 @@ public class UnitActor : MonoBehaviour
         }
 
         if (selectRing == null)
-            selectRing = RoleModelFactory.BuildSelectRing(transform);
+            selectRing = Presentation.Current.BuildSelectRing(transform);
 
         if (label == null)
         {

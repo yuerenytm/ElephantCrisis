@@ -448,15 +448,7 @@ public class GroundItemManager : MonoBehaviour
             visuals[cell] = go;
         }
 
-        var sr = go.GetComponent<SpriteRenderer>();
-        sr.sprite = SpriteFactory.CreateBorderedSprite(fill, border, 16, 2);
-        var grid = GridManager.Instance;
-        sr.sortingOrder = grid.GetSortOrder(cell, emphasize ? 35 : 30);
-
-        go.transform.position = grid.CellToWorld(cell) + new Vector3(0.32f, 0.04f, -0.32f);
-        go.transform.localScale = Vector3.one * (emphasize ? 0.34f : 0.28f);
-        if (go.GetComponent<CameraBillboard>() == null)
-            go.AddComponent<CameraBillboard>();
+        Presentation.Current.StyleLoot(go, fill, border, cell, emphasize);
 
         var viewer = VisibilityService.GetFogViewer();
         go.SetActive(viewer == null || VisibilityService.CanSeeCell(viewer, cell));

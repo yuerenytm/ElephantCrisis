@@ -47,11 +47,6 @@ public class HazardManager : MonoBehaviour
     private readonly List<MineHazard> mines = new List<MineHazard>();
     private readonly List<FlamePatch> flames = new List<FlamePatch>();
 
-    private static readonly Color HazardRed = new Color(0.92f, 0.22f, 0.18f, 1f);
-    private static readonly Color HazardRedBorder = new Color(0.45f, 0.08f, 0.06f, 1f);
-    private static readonly Color FlameCore = new Color(1f, 0.45f, 0.08f, 0.88f);
-    private static readonly Color FlameEdge = new Color(0.95f, 0.15f, 0.05f, 0.55f);
-    private static readonly Color FlameGlow = new Color(1f, 0.75f, 0.2f, 0.35f);
 
     private void Awake() => Instance = this;
 
@@ -131,19 +126,9 @@ public class HazardManager : MonoBehaviour
         int actions = Mathf.Clamp(rounds, GameRulesConfig.TimedBombMinRounds, GameRulesConfig.TimedBombMaxRounds) * GameRulesConfig.ActionsPerRound;
         var bomb = new TimedBombHazard { Cell = cell, ActionsLeft = actions, Owner = owner };
         bomb.Visual = CreateRedMarker(cell, "TimedBomb");
-        var labelGo = new GameObject("Label");
-        labelGo.transform.SetParent(bomb.Visual.transform, false);
-        labelGo.transform.localPosition = new Vector3(0f, 0.55f, 0f);
-        labelGo.transform.localScale = Vector3.one * 2.2f;
-        var tm = labelGo.AddComponent<TextMesh>();
-        tm.text = actions.ToString();
-        tm.characterSize = 0.12f;
-        tm.fontSize = 48;
-        tm.anchor = TextAnchor.MiddleCenter;
-        tm.alignment = TextAlignment.Center;
-        tm.color = Color.white;
-        var mr = labelGo.GetComponent<MeshRenderer>();
-        if (mr != null) mr.sortingOrder = 6;
+        // 倒计时标签纯属表现：无头模式没有 Visual，跳过即可（不影响回合数）
+        if (bomb.Visual != null)
+            Presentation.Current.BuildBombLabel(bomb.Visual, actions);
         timedBombs.Add(bomb);
         RefreshHazardVisibility();
     }
@@ -262,61 +247,13 @@ public class HazardManager : MonoBehaviour
         occ?.SyncJungleStealthFromTerrain();
     }
 
+
+
     private GameObject CreateFlameVisual(Vector2Int cell)
-    {
-        var grid = GridManager.Instance;
-        var go = new GameObject("Flame");
-        go.transform.SetParent(transform, false);
-        Vector3 pos = grid != null ? grid.CellToWorld(cell) : Vector3.zero;
-        go.transform.position = pos + new Vector3(0f, 0.05f, 0f);
-
-        var glow = new GameObject("Glow");
-        glow.transform.SetParent(go.transform, false);
-        glow.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-        glow.transform.localScale = Vector3.one * 0.95f;
-        var gsr = glow.AddComponent<SpriteRenderer>();
-        gsr.sprite = SpriteFactory.CreateCircleSprite(FlameGlow, FlameEdge, 32, 0.48f);
-        gsr.sortingOrder = grid != null ? grid.GetSortOrder(cell, 20) : 20;
-
-        var body = new GameObject("Body");
-        body.transform.SetParent(go.transform, false);
-        body.transform.localRotation = Quaternion.Euler(90f, 0f, 0f);
-        body.transform.localPosition = new Vector3(0f, 0.02f, 0f);
-        body.transform.localScale = Vector3.one * 0.72f;
-        var bsr = body.AddComponent<SpriteRenderer>();
-        bsr.sprite = SpriteFactory.CreateBorderedSprite(FlameCore, FlameEdge, 24, 3);
-        bsr.sortingOrder = grid != null ? grid.GetSortOrder(cell, 21) : 21;
-
-        var tongue = new GameObject("Tongue");
-        tongue.transform.SetParent(go.transform, false);
-        tongue.transform.localPosition = new Vector3(0f, 0.28f, 0f);
-        tongue.transform.localScale = new Vector3(0.35f, 0.55f, 0.35f);
-        var tsr = tongue.AddComponent<SpriteRenderer>();
-        tsr.sprite = SpriteFactory.CreateBorderedSprite(
-            new Color(1f, 0.85f, 0.25f, 0.95f),
-            new Color(1f, 0.35f, 0.05f, 0.9f),
-            16, 2);
-        tsr.sortingOrder = grid != null ? grid.GetSortOrder(cell, 36) : 36;
-        tongue.AddComponent<CameraBillboard>();
-
-        go.AddComponent<FlameFlicker>();
-        return go;
-    }
+        => Presentation.Current.BuildFlameVisual(cell, transform);
 
     private GameObject CreateRedMarker(Vector2Int cell, string name)
-    {
-        var go = new GameObject(name);
-        go.transform.SetParent(transform, false);
-        var grid = GridManager.Instance;
-        // 西北角偏移（XZ）
-        go.transform.position = grid.CellToWorld(cell) + new Vector3(-0.32f, 0.04f, 0.32f);
-        go.transform.localScale = Vector3.one * 0.28f;
-        var sr = go.AddComponent<SpriteRenderer>();
-        sr.sprite = SpriteFactory.CreateBorderedSprite(HazardRed, HazardRedBorder, 16, 2);
-        sr.sortingOrder = grid.GetSortOrder(cell, 38);
-        go.AddComponent<CameraBillboard>();
-        return go;
-    }
+        => Presentation.Current.BuildRedMarker(cell, transform, name);
 
     /// <summary>
     /// 香蕉皮与定时炸弹仅对放置者可见，且须在迷雾视野内；地雷全员可见但受迷雾限制。

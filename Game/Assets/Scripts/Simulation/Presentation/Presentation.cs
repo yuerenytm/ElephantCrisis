@@ -28,6 +28,27 @@ public interface IPresentation
 
     /// <summary>隐藏主菜单（开始对局时）。</summary>
     void HideMenu();
+
+    /// <summary>给掉落物对象挂上精灵与广告牌。</summary>
+    void StyleLoot(GameObject go, Color fill, Color border, Vector2Int cell, bool emphasize);
+
+    /// <summary>创建火焰地块的视觉对象。</summary>
+    GameObject BuildFlameVisual(Vector2Int cell, Transform parent);
+
+    /// <summary>创建红色标记（地雷 / 定时炸弹）。</summary>
+    GameObject BuildRedMarker(Vector2Int cell, Transform parent, string name);
+
+    /// <summary>构建角色模型。</summary>
+    GameObject BuildRoleModel(RoleType role, Transform parent);
+
+    /// <summary>构建选中环。</summary>
+    GameObject BuildSelectRing(Transform parent);
+
+    /// <summary>给定时炸弹挂倒计时标签（纯表现）。</summary>
+    void BuildBombLabel(GameObject marker, int actions);
+
+    /// <summary>移除对象上的广告牌组件（棋子要直立）。</summary>
+    void RemoveBillboard(GameObject go);
 }
 
 /// <summary>
@@ -46,6 +67,13 @@ public static class Presentation
         public void BeginItemTargeting(int itemIndex, ItemKind kind) { }
         public void BeginShootWithAmmo(int weaponIndex, ItemKind ammo) { }
         public void HideMenu() { }
+        public void StyleLoot(GameObject go, Color fill, Color border, Vector2Int cell, bool emphasize) { }
+        public GameObject BuildFlameVisual(Vector2Int cell, Transform parent) => null;
+        public GameObject BuildRedMarker(Vector2Int cell, Transform parent, string name) => null;
+        public GameObject BuildRoleModel(RoleType role, Transform parent) => null;
+        public GameObject BuildSelectRing(Transform parent) => null;
+        public void BuildBombLabel(GameObject marker, int actions) { }
+        public void RemoveBillboard(GameObject go) { }
     }
 
     private static IPresentation current = new NullPresentation();
