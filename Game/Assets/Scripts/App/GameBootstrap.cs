@@ -368,15 +368,12 @@ public class GameBootstrap : MonoBehaviour
     private void EnsureSystems(bool leanLogicSim = false)
     {
         if (GridManager.Instance == null)
-        {
-            var go = new GameObject("GridManager");
-            go.AddComponent<GridManager>();
-        }
+            GridManager.Create();
 
         if (GameManager.Instance == null)
             GameManager.Instance = new GameManager();
         if (TurnManager.Instance == null)
-            gameObject.AddComponent<TurnManager>();
+            TurnManager.Instance = new TurnManager();
         if (PlayerInputController.Instance == null)
             gameObject.AddComponent<PlayerInputController>();
         if (GameUI.Instance == null && !leanLogicSim)

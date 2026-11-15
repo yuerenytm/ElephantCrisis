@@ -25,7 +25,7 @@ public enum TurnPhase
     GameOver
 }
 
-public class TurnManager : MonoBehaviour
+public class TurnManager
 {
     public static TurnManager Instance;
 
@@ -55,16 +55,6 @@ public class TurnManager : MonoBehaviour
 
     private readonly List<UnitActor> units = new List<UnitActor>();
 
-    private void OnDestroy()
-    {
-        if (Instance == this)
-            Instance = null;
-    }
-
-    private void Awake()
-    {
-        Instance = this;
-    }
 
     /// <summary>
     /// 重置行动顺序与轮次（重开对局时用）。

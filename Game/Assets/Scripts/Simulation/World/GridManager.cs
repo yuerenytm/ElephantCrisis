@@ -2,7 +2,7 @@ using UnityEngine;
 using System.Collections.Generic;
 
 // 挂载在场景中一个空物体上，负责管理18x18网格的坐标转换、占用和地块类型
-public class GridManager : MonoBehaviour
+public class GridManager
 {
     public static GridManager Instance;
 
@@ -21,15 +21,17 @@ public class GridManager : MonoBehaviour
     private TileType[,] tiles;
     private int lavaInset;
 
-    private void Awake()
+    /// <summary>创建并初始化网格（由装配点调用一次）。</summary>
+    public static GridManager Create()
     {
-        if (Instance == null)
-            Instance = this;
-        else
-        {
-            Destroy(gameObject);
-            return;
-        }
+        var grid = new GridManager();
+        Instance = grid;
+        grid.Initialize();
+        return grid;
+    }
+
+    private void Initialize()
+    {
 
         // 网格尺寸以 game_rules.yaml 为唯一真源（Inspector 默认值仅作回退）
         gridWidth = GameRulesConfig.GridWidth;
@@ -123,11 +125,6 @@ public class GridManager : MonoBehaviour
         occupiedCells.Clear();
     }
 
-    private void OnDestroy()
-    {
-        if (Instance == this)
-            Instance = null;
-    }
 
     /// <summary>
     /// 该格是否被占用。
