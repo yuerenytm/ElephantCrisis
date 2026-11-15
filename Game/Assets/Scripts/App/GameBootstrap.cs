@@ -52,8 +52,6 @@ public class GameBootstrap : MonoBehaviour
 
     private void Start()
     {
-        if (BootFlags.HeadlessRequested)
-            return;
         ShowMainMenu();
     }
 
