@@ -74,3 +74,7 @@ ignore.conf
 
 # 代码导出的配置元数据（由 ConfigExport 生成，勿手改）
 Design/meta/
+
+# 引擎无关性检查工程的构建产物
+Tools/core_check/bin/
+Tools/core_check/obj/
