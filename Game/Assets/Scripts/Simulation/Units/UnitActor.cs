@@ -80,6 +80,12 @@ public class UnitActor : MonoBehaviour
     /// </summary>
     public bool HiddenFromJungle { get; private set; }
 
+    /// <summary>外皮（表现层实现）；无头模式下为 null。</summary>
+    public IUnitView View { get; private set; }
+
+    /// <summary>由装配点挂上外皮。</summary>
+    public void AttachView(IUnitView view) => View = view;
+
     private readonly List<StatusEffect> statuses = new List<StatusEffect>();
     public IReadOnlyList<StatusEffect> Statuses => statuses;
 
@@ -881,13 +887,7 @@ public class UnitActor : MonoBehaviour
         statuses.Clear();
     }
 
-    private Transform modelRoot;
-    private Renderer[] modelRenderers;
-    private Color[] modelBaseColors;
     private GameObject selectRing;
-    private TextMesh label;
-    private MaterialPropertyBlock tintBlock;
-    private bool worldVisible = true;
 
     /// <summary>
     /// 初始化角色：属性、背包、视觉。
@@ -929,60 +929,9 @@ public class UnitActor : MonoBehaviour
         IsDead = false;
         DyingActionsLeft = 0;
 
-        if (Presentation.Enabled)
-            EnsureVisuals();
+        Presentation.Current.AttachUnit(this);   // 有头模式才真的挂外皮
         PlaceAt(startCell, true);
-        if (Presentation.Enabled)
-            RefreshVisual();
-    }
-
-    private void EnsureVisuals()
-    {
-        // 去掉广告牌：3D 棋子直立于地面
-        Presentation.Current.RemoveBillboard(gameObject);
-
-        if (modelRoot == null)
-        {
-            var modelGo = Presentation.Current.BuildRoleModel(Role, transform);
-            modelRoot = modelGo.transform;
-            modelRenderers = modelRoot.GetComponentsInChildren<Renderer>(true);
-            modelBaseColors = new Color[modelRenderers.Length];
-            for (int i = 0; i < modelRenderers.Length; i++)
-                modelBaseColors[i] = ReadRendererColor(modelRenderers[i]);
-        }
-
-        if (selectRing == null)
-            selectRing = Presentation.Current.BuildSelectRing(transform);
-
-        if (label == null)
-        {
-            var labelGo = new GameObject("Label");
-            labelGo.transform.SetParent(transform, false);
-            labelGo.transform.localPosition = new Vector3(0f, 1.05f, 0f);
-            label = labelGo.AddComponent<TextMesh>();
-            label.anchor = TextAnchor.MiddleCenter;
-            label.alignment = TextAlignment.Center;
-            label.characterSize = 0.14f;
-            label.fontSize = 48;
-            label.color = Color.white;
-            label.fontStyle = FontStyle.Bold;
-            label.text = "";
-            labelGo.SetActive(false);
-        }
-    }
-
-    private static Color ReadRendererColor(Renderer r)
-    {
-        if (r == null)
-            return Color.white;
-        var mat = r.sharedMaterial;
-        if (mat == null)
-            return Color.white;
-        if (mat.HasProperty("_BaseColor"))
-            return mat.GetColor("_BaseColor");
-        if (mat.HasProperty("_Color"))
-            return mat.GetColor("_Color");
-        return mat.color;
+        RefreshVisual();
     }
 
     /// <summary>
@@ -995,46 +944,10 @@ public class UnitActor : MonoBehaviour
             grid.ClearCell(Cell);
 
         Cell = cell;
-        // 略抬离地面，减少与地块 Z 冲突
-        transform.position = grid.CellToWorld(cell) + Vector3.up * 0.02f;
-        ApplySortOrder();
+        View?.PlaceAt(this, cell);
 
         if (register)
             grid.SetCellOccupied(cell, gameObject);
-    }
-
-    private void ApplySortOrder()
-    {
-        // 3D 棋子靠深度排序；仅把名字牌抬到最前（若启用）
-        if (label == null)
-            return;
-        var grid = GridManager.Instance;
-        if (grid == null)
-            return;
-        var mr = label.GetComponent<MeshRenderer>();
-        if (mr != null)
-            mr.sortingOrder = grid.GetSortOrder(Cell, 50);
-    }
-
-    /// <summary>
-    /// 面朝棋盘中心，四角出生位更易辨认。
-    /// </summary>
-    private void FaceBoardCenter()
-    {
-        if (modelRoot == null)
-            return;
-        var grid = GridManager.Instance;
-        if (grid == null)
-            return;
-        Vector3 center = grid.originPosition + new Vector3(
-            grid.gridWidth * grid.cellSize * 0.5f,
-            0f,
-            grid.gridHeight * grid.cellSize * 0.5f);
-        Vector3 flat = center - transform.position;
-        flat.y = 0f;
-        if (flat.sqrMagnitude < 0.0001f)
-            return;
-        modelRoot.rotation = Quaternion.LookRotation(flat.normalized, Vector3.up);
     }
 
     /// <summary>
@@ -1505,74 +1418,17 @@ public class UnitActor : MonoBehaviour
     /// <summary>
     /// 设置选中高亮。
     /// </summary>
-    public void SetSelected(bool selected)
-    {
-        if (selectRing == null)
-            return;
-        selectRing.SetActive(selected && worldVisible);
-    }
+    public void SetSelected(bool selected) => View?.SetSelected(this, selected);
 
     /// <summary>
     /// 迷雾：非视野内单位隐藏渲染（逻辑仍在场上）。
     /// </summary>
-    public void SetWorldVisible(bool visible)
-    {
-        worldVisible = visible;
-        ApplyWorldVisible();
-    }
-
-    private void ApplyWorldVisible()
-    {
-        if (modelRenderers != null)
-        {
-            for (int i = 0; i < modelRenderers.Length; i++)
-            {
-                if (modelRenderers[i] != null)
-                    modelRenderers[i].enabled = worldVisible;
-            }
-        }
-        if (selectRing != null && !worldVisible)
-            selectRing.SetActive(false);
-        if (label != null)
-            label.gameObject.SetActive(false);
-    }
+    public void SetWorldVisible(bool visible) => View?.SetWorldVisible(this, visible);
 
     /// <summary>
     /// 刷新颜色 / 模型等表现。
     /// </summary>
-    public void RefreshVisual()
-    {
-        if (modelRoot == null)
-            return;
-
-        ApplyModelTint(IsDying
-            ? new Color(1f, 0.45f, 0.45f, 1f)
-            : Color.white);
-        FaceBoardCenter();
-        ApplySortOrder();
-        ApplyWorldVisible();
-    }
-
-    private void ApplyModelTint(Color mul)
-    {
-        if (modelRenderers == null || modelBaseColors == null)
-            return;
-        if (tintBlock == null)
-            tintBlock = new MaterialPropertyBlock();
-
-        for (int i = 0; i < modelRenderers.Length; i++)
-        {
-            var r = modelRenderers[i];
-            if (r == null)
-                continue;
-            Color c = modelBaseColors[i] * mul;
-            c.a = modelBaseColors[i].a;
-            tintBlock.Clear();
-            tintBlock.SetColor("_BaseColor", c);
-            tintBlock.SetColor("_Color", c);
-            r.SetPropertyBlock(tintBlock);
-        }
-    }
+    public void RefreshVisual() => View?.Refresh(this);
 
     /// <summary>
     /// 状态栏文本。

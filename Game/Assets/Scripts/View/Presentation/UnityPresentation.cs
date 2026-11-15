@@ -184,16 +184,10 @@ public sealed class UnityPresentation : IPresentation
             mr.sortingOrder = 6;
     }
 
-    public GameObject BuildRoleModel(RoleType role, Transform parent)
-        => RoleModelFactory.Build(role, parent);
-
-    public GameObject BuildSelectRing(Transform parent)
-        => RoleModelFactory.BuildSelectRing(parent);
-
-    public void RemoveBillboard(GameObject go)
+    public void AttachUnit(UnitActor unit)
     {
-        var billboard = go.GetComponent<CameraBillboard>();
-        if (billboard != null)
-            Object.Destroy(billboard);
+        var view = unit.gameObject.AddComponent<UnitView>();
+        view.Attach(unit);
+        unit.AttachView(view);
     }
 }

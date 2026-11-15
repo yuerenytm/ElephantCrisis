@@ -51,16 +51,16 @@ public interface IPresentation
     GameObject BuildRedMarker(Vector2Int cell, Transform parent, string name);
 
     /// <summary>构建角色模型。</summary>
-    GameObject BuildRoleModel(RoleType role, Transform parent);
 
     /// <summary>构建选中环。</summary>
-    GameObject BuildSelectRing(Transform parent);
 
     /// <summary>给定时炸弹挂倒计时标签（纯表现）。</summary>
     void BuildBombLabel(GameObject marker, int actions);
 
+    /// <summary>给单位挂上外皮（模型 / 选中环 / 名字牌）。无头模式空转。</summary>
+    void AttachUnit(UnitActor unit);
+
     /// <summary>移除对象上的广告牌组件（棋子要直立）。</summary>
-    void RemoveBillboard(GameObject go);
 }
 
 /// <summary>
@@ -86,10 +86,8 @@ public static class Presentation
         public void StyleLoot(GameObject go, Color fill, Color border, Vector2Int cell, bool emphasize) { }
         public GameObject BuildFlameVisual(Vector2Int cell, Transform parent) => null;
         public GameObject BuildRedMarker(Vector2Int cell, Transform parent, string name) => null;
-        public GameObject BuildRoleModel(RoleType role, Transform parent) => null;
-        public GameObject BuildSelectRing(Transform parent) => null;
         public void BuildBombLabel(GameObject marker, int actions) { }
-        public void RemoveBillboard(GameObject go) { }
+        public void AttachUnit(UnitActor unit) { }
     }
 
     private static IPresentation current = new NullPresentation();
