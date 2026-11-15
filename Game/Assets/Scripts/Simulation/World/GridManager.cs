@@ -1,4 +1,6 @@
+#if UNITY_EDITOR
 using UnityEngine;
+#endif
 using System.Collections.Generic;
 
 // 挂载在场景中一个空物体上，负责管理18x18网格的坐标转换、占用和地块类型
@@ -6,18 +8,16 @@ public class GridManager
 {
     public static GridManager Instance;
 
-    [Header("网格设置")]
     public int gridWidth = GameRulesConfig.GridWidth;
     public int gridHeight = GameRulesConfig.GridHeight;
     public float cellSize = 1.25f;
-    public Vector3 originPosition = Vector3.zero;
 
     /// <summary>
     /// 高地相对地面的抬升高度（世界 Y）。
     /// </summary>
     public const float HighlandElevation = 0.45f;
 
-    private Dictionary<Vector2Int, UnitActor> occupiedCells = new Dictionary<Vector2Int, UnitActor>();
+    private Dictionary<Int2, UnitActor> occupiedCells = new Dictionary<Int2, UnitActor>();
     private TileType[,] tiles;
     private int lavaInset;
 
@@ -56,7 +56,7 @@ public class GridManager
     /// <summary>
     /// 坐标是否在网格内。
     /// </summary>
-    public bool IsValidCell(Vector2Int cell)
+    public bool IsValidCell(Int2 cell)
     {
         return cell.x >= 0 && cell.x < gridWidth && cell.y >= 0 && cell.y < gridHeight;
     }
@@ -64,7 +64,7 @@ public class GridManager
     /// <summary>
     /// 取地形类型；越界静默返回 Normal。
     /// </summary>
-    public TileType GetTileType(Vector2Int cell)
+    public TileType GetTileType(Int2 cell)
     {
         if (!IsValidCell(cell) || tiles == null)
             return TileType.Normal;
@@ -74,7 +74,7 @@ public class GridManager
     /// <summary>
     /// 写地形类型。
     /// </summary>
-    public void SetTileType(Vector2Int cell, TileType type)
+    public void SetTileType(Int2 cell, TileType type)
     {
         if (!IsValidCell(cell) || tiles == null)
             return;
@@ -87,9 +87,9 @@ public class GridManager
     /// <summary>
     /// 最外一圈变为熔岩，返回本轮新变的格子。
     /// </summary>
-    public List<Vector2Int> ShrinkLavaRing()
+    public List<Int2> ShrinkLavaRing()
     {
-        var changed = new List<Vector2Int>();
+        var changed = new List<Int2>();
         if (tiles == null)
             InitTiles();
 
@@ -109,7 +109,7 @@ public class GridManager
                 if (tiles[x, y] == TileType.Lava)
                     continue;
                 tiles[x, y] = TileType.Lava;
-                changed.Add(new Vector2Int(x, y));
+                changed.Add(new Int2(x, y));
             }
         }
 
@@ -129,7 +129,7 @@ public class GridManager
     /// <summary>
     /// 该格是否被占用。
     /// </summary>
-    public bool IsCellOccupied(Vector2Int cell)
+    public bool IsCellOccupied(Int2 cell)
     {
         return occupiedCells.ContainsKey(cell);
     }
@@ -137,7 +137,7 @@ public class GridManager
     /// <summary>
     /// 登记占用者。
     /// </summary>
-    public void SetCellOccupied(Vector2Int cell, UnitActor occupant)
+    public void SetCellOccupied(Int2 cell, UnitActor occupant)
     {
         occupiedCells[cell] = occupant;
     }
@@ -145,7 +145,7 @@ public class GridManager
     /// <summary>
     /// 清除占用。
     /// </summary>
-    public void ClearCell(Vector2Int cell)
+    public void ClearCell(Int2 cell)
     {
         if (occupiedCells.ContainsKey(cell))
             occupiedCells.Remove(cell);
@@ -154,7 +154,7 @@ public class GridManager
     /// <summary>
     /// 取占用者。
     /// </summary>
-    public UnitActor GetOccupant(Vector2Int cell)
+    public UnitActor GetOccupant(Int2 cell)
     {
         occupiedCells.TryGetValue(cell, out UnitActor occupant);
         return occupant;
@@ -163,78 +163,13 @@ public class GridManager
     /// <summary>
     /// 格子的世界高度（高地会抬高）。
     /// </summary>
-    public float GetCellHeight(Vector2Int cell)
+    public float GetCellHeight(Int2 cell)
         => TerrainInfo.GetElevation(GetTileType(cell));
-
-    /// <summary>
-    /// 格子中心：XZ 为地面，Y 为抬升（高地 +0.25）。
-    /// </summary>
-    public Vector3 CellToWorld(Vector2Int cell)
-    {
-        return originPosition + new Vector3(
-            cell.x * cellSize + cellSize * 0.5f,
-            GetCellHeight(cell),
-            cell.y * cellSize + cellSize * 0.5f);
-    }
-
-    /// <summary>
-    /// 由世界坐标粗映射格子（用 XZ；忽略高度差时的点击请用 TryScreenToCell）。
-    /// </summary>
-    public Vector2Int WorldToCell(Vector3 worldPos)
-    {
-        Vector3 localPos = worldPos - originPosition;
-        int x = (int)System.Math.Floor(localPos.x / cellSize);
-        int y = (int)System.Math.Floor(localPos.z / cellSize);
-        return new Vector2Int(x, y);
-    }
-
-    /// <summary>
-    /// 斜视正交相机下的点选：射线与各格顶面求交，取最近命中。
-    /// </summary>
-    public bool TryScreenToCell(Camera cam, Vector2 screenPos, out Vector2Int cell)
-    {
-        cell = default;
-        if (cam == null)
-            return false;
-
-        Ray ray = cam.ScreenPointToRay(screenPos);
-        if (System.Math.Abs(ray.direction.y) < 1e-5f)
-            return false;
-
-        float bestT = float.MaxValue;
-        bool hit = false;
-
-        for (int x = 0; x < gridWidth; x++)
-        {
-            for (int y = 0; y < gridHeight; y++)
-            {
-                var c = new Vector2Int(x, y);
-                float planeY = originPosition.y + GetCellHeight(c);
-                float t = (planeY - ray.origin.y) / ray.direction.y;
-                if (t < 0f || t >= bestT)
-                    continue;
-
-                Vector3 p = ray.origin + ray.direction * t;
-                float lx = p.x - originPosition.x;
-                float lz = p.z - originPosition.z;
-                float minX = x * cellSize;
-                float minZ = y * cellSize;
-                if (lx < minX || lx >= minX + cellSize || lz < minZ || lz >= minZ + cellSize)
-                    continue;
-
-                bestT = t;
-                cell = c;
-                hit = true;
-            }
-        }
-
-        return hit;
-    }
 
     /// <summary>
     /// 2.5D 绘制排序：偏北（更大 cell.y）先画，抬升略后画。
     /// </summary>
-    public int GetSortOrder(Vector2Int cell, int layer)
+    public int GetSortOrder(Int2 cell, int layer)
     {
         int elev = GetCellHeight(cell) > 0.01f ? 2 : 0;
         return cell.y * 20 + cell.x + elev + layer;
@@ -243,7 +178,7 @@ public class GridManager
     /// <summary>
     /// 两格之间的曼哈顿距离。
     /// </summary>
-    public int GetManhattanDistance(Vector2Int a, Vector2Int b)
+    public int GetManhattanDistance(Int2 a, Int2 b)
     {
         return System.Math.Abs(a.x - b.x) + System.Math.Abs(a.y - b.y);
     }
@@ -254,14 +189,14 @@ public class GridManager
         Gizmos.color = Color.gray;
         for (int x = 0; x <= gridWidth; x++)
         {
-            Vector3 start = originPosition + new Vector3(x * cellSize, 0f, 0f);
-            Vector3 end = originPosition + new Vector3(x * cellSize, 0f, gridHeight * cellSize);
+            Vector3 start = new Vector3(x * cellSize, 0f, 0f);
+            Vector3 end = new Vector3(x * cellSize, 0f, gridHeight * cellSize);
             Gizmos.DrawLine(start, end);
         }
         for (int y = 0; y <= gridHeight; y++)
         {
-            Vector3 start = originPosition + new Vector3(0f, 0f, y * cellSize);
-            Vector3 end = originPosition + new Vector3(gridWidth * cellSize, 0f, y * cellSize);
+            Vector3 start = new Vector3(0f, 0f, y * cellSize);
+            Vector3 end = new Vector3(gridWidth * cellSize, 0f, y * cellSize);
             Gizmos.DrawLine(start, end);
         }
     }

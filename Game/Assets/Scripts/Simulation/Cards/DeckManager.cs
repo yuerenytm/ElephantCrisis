@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 /// <summary>
 /// 共用限量牌库：开局构建后背面散落到地图格；结算进弃牌；场上弃置/散落物被熔岩吞噬后进弃牌。
@@ -48,11 +47,11 @@ public class DeckManager
             return;
         }
 
-        var cells = new List<Vector2Int>(grid.gridWidth * grid.gridHeight);
+        var cells = new List<Int2>(grid.gridWidth * grid.gridHeight);
         for (int x = 0; x < grid.gridWidth; x++)
         {
             for (int y = 0; y < grid.gridHeight; y++)
-                cells.Add(new Vector2Int(x, y));
+                cells.Add(new Int2(x, y));
         }
 
         Shuffle(cells);

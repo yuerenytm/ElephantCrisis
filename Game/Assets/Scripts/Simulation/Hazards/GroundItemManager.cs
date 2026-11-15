@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 public class GroundItemManager
 {
@@ -14,21 +13,21 @@ public class GroundItemManager
         public bool FaceDown;
     }
 
-    private readonly Dictionary<Vector2Int, List<GroundStackEntry>> piles =
-        new Dictionary<Vector2Int, List<GroundStackEntry>>();
+    private readonly Dictionary<Int2, List<GroundStackEntry>> piles =
+        new Dictionary<Int2, List<GroundStackEntry>>();
     private struct LootVisual
     {
         public int Handle;
         public LootStyle Style;
     }
 
-    private readonly Dictionary<Vector2Int, LootVisual> visuals = new Dictionary<Vector2Int, LootVisual>();
+    private readonly Dictionary<Int2, LootVisual> visuals = new Dictionary<Int2, LootVisual>();
 
 
     /// <summary>
     /// 在格子上掉落一组物品（正面可见）。
     /// </summary>
-    public void DropItems(Vector2Int cell, List<InventoryItem> items)
+    public void DropItems(Int2 cell, List<InventoryItem> items)
     {
         if (items == null || items.Count == 0)
             return;
@@ -41,7 +40,7 @@ public class GroundItemManager
     /// <summary>
     /// 按种类掉落单件物品。
     /// </summary>
-    public void DropItem(Vector2Int cell, ItemKind kind)
+    public void DropItem(Int2 cell, ItemKind kind)
     {
         DropItem(cell, InventoryItem.CreateFresh(kind));
     }
@@ -49,7 +48,7 @@ public class GroundItemManager
     /// <summary>
     /// 掉落指定实例的物品。
     /// </summary>
-    public void DropItem(Vector2Int cell, InventoryItem item)
+    public void DropItem(Int2 cell, InventoryItem item)
     {
         DropItems(cell, new List<InventoryItem> { item });
     }
@@ -57,14 +56,14 @@ public class GroundItemManager
     /// <summary>
     /// 开局散落：背面朝上，身份不可见。
     /// </summary>
-    public void ScatterFaceDown(Vector2Int cell, InventoryItem item)
+    public void ScatterFaceDown(Int2 cell, InventoryItem item)
     {
         EnsurePile(cell);
         piles[cell].Add(new GroundStackEntry { Item = item, FaceDown = true });
         RefreshVisual(cell);
     }
 
-    private void EnsurePile(Vector2Int cell)
+    private void EnsurePile(Int2 cell)
     {
         if (!piles.ContainsKey(cell))
             piles[cell] = new List<GroundStackEntry>();
@@ -73,7 +72,7 @@ public class GroundItemManager
     /// <summary>
     /// 该格是否有物品。
     /// </summary>
-    public bool HasItems(Vector2Int cell)
+    public bool HasItems(Int2 cell)
     {
         return piles.TryGetValue(cell, out var list) && list.Count > 0;
     }
@@ -81,7 +80,7 @@ public class GroundItemManager
     /// <summary>
     /// 曼哈顿半径内是否有掉落物（无分配；供动作掩码/寻路预判用）。
     /// </summary>
-    public bool HasItemsAround(Vector2Int center, int radius)
+    public bool HasItemsAround(Int2 center, int radius)
     {
         for (int dx = -radius; dx <= radius; dx++)
         {
@@ -89,7 +88,7 @@ public class GroundItemManager
             {
                 if (System.Math.Abs(dx) + System.Math.Abs(dy) > radius)
                     continue;
-                if (HasItems(center + new Vector2Int(dx, dy)))
+                if (HasItems(center + new Int2(dx, dy)))
                     return true;
             }
         }
@@ -104,7 +103,7 @@ public class GroundItemManager
         if (inventory == null || count <= 0)
             return 0;
 
-        var cells = new List<Vector2Int>(piles.Keys);
+        var cells = new List<Int2>(piles.Keys);
         for (int i = cells.Count - 1; i > 0; i--)
         {
             int j = Rng.Range(0, i + 1);
@@ -133,7 +132,7 @@ public class GroundItemManager
     /// <summary>
     /// 查看该格全部物品。
     /// </summary>
-    public List<InventoryItem> Peek(Vector2Int cell)
+    public List<InventoryItem> Peek(Int2 cell)
     {
         var result = new List<InventoryItem>();
         if (!piles.TryGetValue(cell, out var list))
@@ -146,7 +145,7 @@ public class GroundItemManager
     /// <summary>
     /// 查看该格的堆叠条目（含正反面标记）。
     /// </summary>
-    public List<GroundStackEntry> PeekEntries(Vector2Int cell)
+    public List<GroundStackEntry> PeekEntries(Int2 cell)
     {
         if (piles.TryGetValue(cell, out var list))
             return new List<GroundStackEntry>(list);
@@ -156,7 +155,7 @@ public class GroundItemManager
     /// <summary>
     /// 该格第 index 张是否背面朝下。
     /// </summary>
-    public bool IsFaceDown(Vector2Int cell, int index)
+    public bool IsFaceDown(Int2 cell, int index)
     {
         if (!piles.TryGetValue(cell, out var list) || index < 0 || index >= list.Count)
             return false;
@@ -165,7 +164,7 @@ public class GroundItemManager
 
     public struct GroundLootEntry
     {
-        public Vector2Int Cell;
+        public Int2 Cell;
         public int Index;
         public ItemKind Kind;
         public int Charges;
@@ -175,7 +174,7 @@ public class GroundItemManager
     /// <summary>
     /// 取范围内可拾取的物品列表。
     /// </summary>
-    public List<GroundLootEntry> GetLootInRange(Vector2Int center, int maxDist)
+    public List<GroundLootEntry> GetLootInRange(Int2 center, int maxDist)
     {
         var result = new List<GroundLootEntry>();
         for (int dx = -maxDist; dx <= maxDist; dx++)
@@ -184,7 +183,7 @@ public class GroundItemManager
             {
                 if (System.Math.Abs(dx) + System.Math.Abs(dy) > maxDist)
                     continue;
-                var cell = center + new Vector2Int(dx, dy);
+                var cell = center + new Int2(dx, dy);
                 if (!piles.TryGetValue(cell, out var list) || list.Count == 0)
                     continue;
                 for (int i = 0; i < list.Count; i++)
@@ -206,7 +205,7 @@ public class GroundItemManager
     /// <summary>
     /// 偷看该格第 index 张牌。
     /// </summary>
-    public bool TryPeek(Vector2Int cell, int index, out InventoryItem item)
+    public bool TryPeek(Int2 cell, int index, out InventoryItem item)
     {
         item = default;
         if (!piles.TryGetValue(cell, out var list) || index < 0 || index >= list.Count)
@@ -218,7 +217,7 @@ public class GroundItemManager
     /// <summary>
     /// 取走该格第 index 张牌。
     /// </summary>
-    public bool TryTakeAt(Vector2Int cell, int index, out InventoryItem item)
+    public bool TryTakeAt(Int2 cell, int index, out InventoryItem item)
     {
         item = default;
         if (!piles.TryGetValue(cell, out var list) || index < 0 || index >= list.Count)
@@ -234,7 +233,7 @@ public class GroundItemManager
     /// <summary>
     /// 拾取指定格上指定下标的一件物品（允许暂时超重）。
     /// </summary>
-    public bool TryPickupOne(Vector2Int cell, int index, Inventory inventory)
+    public bool TryPickupOne(Int2 cell, int index, Inventory inventory)
     {
         if (inventory == null || !piles.TryGetValue(cell, out var list))
             return false;
@@ -253,7 +252,7 @@ public class GroundItemManager
     /// <summary>
     /// 脚下是否有可直接使用的血瓶（濒死自救）。仅计正面朝上的牌，不暴露开局散落身份。
     /// </summary>
-    public bool HasPotionAt(Vector2Int cell)
+    public bool HasPotionAt(Int2 cell)
     {
         if (!piles.TryGetValue(cell, out var list))
             return false;
@@ -268,7 +267,7 @@ public class GroundItemManager
     /// <summary>
     /// 取走该格第一瓶正面血瓶（不进入背包）。
     /// </summary>
-    public bool TryTakeFirstPotion(Vector2Int cell, out InventoryItem item)
+    public bool TryTakeFirstPotion(Int2 cell, out InventoryItem item)
     {
         item = default;
         if (!piles.TryGetValue(cell, out var list))
@@ -290,7 +289,7 @@ public class GroundItemManager
     /// <summary>
     /// 拾取该格全部物品。
     /// </summary>
-    public int TryPickupAll(Vector2Int cell, Inventory inventory)
+    public int TryPickupAll(Int2 cell, Inventory inventory)
     {
         if (!piles.TryGetValue(cell, out var list) || list.Count == 0)
             return 0;
@@ -314,7 +313,7 @@ public class GroundItemManager
     /// <summary>
     /// 拾取周围物品（含所在格）。
     /// </summary>
-    public int TryPickupAround(Vector2Int center, Inventory inventory)
+    public int TryPickupAround(Int2 center, Inventory inventory)
     {
         int total = 0;
         int radius = GameRulesConfig.PickupRange;
@@ -324,7 +323,7 @@ public class GroundItemManager
             {
                 if (System.Math.Abs(dx) + System.Math.Abs(dy) > radius)
                     continue;
-                total += TryPickupAll(center + new Vector2Int(dx, dy), inventory);
+                total += TryPickupAll(center + new Int2(dx, dy), inventory);
             }
         }
         return total;
@@ -333,7 +332,7 @@ public class GroundItemManager
     /// <summary>
     /// 熔岩吞噬格子上的掉落物，送入弃牌堆。返回件数。
     /// </summary>
-    public int SwallowCellsToDiscard(List<Vector2Int> cells)
+    public int SwallowCellsToDiscard(List<Int2> cells)
     {
         int total = 0;
         if (cells == null)
@@ -378,7 +377,7 @@ public class GroundItemManager
     }
 
 
-    private void RefreshVisual(Vector2Int cell)
+    private void RefreshVisual(Int2 cell)
     {
         bool has = piles.TryGetValue(cell, out var list) && list.Count > 0;
         if (!has)
@@ -428,7 +427,7 @@ public class GroundItemManager
     /// <summary>
     /// 悬停用：该格掉落物摘要，无则 null。背面牌不暴露种类。
     /// </summary>
-    public string DescribeLoot(Vector2Int cell)
+    public string DescribeLoot(Int2 cell)
     {
         if (!piles.TryGetValue(cell, out var list) || list.Count == 0)
             return null;

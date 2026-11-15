@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 public enum StatBoost
 {
@@ -497,7 +496,7 @@ public static class ActionService
     /// <summary>
     /// 移动：校验次数与落点，结算陷阱与隐匿撞人。
     /// </summary>
-    public static bool TryMove(UnitActor unit, Vector2Int target)
+    public static bool TryMove(UnitActor unit, Int2 target)
     {
         if (unit == null || unit.IsDead)
             return false;
@@ -555,7 +554,7 @@ public static class ActionService
     /// <summary>
     /// 拾取指定格的单件物品。
     /// </summary>
-    public static bool TryPickupOne(UnitActor unit, Vector2Int cell, int groundIndex)
+    public static bool TryPickupOne(UnitActor unit, Int2 cell, int groundIndex)
     {
         if (unit == null || unit.IsDead)
         {
@@ -622,7 +621,7 @@ public static class ActionService
     /// <summary>
     /// 弃置一张手牌到指定格。
     /// </summary>
-    public static bool TryDiscard(UnitActor unit, int itemIndex, Vector2Int cell)
+    public static bool TryDiscard(UnitActor unit, int itemIndex, Int2 cell)
     {
         if (unit == null || unit.IsDead)
             return false;
@@ -1160,7 +1159,7 @@ public static class ActionService
     /// <param name="wasHidden">发起时是否处于隐匿（猫满级破隐追击的前提）。</param>
     /// <param name="applyBurning">命中后是否立刻施加着火（燃烧瓶）。</param>
     private static (int hits, int damaged) ResolveAreaDamage(
-        UnitActor caster, Vector2Int center, int radius, int damage,
+        UnitActor caster, Int2 center, int radius, int damage,
         bool magicDamage, bool fromBombOrMine, string via, bool wasHidden, bool applyBurning)
     {
         var grid = GridManager.Instance;
@@ -1195,7 +1194,7 @@ public static class ActionService
     /// <summary>
     /// 投掷炸弹（范围法伤）。
     /// </summary>
-    public static bool TryThrowBomb(UnitActor unit, Vector2Int target)
+    public static bool TryThrowBomb(UnitActor unit, Int2 target)
     {
         if (!Guard(unit, TurnPhase.SelectingBombTarget))
             return false;
@@ -1237,7 +1236,7 @@ public static class ActionService
     /// <summary>
     /// 打火机点燃汽油瓶投掷：耗汽油瓶，保留打火机；爆点范围内法伤（火焰），铺火焰并立刻着火（数值见 game_rules.yaml）。
     /// </summary>
-    public static bool TryThrowMolotov(UnitActor unit, Vector2Int target)
+    public static bool TryThrowMolotov(UnitActor unit, Int2 target)
     {
         if (!Guard(unit, TurnPhase.SelectingBombTarget))
             return false;
@@ -1286,7 +1285,7 @@ public static class ActionService
     /// <summary>
     /// 投掷香蕉皮陷阱。
     /// </summary>
-    public static bool TryThrowBanana(UnitActor unit, Vector2Int target)
+    public static bool TryThrowBanana(UnitActor unit, Int2 target)
     {
         if (!Guard(unit, TurnPhase.SelectingBananaTarget))
             return false;
@@ -1313,7 +1312,7 @@ public static class ActionService
     /// <summary>
     /// 安放地雷。
     /// </summary>
-    public static bool TryPlaceMine(UnitActor unit, Vector2Int target)
+    public static bool TryPlaceMine(UnitActor unit, Int2 target)
     {
         if (!Guard(unit, TurnPhase.SelectingMineTarget))
             return false;
@@ -1361,7 +1360,7 @@ public static class ActionService
     /// <summary>
     /// 喷火器：沿指定方向铺出一列火焰。
     /// </summary>
-    public static bool TryFlamethrower(UnitActor unit, Vector2Int dirCell)
+    public static bool TryFlamethrower(UnitActor unit, Int2 dirCell)
     {
         if (unit == null || unit.IsDead || unit.IsDying)
             return false;
@@ -1395,7 +1394,7 @@ public static class ActionService
         unit.Inventory.RemoveAt(gasIdx);
         DeckManager.Instance?.AddToDiscard(ItemKind.GasolineBottle);
 
-        var stepDir = new Vector2Int(dx, dy);
+        var stepDir = new Int2(dx, dy);
         int flameLen = GameRulesConfig.FlamethrowerRange;
         int flameRounds = GameRulesConfig.FlamethrowerFlameRounds;
 
@@ -1450,7 +1449,7 @@ public static class ActionService
     /// <summary>
     /// 投掷闪光弹（致盲 / 晕眩）。
     /// </summary>
-    public static bool TryThrowFlashbang(UnitActor unit, Vector2Int target)
+    public static bool TryThrowFlashbang(UnitActor unit, Int2 target)
     {
         if (!Guard(unit, TurnPhase.SelectingBombTarget))
             return false;
@@ -1527,7 +1526,7 @@ public static class ActionService
     /// <summary>
     /// 摩托车冲撞：沿方向冲刺并撞飞沿途单位。
     /// </summary>
-    public static bool TryMotorcycleRam(UnitActor unit, Vector2Int target)
+    public static bool TryMotorcycleRam(UnitActor unit, Int2 target)
     {
         if (!Guard(unit, TurnPhase.SelectingMotorcycleRam))
             return false;
@@ -1568,14 +1567,14 @@ public static class ActionService
         }
         for (int step = 1; step < dist; step++)
         {
-            var cell = unit.Cell + new Vector2Int(sx * step, sy * step);
+            var cell = unit.Cell + new Int2(sx * step, sy * step);
             if (!grid.IsValidCell(cell))
                 return false;
         }
         if (!grid.IsValidCell(target))
             return false;
 
-        Vector2Int from = unit.Cell;
+        Int2 from = unit.Cell;
         int damage = GameRulesConfig.MotorcycleRamDamage;
         int hits = 0;
         bool wasHidden = unit.HasStatus(StatusType.Hidden);
@@ -1584,12 +1583,12 @@ public static class ActionService
         // 3×移动格数 矩形：沿路径长 dist、垂直宽 3（中心线 ±1）
         for (int step = 1; step <= dist; step++)
         {
-            var center = from + new Vector2Int(sx * step, sy * step);
+            var center = from + new Int2(sx * step, sy * step);
             for (int w = -1; w <= 1; w++)
             {
                 var cell = sx != 0
-                    ? new Vector2Int(center.x, center.y + w)
-                    : new Vector2Int(center.x + w, center.y);
+                    ? new Int2(center.x, center.y + w)
+                    : new Int2(center.x + w, center.y);
                 if (!grid.IsValidCell(cell))
                     continue;
                 var occ = StealthService.GetOccupantUnit(cell);
@@ -1612,7 +1611,7 @@ public static class ActionService
         var endOcc = StealthService.GetOccupantUnit(target);
         if (endOcc != null && endOcc != unit && !VisibilityService.CanSeeUnit(unit, endOcc))
         {
-            Vector2Int land = StealthService.GetBumpLandCell(from, target);
+            Int2 land = StealthService.GetBumpLandCell(from, target);
             unit.PlaceAt(land, true);
             unit.ApplyTerrainEnterEffects();
         }
@@ -1623,7 +1622,7 @@ public static class ActionService
         }
         else
         {
-            var stop = from + new Vector2Int(sx * (dist - 1), sy * (dist - 1));
+            var stop = from + new Int2(sx * (dist - 1), sy * (dist - 1));
             if (stop != from && grid.IsValidCell(stop) && !StealthService.BlocksMovementFor(unit, stop))
             {
                 unit.PlaceAt(stop, true);

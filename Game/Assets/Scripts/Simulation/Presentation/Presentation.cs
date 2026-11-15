@@ -1,4 +1,3 @@
-using UnityEngine;
 
 /// <summary>掉落物的外观风格：具体颜色由表现层决定，逻辑层只说"这是哪一类"。</summary>
 public enum LootStyle
@@ -58,13 +57,13 @@ public interface IPresentation
     // ---------------------------------------------------------- 视觉句柄
 
     /// <summary>创建火焰视觉，返回句柄（0 = 无）。</summary>
-    int CreateFlameVisual(Vector2Int cell);
+    int CreateFlameVisual(Int2 cell);
 
     /// <summary>创建标记视觉（地雷 / 定时炸弹 / 香蕉皮），返回句柄。</summary>
-    int CreateMarkerVisual(Vector2Int cell, string kind);
+    int CreateMarkerVisual(Int2 cell, string kind);
 
     /// <summary>创建掉落物视觉，返回句柄。</summary>
-    int CreateLootVisual(Vector2Int cell, LootStyle style);
+    int CreateLootVisual(Int2 cell, LootStyle style);
 
     /// <summary>按句柄显示 / 隐藏。</summary>
     void SetVisualActive(int handle, bool active);
@@ -96,9 +95,9 @@ public static class Presentation
         public void StartMatch(GameMode mode, RoleType human) { }
         public void RestartMatch() { }
         public void ReturnToMenu() { }
-        public int CreateFlameVisual(Vector2Int cell) => 0;
-        public int CreateMarkerVisual(Vector2Int cell, string kind) => 0;
-        public int CreateLootVisual(Vector2Int cell, LootStyle style) => 0;
+        public int CreateFlameVisual(Int2 cell) => 0;
+        public int CreateMarkerVisual(Int2 cell, string kind) => 0;
+        public int CreateLootVisual(Int2 cell, LootStyle style) => 0;
         public void SetVisualActive(int handle, bool active) { }
         public void UpdateMarkerLabel(int handle, int actions) { }
         public void DestroyVisual(int handle) { }

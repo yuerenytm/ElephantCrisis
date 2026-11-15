@@ -184,7 +184,10 @@ public class PlayerInputController : MonoBehaviour
         if (cam == null || GridManager.Instance == null)
             return false;
         Vector2 screen = Mouse.current.position.ReadValue();
-        return GridManager.Instance.TryScreenToCell(cam, screen, out cell);
+        if (!BoardProjection.TryScreenToCell(cam, screen, out Int2 hit))
+            return false;
+        cell = hit.ToV2();
+        return true;
     }
 
     private void HandleCellClick(Vector2Int cell)

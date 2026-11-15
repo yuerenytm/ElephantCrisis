@@ -1,4 +1,3 @@
-using UnityEngine;
 
 /// <summary>
 /// 特殊技能「领袖宣言」：每名玩家限一次。

@@ -1,4 +1,3 @@
-using UnityEngine;
 
 /// <summary>
 /// 主动技能入口（象威慑为被动，在 UnitActor 属性中结算）。
@@ -240,7 +239,7 @@ public static class StealthService
     /// <summary>
     /// 取格子上的单位。
     /// </summary>
-    public static UnitActor GetOccupantUnit(Vector2Int cell)
+    public static UnitActor GetOccupantUnit(Int2 cell)
     {
         var go = GridManager.Instance?.GetOccupant(cell);
         if (go == null)
@@ -254,7 +253,7 @@ public static class StealthService
     /// <summary>
     /// 对移动者可见的占格者会阻挡移动预判与落入。
     /// </summary>
-    public static bool BlocksMovementFor(UnitActor mover, Vector2Int cell)
+    public static bool BlocksMovementFor(UnitActor mover, Int2 cell)
     {
         var occ = GetOccupantUnit(cell);
         if (occ == null || occ == mover)
@@ -266,19 +265,19 @@ public static class StealthService
     /// 落入对移动者不可见的占格者所在格时，弹回「来向」邻格。
     /// 主轴优先；等距对角线则在两正交来向邻格中随机。
     /// </summary>
-    public static Vector2Int GetBumpLandCell(Vector2Int from, Vector2Int occupied)
+    public static Int2 GetBumpLandCell(Int2 from, Int2 occupied)
     {
         var grid = GridManager.Instance;
         int sx = from.x == occupied.x ? 0 : (from.x > occupied.x ? 1 : -1);
         int sy = from.y == occupied.y ? 0 : (from.y > occupied.y ? 1 : -1);
 
-        var preferred = new System.Collections.Generic.List<Vector2Int>(2);
+        var preferred = new System.Collections.Generic.List<Int2>(2);
         if (sx != 0 && sy != 0)
         {
             int adx = System.Math.Abs(from.x - occupied.x);
             int ady = System.Math.Abs(from.y - occupied.y);
-            var alongX = new Vector2Int(occupied.x + sx, occupied.y);
-            var alongY = new Vector2Int(occupied.x, occupied.y + sy);
+            var alongX = new Int2(occupied.x + sx, occupied.y);
+            var alongY = new Int2(occupied.x, occupied.y + sy);
             if (adx == ady)
             {
                 preferred.Add(alongX);
@@ -290,9 +289,9 @@ public static class StealthService
                 preferred.Add(alongX);
         }
         else if (sx != 0)
-            preferred.Add(new Vector2Int(occupied.x + sx, occupied.y));
+            preferred.Add(new Int2(occupied.x + sx, occupied.y));
         else if (sy != 0)
-            preferred.Add(new Vector2Int(occupied.x, occupied.y + sy));
+            preferred.Add(new Int2(occupied.x, occupied.y + sy));
 
         // 等距时打乱顺序再按可落点筛选
         if (preferred.Count == 2 && Rng.Value < 0.5f)
@@ -305,13 +304,13 @@ public static class StealthService
         }
 
         // 后备：其它来向邻格 / 任意空邻格
-        var fallback = new System.Collections.Generic.List<Vector2Int>(4);
-        if (sx != 0) fallback.Add(new Vector2Int(occupied.x + sx, occupied.y));
-        if (sy != 0) fallback.Add(new Vector2Int(occupied.x, occupied.y + sy));
-        fallback.Add(occupied + Vector2Int.up);
-        fallback.Add(occupied + Vector2Int.down);
-        fallback.Add(occupied + Vector2Int.left);
-        fallback.Add(occupied + Vector2Int.right);
+        var fallback = new System.Collections.Generic.List<Int2>(4);
+        if (sx != 0) fallback.Add(new Int2(occupied.x + sx, occupied.y));
+        if (sy != 0) fallback.Add(new Int2(occupied.x, occupied.y + sy));
+        fallback.Add(occupied + Int2.up);
+        fallback.Add(occupied + Int2.down);
+        fallback.Add(occupied + Int2.left);
+        fallback.Add(occupied + Int2.right);
         for (int i = 0; i < fallback.Count; i++)
         {
             if (IsValidBumpLand(grid, fallback[i], from, occupied))
@@ -321,7 +320,7 @@ public static class StealthService
         return from;
     }
 
-    private static bool IsValidBumpLand(GridManager grid, Vector2Int cell, Vector2Int from, Vector2Int occupied)
+    private static bool IsValidBumpLand(GridManager grid, Int2 cell, Int2 from, Int2 occupied)
     {
         if (grid == null || !grid.IsValidCell(cell))
             return false;

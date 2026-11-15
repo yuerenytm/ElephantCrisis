@@ -32,6 +32,9 @@ public class GameBootstrap : MonoBehaviour
         GameRulesConfig.ConfigDirectory = System.IO.Path.Combine(
             UnityEngine.Application.streamingAssetsPath, "Config");
         Log.Info = UnityEngine.Debug.Log;
+        GameRulesConfig.JsonReader =
+            json => UnityEngine.JsonUtility.FromJson<GameRulesConfig.ConfigDocument>(json);
+        GameRulesConfig.EnsureLoaded();   // 核心不再自己挂 RuntimeInitialize 钩子，由宿主决定
         Log.Warning = UnityEngine.Debug.LogWarning;
         Log.Error = UnityEngine.Debug.LogError;
     }

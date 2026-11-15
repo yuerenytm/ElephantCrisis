@@ -1,4 +1,3 @@
-using UnityEngine;
 
 /// <summary>
 /// 能见度：时段×天气矩阵 + 挂件/状态；不可移动到自身能见度外；迷雾按当前视野角色刷新（热座=行动者；AI 对战=玩家角色）。
@@ -44,7 +43,7 @@ public static class VisibilityService
     /// <summary>
     /// 该格是否在视野半径内。
     /// </summary>
-    public static bool CanSeeCell(UnitActor viewer, Vector2Int cell)
+    public static bool CanSeeCell(UnitActor viewer, Int2 cell)
     {
         var grid = GridManager.Instance;
         if (grid == null || !grid.IsValidCell(cell))
@@ -57,7 +56,7 @@ public static class VisibilityService
     /// <summary>
     /// 行动者是否可将目标格作为移动落点（须在自身能见度内）。
     /// </summary>
-    public static bool CanMoveTo(UnitActor mover, Vector2Int target)
+    public static bool CanMoveTo(UnitActor mover, Int2 target)
     {
         if (mover == null || mover.IsDead)
             return false;

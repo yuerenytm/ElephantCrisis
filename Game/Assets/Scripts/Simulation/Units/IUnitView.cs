@@ -1,4 +1,3 @@
-using UnityEngine;
 
 /// <summary>
 /// 单位的"外皮"：由表现层实现。逻辑层只持有它，不知道里面是模型还是精灵。
@@ -13,7 +12,7 @@ public interface IUnitView
     void Refresh(UnitActor unit);
 
     /// <summary>跟随格子更新位置与排序。</summary>
-    void PlaceAt(UnitActor unit, Vector2Int cell);
+    void PlaceAt(UnitActor unit, Int2 cell);
 
     /// <summary>选中高亮。</summary>
     void SetSelected(UnitActor unit, bool selected);

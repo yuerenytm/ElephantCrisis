@@ -181,7 +181,7 @@ public class MapVisual : MonoBehaviour
                 var cellPos = new Vector2Int(x, y);
                 var go = new GameObject($"Tile_{x}_{y}");
                 go.transform.SetParent(root, false);
-                go.transform.position = grid.CellToWorld(cellPos);
+                go.transform.position = BoardProjection.CellToWorld(cellPos);
                 tileRoots[x, y] = go.transform;
 
                 // 实心台体：根节点在台面高度时，台体向下落到地面
@@ -239,7 +239,7 @@ public class MapVisual : MonoBehaviour
         int th = fogH * FogTexelsPerCell;
         float boardWLocal = grid.gridWidth * grid.cellSize;
         float boardDLocal = grid.gridHeight * grid.cellSize;
-        var boardCenter = grid.originPosition + new Vector3(boardWLocal * 0.5f, 0f, boardDLocal * 0.5f);
+        var boardCenter = BoardProjection.Origin + new Vector3(boardWLocal * 0.5f, 0f, boardDLocal * 0.5f);
         var flatRot = Quaternion.Euler(90f, 0f, 0f);
 
         fogVolumeRoot = new GameObject("FogVolume").transform;
@@ -397,7 +397,7 @@ public class MapVisual : MonoBehaviour
         boardW = grid.gridWidth * grid.cellSize;
         boardD = grid.gridHeight * grid.cellSize;
         var flatRot = Quaternion.Euler(90f, 0f, 0f);
-        var boardCenter = grid.originPosition + new Vector3(boardW * 0.5f, 0f, boardD * 0.5f);
+        var boardCenter = BoardProjection.Origin + new Vector3(boardW * 0.5f, 0f, boardD * 0.5f);
 
         // 超大连续地坪：拉远 / 宽屏也不露清屏色
         var groundGo = new GameObject("ForestGroundPlane");
@@ -439,7 +439,7 @@ public class MapVisual : MonoBehaviour
                 if (!nearRing && (((x + y) & 1) != 0 || distOut % 2 != 0))
                     continue;
 
-                Vector3 center = grid.originPosition + new Vector3(
+                Vector3 center = BoardProjection.Origin + new Vector3(
                     x * cell + cell * 0.5f, 0f, y * cell + cell * 0.5f);
 
                 if (nearRing)
@@ -499,7 +499,7 @@ public class MapVisual : MonoBehaviour
                 var type = grid.GetTileType(cell);
                 bool alt = ((x + y) % 2) != 0;
 
-                tileRoots[x, y].position = grid.CellToWorld(cell);
+                tileRoots[x, y].position = BoardProjection.CellToWorld(cell);
                 cellRenderers[x, y].sprite = TerrainSpriteFactory.CreateTop(type, alt);
                 cellRenderers[x, y].sortingOrder = grid.GetSortOrder(cell, 0);
                 // 精灵默认 1 单位边长；缩放到 cellSize 才能铺满格、不留缝
@@ -614,7 +614,7 @@ public class MapVisual : MonoBehaviour
                     jungleDecorRoots[x, y].gameObject.SetActive(seen);
 
                 // 迷雾下取消高地抬升，否则雾面本身会露出地势
-                Vector3 pos = grid.CellToWorld(cell);
+                Vector3 pos = BoardProjection.CellToWorld(cell);
                 if (!seen)
                     pos.y = 0f;
                 tileRoots[x, y].position = pos;
@@ -856,7 +856,7 @@ public class MapVisual : MonoBehaviour
             }
 
             var cellPos = fogCells[(i * 17 + 5) % fogCells.Count];
-            Vector3 world = grid.originPosition + new Vector3(
+            Vector3 world = BoardProjection.Origin + new Vector3(
                 cellPos.x * cell + cell * 0.5f, 0f, cellPos.y * cell + cell * 0.5f);
             float jx = (Mathf.PerlinNoise(i * 0.37f, cellPos.x * 0.2f) - 0.5f) * cell * 0.85f;
             float jz = (Mathf.PerlinNoise(i * 0.41f + 3f, cellPos.y * 0.2f) - 0.5f) * cell * 0.85f;
@@ -1059,7 +1059,7 @@ public class MapVisual : MonoBehaviour
         bombBlastRadius = blastRadius;
         bombHoverCell = null;
         if (unit != null)
-            bombThrowerCell = unit.Cell;
+            bombThrowerCell = unit.Cell.ToV2();
         ClearHints();
         if (unit == null)
             return;

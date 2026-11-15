@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 /// <summary>
 /// 种子生长：每种特殊地形 1～2 个连通斑块，比例接近规则表；出生角附近保留普通地。
@@ -15,12 +14,12 @@ public static class TerrainGenerator
         TileType.Highland
     };
 
-    private static readonly Vector2Int[] Ortho =
+    private static readonly Int2[] Ortho =
     {
-        new Vector2Int(1, 0),
-        new Vector2Int(-1, 0),
-        new Vector2Int(0, 1),
-        new Vector2Int(0, -1)
+        new Int2(1, 0),
+        new Int2(-1, 0),
+        new Int2(0, 1),
+        new Int2(0, -1)
     };
 
     /// <summary>
@@ -38,13 +37,13 @@ public static class TerrainGenerator
         // 先铺满普通
         for (int x = 0; x < w; x++)
             for (int y = 0; y < h; y++)
-                grid.SetTileType(new Vector2Int(x, y), TileType.Normal);
+                grid.SetTileType(new Int2(x, y), TileType.Normal);
 
         var protectedCells = BuildProtectedSet(w, h);
         // 各特殊地形比例接近 biome_ratio；余下为普通
         int perBiome = System.Math.Max(GameRulesConfig.BiomeMinCells, (int)System.Math.Round(total * GameRulesConfig.BiomeRatio, System.MidpointRounding.AwayFromZero));
 
-        var usedSeeds = new List<Vector2Int>();
+        var usedSeeds = new List<Int2>();
         foreach (var biome in Biomes)
         {
             int blobCount = Rng.Range(GameRulesConfig.BiomeBlobMin, GameRulesConfig.BiomeBlobMax + 1);
@@ -69,9 +68,9 @@ public static class TerrainGenerator
             $"地形已生成（种子生长）：沙/沼/冰/丛/高地各约 {perBiome} 格");
     }
 
-    private static HashSet<Vector2Int> BuildProtectedSet(int w, int h)
+    private static HashSet<Int2> BuildProtectedSet(int w, int h)
     {
-        var set = new HashSet<Vector2Int>();
+        var set = new HashSet<Int2>();
         int radius = GameRulesConfig.SpawnProtectRadius;
         foreach (RoleType role in System.Enum.GetValues(typeof(RoleType)))
         {
@@ -80,7 +79,7 @@ public static class TerrainGenerator
             {
                 for (int dy = -radius; dy <= radius; dy++)
                 {
-                    var c = new Vector2Int(center.x + dx, center.y + dy);
+                    var c = new Int2(center.x + dx, center.y + dy);
                     if (c.x >= 0 && c.x < w && c.y >= 0 && c.y < h)
                         set.Add(c);
                 }
@@ -113,15 +112,15 @@ public static class TerrainGenerator
     }
 
     private static bool TryPickSeed(
-        GridManager grid, HashSet<Vector2Int> protectedCells, List<Vector2Int> usedSeeds, out Vector2Int seed)
+        GridManager grid, HashSet<Int2> protectedCells, List<Int2> usedSeeds, out Int2 seed)
     {
         seed = default;
-        var candidates = new List<Vector2Int>();
+        var candidates = new List<Int2>();
         for (int x = 0; x < grid.gridWidth; x++)
         {
             for (int y = 0; y < grid.gridHeight; y++)
             {
-                var c = new Vector2Int(x, y);
+                var c = new Int2(x, y);
                 if (protectedCells.Contains(c))
                     continue;
                 if (grid.GetTileType(c) != TileType.Normal)
@@ -147,7 +146,7 @@ public static class TerrainGenerator
             {
                 for (int y = 0; y < grid.gridHeight; y++)
                 {
-                    var c = new Vector2Int(x, y);
+                    var c = new Int2(x, y);
                     if (protectedCells.Contains(c))
                         continue;
                     if (grid.GetTileType(c) != TileType.Normal)
@@ -164,12 +163,12 @@ public static class TerrainGenerator
     }
 
     private static void GrowBlob(
-        GridManager grid, Vector2Int seed, TileType type, int target, HashSet<Vector2Int> protectedCells)
+        GridManager grid, Int2 seed, TileType type, int target, HashSet<Int2> protectedCells)
     {
         if (target <= 0)
             return;
 
-        var frontier = new List<Vector2Int> { seed };
+        var frontier = new List<Int2> { seed };
         grid.SetTileType(seed, type);
         int placed = 1;
 
@@ -178,7 +177,7 @@ public static class TerrainGenerator
             int idx = Rng.Range(0, frontier.Count);
             var cur = frontier[idx];
             // 打乱邻接顺序
-            var dirs = new List<Vector2Int>(Ortho);
+            var dirs = new List<Int2>(Ortho);
             for (int i = dirs.Count - 1; i > 0; i--)
             {
                 int j = Rng.Range(0, i + 1);

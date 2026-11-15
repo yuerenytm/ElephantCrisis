@@ -120,18 +120,18 @@ public sealed class UnityPresentation : IPresentation
         return handle;
     }
 
-    public int CreateFlameVisual(Vector2Int cell)
-        => Register(BuildFlameVisual(cell, VisualRoot));
+    public int CreateFlameVisual(Int2 cell)
+        => Register(BuildFlameVisual(cell.ToV2(), VisualRoot));
 
-    public int CreateMarkerVisual(Vector2Int cell, string kind)
+    public int CreateMarkerVisual(Int2 cell, string kind)
     {
-        var go = BuildRedMarker(cell, VisualRoot, kind);
+        var go = BuildRedMarker(cell.ToV2(), VisualRoot, kind);
         if (go != null && kind == "TimedBomb")
             BuildBombLabel(go, 0);
         return Register(go);
     }
 
-    public int CreateLootVisual(Vector2Int cell, LootStyle style)
+    public int CreateLootVisual(Int2 cell, LootStyle style)
     {
         var go = new GameObject($"Loot_{cell.x}_{cell.y}");
         go.transform.SetParent(VisualRoot, false);
@@ -148,7 +148,7 @@ public sealed class UnityPresentation : IPresentation
             default:
                 fill = DropFill; border = DropBorder; emphasize = false; break;
         }
-        StyleLoot(go, fill, border, cell, emphasize);
+        StyleLoot(go, fill, border, cell.ToV2(), emphasize);
         return Register(go);
     }
 
@@ -192,7 +192,7 @@ public sealed class UnityPresentation : IPresentation
         var sr = go.GetComponent<SpriteRenderer>();
         sr.sprite = SpriteFactory.CreateBorderedSprite(fill, border, 16, 2);
         sr.sortingOrder = grid.GetSortOrder(cell, emphasize ? 35 : 30);
-        go.transform.position = grid.CellToWorld(cell) + new Vector3(0.32f, 0.04f, -0.32f);
+        go.transform.position = BoardProjection.CellToWorld(cell) + new Vector3(0.32f, 0.04f, -0.32f);
         go.transform.localScale = Vector3.one * (emphasize ? 0.34f : 0.28f);
         if (go.GetComponent<CameraBillboard>() == null)
             go.AddComponent<CameraBillboard>();
@@ -203,7 +203,7 @@ public sealed class UnityPresentation : IPresentation
         var grid = GridManager.Instance;
         var go = new GameObject("Flame");
         go.transform.SetParent(parent, false);
-        Vector3 pos = grid != null ? grid.CellToWorld(cell) : Vector3.zero;
+        Vector3 pos = grid != null ? BoardProjection.CellToWorld(cell) : Vector3.zero;
         go.transform.position = pos + new Vector3(0f, 0.05f, 0f);
 
         var glow = new GameObject("Glow");
@@ -245,7 +245,7 @@ public sealed class UnityPresentation : IPresentation
         var go = new GameObject(name);
         go.transform.SetParent(parent, false);
         var grid = GridManager.Instance;
-        go.transform.position = grid.CellToWorld(cell) + new Vector3(-0.32f, 0.04f, 0.32f);
+        go.transform.position = BoardProjection.CellToWorld(cell) + new Vector3(-0.32f, 0.04f, 0.32f);
         go.transform.localScale = Vector3.one * 0.28f;
         var sr = go.AddComponent<SpriteRenderer>();
         sr.sprite = SpriteFactory.CreateBorderedSprite(HazardRed, HazardRedBorder, 16, 2);

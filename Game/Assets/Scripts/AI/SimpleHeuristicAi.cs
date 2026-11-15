@@ -517,7 +517,7 @@ public static class SimpleHeuristicAi
         int throwRange = GameRulesConfig.BombRange;
         var grid = GridManager.Instance;
 
-        Vector2Int bestCell = unit.Cell;
+        Int2 bestCell = unit.Cell;
         float bestScore = 0f;
         bool found = false;
 
@@ -527,7 +527,7 @@ public static class SimpleHeuristicAi
             {
                 if (Mathf.Abs(dx) + Mathf.Abs(dy) > throwRange)
                     continue;
-                var cell = unit.Cell + new Vector2Int(dx, dy);
+                var cell = unit.Cell + new Int2(dx, dy);
                 if (!grid.IsValidCell(cell))
                     continue;
 
@@ -576,7 +576,7 @@ public static class SimpleHeuristicAi
         int damage = GameRulesConfig.MolotovDamage;
         int throwRange = GameRulesConfig.MolotovRange;
         var grid = GridManager.Instance;
-        Vector2Int bestCell = unit.Cell;
+        Int2 bestCell = unit.Cell;
         float bestScore = 0f;
         bool found = false;
 
@@ -586,7 +586,7 @@ public static class SimpleHeuristicAi
             {
                 if (Mathf.Abs(dx) + Mathf.Abs(dy) > throwRange)
                     continue;
-                var cell = unit.Cell + new Vector2Int(dx, dy);
+                var cell = unit.Cell + new Int2(dx, dy);
                 if (!grid.IsValidCell(cell))
                     continue;
 
@@ -671,7 +671,7 @@ public static class SimpleHeuristicAi
     {
         var grid = GridManager.Instance;
         int move = unit.CurrentMove;
-        Vector2Int best = unit.Cell;
+        Int2 best = unit.Cell;
         float bestScore = ScoreCell(unit, unit.Cell) - 0.5f; // 略偏好移动
         bool found = false;
 
@@ -682,7 +682,7 @@ public static class SimpleHeuristicAi
                 int dist = Mathf.Abs(dx) + Mathf.Abs(dy);
                 if (dist == 0 || dist > move)
                     continue;
-                var cell = unit.Cell + new Vector2Int(dx, dy);
+                var cell = unit.Cell + new Int2(dx, dy);
                 if (!grid.IsValidCell(cell))
                     continue;
                 if (StealthService.BlocksMovementFor(unit, cell))
@@ -707,7 +707,7 @@ public static class SimpleHeuristicAi
         return ActionService.TryMove(unit, best);
     }
 
-    private static float ScoreCell(UnitActor unit, Vector2Int cell)
+    private static float ScoreCell(UnitActor unit, Int2 cell)
     {
         var grid = GridManager.Instance;
         float score = 0f;
@@ -758,7 +758,7 @@ public static class SimpleHeuristicAi
             {
                 for (int y = 0; y < grid.gridHeight; y++)
                 {
-                    var c = new Vector2Int(x, y);
+                    var c = new Int2(x, y);
                     if (!GroundItemManager.Instance.HasItems(c))
                         continue;
                     var peek = GroundItemManager.Instance.PeekEntries(c);
@@ -815,7 +815,7 @@ public static class SimpleHeuristicAi
         }
 
         // 略向中心
-        var center = new Vector2Int(grid.gridWidth / 2, grid.gridHeight / 2);
+        var center = new Int2(grid.gridWidth / 2, grid.gridHeight / 2);
         score -= grid.GetManhattanDistance(cell, center) * 0.35f;
 
         return score;

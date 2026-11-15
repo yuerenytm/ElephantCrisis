@@ -645,7 +645,7 @@ public class AtmosphereVisual : MonoBehaviour
 
         var grid = GridManager.Instance;
         Vector3 boardCenter = grid != null
-            ? grid.originPosition + new Vector3(
+            ? BoardProjection.Origin + new Vector3(
                 grid.gridWidth * grid.cellSize * 0.5f,
                 12f,
                 grid.gridHeight * grid.cellSize * 0.5f)

@@ -4,7 +4,6 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
-using UnityEngine;
 
 /// <summary>
 /// 从 StreamingAssets/Config 加载规则（与 LogicSim / Tools/sim 共用）。
@@ -42,6 +41,12 @@ public static class GameRulesConfig
         public ConfigEntry[] entries;
     }
 
+    /// <summary>
+    /// JSON 解析器：由宿主提供（Unity 用 JsonUtility，服务器可用 System.Text.Json）。
+    /// 核心库不绑定任何具体实现。
+    /// </summary>
+    public static System.Func<string, ConfigDocument> JsonReader;
+
     private static bool loaded;
 
     /// <summary>
@@ -66,17 +71,11 @@ public static class GameRulesConfig
     private static readonly Dictionary<ItemKind, int> deckCounts =
         new Dictionary<ItemKind, int>();
 
-    private static readonly Dictionary<RoleType, Vector2Int> spawnCells =
-        new Dictionary<RoleType, Vector2Int>();
+    private static readonly Dictionary<RoleType, Int2> spawnCells =
+        new Dictionary<RoleType, Int2>();
 
 
 
-
-    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
-    private static void AutoLoad()
-    {
-        EnsureLoaded();
-    }
 
     public static void EnsureLoaded()
     {
@@ -202,7 +201,7 @@ public static class GameRulesConfig
     /// <summary>
     /// 出生格（来自 grid.spawn_cells）。
     /// </summary>
-    public static Vector2Int SpawnCell(RoleType role)
+    public static Int2 SpawnCell(RoleType role)
     {
         EnsureLoaded();
         if (spawnCells.TryGetValue(role, out var c))
@@ -563,7 +562,7 @@ public static class GameRulesConfig
     private static void ParseJsonDocument(string text)
     {
         sections.Clear();
-        var doc = JsonUtility.FromJson<ConfigDocument>(text);
+        var doc = JsonReader?.Invoke(text);
         if (doc?.entries == null)
             return;
 
@@ -626,7 +625,7 @@ public static class GameRulesConfig
             if (parts.Length != 2)
                 continue;
             if (int.TryParse(parts[0].Trim(), out int x) && int.TryParse(parts[1].Trim(), out int y))
-                spawnCells[role] = new Vector2Int(x, y);
+                spawnCells[role] = new Int2(x, y);
         }
     }
 
@@ -704,15 +703,15 @@ public static class GameRulesConfig
             "请运行 python Tools/config/build.py 生成配置（Design/*.csv 是权威）。");
     }
 
-    private static Vector2Int FallbackSpawnCell(RoleType role)
+    private static Int2 FallbackSpawnCell(RoleType role)
     {
         switch (role)
         {
-            case RoleType.Elephant: return new Vector2Int(2, 2);
-            case RoleType.Human: return new Vector2Int(15, 2);
-            case RoleType.Monkey: return new Vector2Int(2, 15);
-            case RoleType.Cat: return new Vector2Int(15, 15);
-            default: return new Vector2Int(2, 2);
+            case RoleType.Elephant: return new Int2(2, 2);
+            case RoleType.Human: return new Int2(15, 2);
+            case RoleType.Monkey: return new Int2(2, 15);
+            case RoleType.Cat: return new Int2(15, 15);
+            default: return new Int2(2, 2);
         }
     }
 

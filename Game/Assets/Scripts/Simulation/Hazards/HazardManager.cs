@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 /// <summary>
 /// 场上危险物：香蕉皮 / 定时炸弹 / 地雷 / 汽油火焰地块。
@@ -10,13 +9,13 @@ public class HazardManager
 
     public class BananaTrap
     {
-        public Vector2Int Cell;
+        public Int2 Cell;
         public RoleType Thrower;
     }
 
     public class TimedBombHazard
     {
-        public Vector2Int Cell;
+        public Int2 Cell;
         /// <summary>
         /// 剩余行动数（安放时 = 所选回合×4；每次行动结束 −1，含安放当次）。
         /// </summary>
@@ -26,12 +25,12 @@ public class HazardManager
 
     public class MineHazard
     {
-        public Vector2Int Cell;
+        public Int2 Cell;
     }
 
     public class FlamePatch
     {
-        public Vector2Int Cell;
+        public Int2 Cell;
         /// <summary>
         /// 剩余行动数（铺设时 = 规则回合×4；每次行动结束 −1）。
         /// </summary>
@@ -96,7 +95,7 @@ public class HazardManager
     /// </summary>
     public void ClearAllFlames(string reason = null)
     {
-        var cells = new List<Vector2Int>(flames.Count);
+        var cells = new List<Int2>(flames.Count);
         for (int i = flames.Count - 1; i >= 0; i--)
         {
             cells.Add(flames[i].Cell);
@@ -112,7 +111,7 @@ public class HazardManager
     /// <summary>
     /// 该格是否有火焰。
     /// </summary>
-    public bool HasFlameAt(Vector2Int cell)
+    public bool HasFlameAt(Int2 cell)
     {
         for (int i = 0; i < flames.Count; i++)
         {
@@ -125,7 +124,7 @@ public class HazardManager
     /// <summary>
     /// 放置香蕉皮陷阱。
     /// </summary>
-    public void PlaceBananaTrap(Vector2Int cell, RoleType thrower)
+    public void PlaceBananaTrap(Int2 cell, RoleType thrower)
     {
         var trap = new BananaTrap { Cell = cell, Thrower = thrower };
         TrackVisual(trap, Presentation.Current.CreateMarkerVisual(cell, "BananaTrap"));
@@ -136,7 +135,7 @@ public class HazardManager
     /// <summary>
     /// 放置定时炸弹（回合数会换算成行动数）。
     /// </summary>
-    public void PlaceTimedBomb(Vector2Int cell, int rounds, RoleType owner)
+    public void PlaceTimedBomb(Int2 cell, int rounds, RoleType owner)
     {
         int actions = System.Math.Clamp(rounds, GameRulesConfig.TimedBombMinRounds, GameRulesConfig.TimedBombMaxRounds) * GameRulesConfig.ActionsPerRound;
         var bomb = new TimedBombHazard { Cell = cell, ActionsLeft = actions, Owner = owner };
@@ -150,7 +149,7 @@ public class HazardManager
     /// <summary>
     /// 安放地雷。
     /// </summary>
-    public void PlaceMine(Vector2Int cell)
+    public void PlaceMine(Int2 cell)
     {
         for (int i = 0; i < mines.Count; i++)
         {
@@ -165,7 +164,7 @@ public class HazardManager
     /// <summary>
     /// 在爆点半径内铺火焰，持续 rounds 个完整回合（实际 = rounds×4 个行动）；熔岩/冰地不铺；同格刷新为较长剩余。
     /// </summary>
-    public void PlaceFlameArea(Vector2Int center, int radius, int rounds)
+    public void PlaceFlameArea(Int2 center, int radius, int rounds)
     {
         if (WeatherService.BlocksBurning)
             return;
@@ -178,7 +177,7 @@ public class HazardManager
         {
             for (int y = 0; y < grid.gridHeight; y++)
             {
-                var cell = new Vector2Int(x, y);
+                var cell = new Int2(x, y);
                 if (grid.GetManhattanDistance(center, cell) > radius)
                     continue;
                 if (grid.GetTileType(cell) == TileType.Lava)
@@ -194,14 +193,14 @@ public class HazardManager
     /// <summary>
     /// 沿四向直线铺火焰（不含起点）：最多 maxSteps 格，持续 rounds 个完整回合（实际 = rounds×4 个行动）；熔岩/冰地跳过。
     /// </summary>
-    public void PlaceFlameLine(Vector2Int origin, Vector2Int stepDir, int maxSteps, int rounds)
+    public void PlaceFlameLine(Int2 origin, Int2 stepDir, int maxSteps, int rounds)
     {
         if (WeatherService.BlocksBurning)
             return;
         var grid = GridManager.Instance;
         if (grid == null || rounds <= 0 || maxSteps <= 0)
             return;
-        if (stepDir == Vector2Int.zero)
+        if (stepDir == Int2.zero)
             return;
 
         int actions = rounds * GameRulesConfig.ActionsPerRound;
@@ -219,7 +218,7 @@ public class HazardManager
         RefreshHazardVisibility();
     }
 
-    private void UpsertFlame(Vector2Int cell, int actions)
+    private void UpsertFlame(Int2 cell, int actions)
     {
         var grid = GridManager.Instance;
         if (grid != null)
@@ -250,7 +249,7 @@ public class HazardManager
         NotifyJungleStealthAt(cell);
     }
 
-    private static void NotifyJungleStealthAt(Vector2Int cell)
+    private static void NotifyJungleStealthAt(Int2 cell)
     {
         var occ = StealthService.GetOccupantUnit(cell);
         occ?.SyncJungleStealthFromTerrain();
@@ -304,7 +303,7 @@ public class HazardManager
     /// <summary>
     /// 视野角色能否看见该格的香蕉皮。
     /// </summary>
-    public bool CanSeeBananaAt(Vector2Int cell, UnitActor viewer)
+    public bool CanSeeBananaAt(Int2 cell, UnitActor viewer)
     {
         if (viewer == null) return false;
         foreach (var b in bananas)
@@ -318,7 +317,7 @@ public class HazardManager
     /// <summary>
     /// 视野角色能否看见该格的定时炸弹。
     /// </summary>
-    public bool CanSeeTimedBombAt(Vector2Int cell, UnitActor viewer)
+    public bool CanSeeTimedBombAt(Int2 cell, UnitActor viewer)
     {
         if (viewer == null) return false;
         foreach (var bomb in timedBombs)
@@ -332,7 +331,7 @@ public class HazardManager
     /// <summary>
     /// 悬停用：该格可见危险物摘要，无则 null。
     /// </summary>
-    public string DescribeHazards(Vector2Int cell, UnitActor viewer)
+    public string DescribeHazards(Int2 cell, UnitActor viewer)
     {
         var lines = new List<string>();
 
@@ -372,7 +371,7 @@ public class HazardManager
     /// <summary>
     /// 该格是否有可见的陷阱标记。
     /// </summary>
-    public bool HasVisibleMarkerAt(Vector2Int cell, UnitActor viewer)
+    public bool HasVisibleMarkerAt(Int2 cell, UnitActor viewer)
     {
         foreach (var mine in mines)
             if (mine.Cell == cell) return true;
@@ -537,10 +536,10 @@ public class HazardManager
     /// <summary>
     /// 熔岩吞掉指定格的危险物。
     /// </summary>
-    public void SwallowCells(List<Vector2Int> cells)
+    public void SwallowCells(List<Int2> cells)
     {
         if (cells == null) return;
-        var set = new HashSet<Vector2Int>(cells);
+        var set = new HashSet<Int2>(cells);
         for (int i = bananas.Count - 1; i >= 0; i--)
         {
             if (!set.Contains(bananas[i].Cell)) continue;

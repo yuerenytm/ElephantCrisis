@@ -65,13 +65,13 @@ public sealed class UnitView : MonoBehaviour, IUnitView
         ApplyWorldVisible();
     }
 
-    public void PlaceAt(UnitActor unit, Vector2Int cell)
+    public void PlaceAt(UnitActor unit, Int2 cell)
     {
         var grid = GridManager.Instance;
         if (grid == null)
             return;
         // 略抬离地面，减少与地块 Z 冲突
-        transform.position = grid.CellToWorld(cell) + Vector3.up * 0.02f;
+        transform.position = BoardProjection.CellToWorld(cell.ToV2()) + Vector3.up * 0.02f;
         ApplySortOrder(cell);
     }
 
@@ -104,7 +104,7 @@ public sealed class UnitView : MonoBehaviour, IUnitView
         return mat.color;
     }
 
-    private void ApplySortOrder(Vector2Int cell)
+    private void ApplySortOrder(Int2 cell)
     {
         // 3D 棋子靠深度排序；仅把名字牌抬到最前（若启用）
         if (label == null)
@@ -114,7 +114,7 @@ public sealed class UnitView : MonoBehaviour, IUnitView
             return;
         var mr = label.GetComponent<MeshRenderer>();
         if (mr != null)
-            mr.sortingOrder = grid.GetSortOrder(cell, 50);
+            mr.sortingOrder = grid.GetSortOrder(cell.ToV2(), 50);
     }
 
     /// <summary>面朝棋盘中心，四角出生位更易辨认。</summary>
@@ -125,7 +125,7 @@ public sealed class UnitView : MonoBehaviour, IUnitView
         var grid = GridManager.Instance;
         if (grid == null)
             return;
-        Vector3 center = grid.originPosition + new Vector3(
+        Vector3 center = BoardProjection.Origin + new Vector3(
             grid.gridWidth * grid.cellSize * 0.5f,
             0f,
             grid.gridHeight * grid.cellSize * 0.5f);

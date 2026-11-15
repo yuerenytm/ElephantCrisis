@@ -1,10 +1,9 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 public class UnitActor
 {
     public RoleType Role { get; private set; }
-    public Vector2Int Cell { get; private set; }
+    public Int2 Cell { get; private set; }
     public Inventory Inventory { get; private set; }
 
     public int BaseMove { get; private set; }
@@ -891,7 +890,7 @@ public class UnitActor
     /// <summary>
     /// 初始化角色：属性、背包、视觉。
     /// </summary>
-    public void Setup(RoleType role, Vector2Int startCell)
+    public void Setup(RoleType role, Int2 startCell)
     {
         Role = role;
         RoleInfo.GetBaseStats(role, out int move, out int hp, out int atk, out int def, out int bag);
@@ -935,7 +934,7 @@ public class UnitActor
     /// <summary>
     /// 把单位放到指定格并（可选）登记占用。
     /// </summary>
-    public void PlaceAt(Vector2Int cell, bool register)
+    public void PlaceAt(Int2 cell, bool register)
     {
         var grid = GridManager.Instance;
         if (register && grid.IsValidCell(Cell) && grid.GetOccupant(Cell) == this)
@@ -952,13 +951,13 @@ public class UnitActor
     /// 尝试移动。若撞上不可见的隐匿占格者，会弹回来向邻格并破隐；LastMoveBumped 供日志。
     /// </summary>
     public bool LastMoveBumped { get; private set; }
-    public Vector2Int LastMoveIntendedCell { get; private set; }
+    public Int2 LastMoveIntendedCell { get; private set; }
     public UnitActor LastMoveBumpedUnit { get; private set; }
 
     /// <summary>
     /// 移动到目标格：路径、隐匿撞击、地形进入效果。
     /// </summary>
-    public bool TryMoveTo(Vector2Int target)
+    public bool TryMoveTo(Int2 target)
     {
         LastMoveBumped = false;
         LastMoveIntendedCell = target;
@@ -977,13 +976,13 @@ public class UnitActor
         if (!VisibilityService.CanMoveTo(this, target))
             return false;
 
-        Vector2Int from = Cell;
+        Int2 from = Cell;
         var invisibleOcc = StealthService.GetOccupantUnit(target);
         if (invisibleOcc != null && invisibleOcc != this
             && !VisibilityService.CanSeeUnit(this, invisibleOcc))
         {
             // 不解除对方隐匿：弹至邻格后仅邻接者可见，避免把位置广播给全场
-            Vector2Int land = StealthService.GetBumpLandCell(from, target);
+            Int2 land = StealthService.GetBumpLandCell(from, target);
             PlaceAt(land, true);
             ApplyTerrainEnterEffects();
             LastMoveBumped = true;
@@ -1073,7 +1072,7 @@ public class UnitActor
         if (trueDamage)
             applied = amount;
         else if (magicDamage)
-            applied = Mathf.FloorToInt(amount * (1f - MagicResist * 0.01f));
+            applied = (int)System.Math.Floor(amount * (1f - MagicResist * 0.01f));
         else
             applied = System.Math.Max(0, amount - GetDefenseForPhysicalHit(ignoreArmorDefense));
         if (fromBombOrMine && !trueDamage && ItemInfo.HasEquippedTacticalVest(this))

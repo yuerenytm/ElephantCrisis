@@ -2,7 +2,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Text;
-using UnityEngine;
 
 /// <summary>
 /// 逻辑对局 JSONL 日志（与 Tools/sim events.jsonl / meta.json schema 对齐）。
@@ -108,7 +107,7 @@ public sealed class LogicMatchLogger
     /// <summary>
     /// 移动事件。
     /// </summary>
-    public void EmitMove(UnitActor unit, Vector2Int from, Vector2Int to)
+    public void EmitMove(UnitActor unit, Int2 from, Int2 to)
     {
         Emit("move",
             ("actor", Q(LogicSimNaming.Role(unit.Role))),
@@ -149,7 +148,7 @@ public sealed class LogicMatchLogger
     /// <summary>
     /// 炸弹爆炸事件。
     /// </summary>
-    public void EmitBomb(UnitActor unit, Vector2Int cell)
+    public void EmitBomb(UnitActor unit, Int2 cell)
     {
         Emit("bomb",
             ("actor", Q(LogicSimNaming.Role(unit.Role))),
@@ -537,5 +536,5 @@ public sealed class LogicMatchLogger
     private static string I(int v) => v.ToString(CultureInfo.InvariantCulture);
     private static string F(float v) => v.ToString("0.###", CultureInfo.InvariantCulture);
     private static string B(bool v) => v ? "true" : "false";
-    private static string Cell(Vector2Int c) => "[" + c.x + "," + c.y + "]";
+    private static string Cell(Int2 c) => "[" + c.x + "," + c.y + "]";
 }
