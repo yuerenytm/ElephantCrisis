@@ -6,7 +6,7 @@ using UnityEngine;
 /// </summary>
 public sealed class UnityPresentation : IPresentation
 {
-    // 由 App 注入的流程控制委托：表现层不认识 GameBootstrap，只负责转发
+    // 由 App 注入的流程控制委托：表现层不认识启动代码，只负责转发
     public System.Action StartHotseatAction;
     public System.Action<RoleType> StartAiBattleAction;
     public System.Action<RoleType> StartAdminAction;

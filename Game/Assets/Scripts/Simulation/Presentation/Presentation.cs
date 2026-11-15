@@ -1,7 +1,7 @@
 using UnityEngine;
 
 /// <summary>
-/// 表现层出口：逻辑层只通过这里要画面，不直接碰 MapVisual / GameUI / 输入控制器。
+/// 表现层出口：逻辑层只通过这里要画面，不直接操作任何具体表现类。
 ///
 /// 无头模式（LogicSim）下装配点不注入实现，<see cref="Presentation.Current"/> 保持空实现，
 /// 于是所有调用都变成空操作——**调用点不需要写任何 if**。
@@ -64,7 +64,7 @@ public interface IPresentation
 }
 
 /// <summary>
-/// 表现层门面的持有者。装配点（<see cref="GameBootstrap"/>）决定用真实实现还是空实现，
+/// 表现层门面的持有者。装配点（有头模式的启动代码）决定用真实实现还是空实现，
 /// 逻辑层只认 <see cref="Current"/>。
 /// </summary>
 public static class Presentation
