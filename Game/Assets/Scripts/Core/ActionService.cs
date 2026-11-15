@@ -379,9 +379,8 @@ public static class ActionService
             TurnManager.Instance?.Log(
                 $"{RoleInfo.GetDisplayName(attacker.Role)} 进行攻击，【隐匿】解除");
             // 猫技能满级：攻击破隐时，被攻击者获得中毒（回合数见 game_rules.yaml）
-            if (attacker.Role == RoleType.Cat && attacker.SkillLevel >= GameRulesConfig.SkillLevelMax && defender != null && !defender.IsDead)
+            if (ApplyCatStealthPoison(attacker, defender))
             {
-                defender.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, attacker);
                 TurnManager.Instance?.Log(
                     $"{RoleInfo.GetDisplayName(defender.Role)} 因破隐攻击获得【中毒】");
             }
@@ -1141,6 +1140,67 @@ public static class ActionService
     }
 
     /// <summary>
+    /// 猫技能满级追加中毒：破隐状态下发起的攻击造成伤害时，目标获得中毒。
+    /// 这条规则原先在 5 处各写一遍，漏写一处就表现为"某张卡偶尔不对劲"。
+    /// </summary>
+    /// <returns>是否真的施加了中毒（供调用方决定要不要写战报）。</returns>
+    private static bool ApplyCatStealthPoison(UnitActor attacker, UnitActor target)
+    {
+        if (attacker == null || target == null || target.IsDead)
+            return false;
+        if (attacker.Role != RoleType.Cat || attacker.SkillLevel < GameRulesConfig.SkillLevelMax)
+            return false;
+        target.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, attacker);
+        return true;
+    }
+
+    /// <summary>
+    /// 区域伤害结算：半径内单位依次破隐 → 扣血 → 记日志 →（可选）着火与猫破隐追击。
+    /// 返回 (命中人数, 被扣血人数)，调用方据此写战报。
+    /// </summary>
+    /// <param name="caster">发起者。</param>
+    /// <param name="center">落点。</param>
+    /// <param name="radius">爆炸半径（曼哈顿）。</param>
+    /// <param name="damage">伤害基础值。</param>
+    /// <param name="magicDamage">true=法伤（受法抗）；false=物伤（受防御）。</param>
+    /// <param name="fromBombOrMine">炸弹/地雷来源，战术背心可再减免。</param>
+    /// <param name="via">日志里的伤害来源标记。</param>
+    /// <param name="wasHidden">发起时是否处于隐匿（猫满级破隐追击的前提）。</param>
+    /// <param name="applyBurning">命中后是否立刻施加着火（燃烧瓶）。</param>
+    private static (int hits, int damaged) ResolveAreaDamage(
+        UnitActor caster, Vector2Int center, int radius, int damage,
+        bool magicDamage, bool fromBombOrMine, string via, bool wasHidden, bool applyBurning)
+    {
+        var grid = GridManager.Instance;
+        int hits = 0;
+        int damaged = 0;
+        foreach (var other in GameManager.Instance.Units)
+        {
+            if (other == null || other.IsDead)
+                continue;
+            if (grid.GetManhattanDistance(center, other.Cell) > radius)
+                continue;
+
+            hits++;
+            BreakStealthIfAttacked(other);
+            int dealt = other.TakeDamage(damage, magicDamage: magicDamage, fromBombOrMine: fromBombOrMine);
+            LogicMatchLogger.Active?.EmitDamage(
+                LogicSimNaming.Role(caster.Role),
+                LogicSimNaming.Role(other.Role),
+                magicDamage ? "magic" : "physical", damage, dealt, via);
+            if (dealt > 0)
+            {
+                damaged++;
+                if (wasHidden)
+                    ApplyCatStealthPoison(caster, other);
+            }
+            if (applyBurning)
+                other.ApplyStatus(StatusType.Burning, GameRulesConfig.BurningRounds, caster);
+        }
+        return (hits, damaged);
+    }
+
+    /// <summary>
     /// 投掷炸弹（范围法伤）。
     /// </summary>
     public static bool TryThrowBomb(UnitActor unit, Vector2Int target)
@@ -1170,29 +1230,10 @@ public static class ActionService
         bool wasHidden = unit.HasStatus(StatusType.Hidden);
         BreakStealthIfAttacking(unit);
 
-        int hits = 0;
-        int damaged = 0;
-        foreach (var other in GameManager.Instance.Units)
-        {
-            if (other == null || other.IsDead)
-                continue;
-            if (grid.GetManhattanDistance(target, other.Cell) <= GameRulesConfig.BombBlastRadius)
-            {
-                hits++;
-                BreakStealthIfAttacked(other);
-                int dealt = other.TakeDamage(damage, magicDamage: false, fromBombOrMine: true);
-                LogicMatchLogger.Active?.EmitDamage(
-                    LogicSimNaming.Role(unit.Role),
-                    LogicSimNaming.Role(other.Role),
-                    "physical", damage, dealt, "bomb");
-                if (dealt > 0)
-                {
-                    damaged++;
-                    if (wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= GameRulesConfig.SkillLevelMax)
-                        other.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, unit);
-                }
-            }
-        }
+        var (hits, damaged) = ResolveAreaDamage(
+            unit, target, GameRulesConfig.BombBlastRadius, damage,
+            magicDamage: false, fromBombOrMine: true, via: "bomb",
+            wasHidden: wasHidden, applyBurning: false);
 
         TurnManager.Instance.CancelTargeting();
         LogicMatchLogger.Active?.EmitBomb(unit, target);
@@ -1234,29 +1275,10 @@ public static class ActionService
 
         int blast = GameRulesConfig.MolotovRadius;
         int damage = GameRulesConfig.MolotovDamage;
-        int hits = 0;
-        int damaged = 0;
-        foreach (var other in GameManager.Instance.Units)
-        {
-            if (other == null || other.IsDead)
-                continue;
-            if (grid.GetManhattanDistance(target, other.Cell) > blast)
-                continue;
-            hits++;
-            BreakStealthIfAttacked(other);
-            int dealt = other.TakeDamage(damage, magicDamage: true);
-            LogicMatchLogger.Active?.EmitDamage(
-                LogicSimNaming.Role(unit.Role),
-                LogicSimNaming.Role(other.Role),
-                "magic", damage, dealt, "molotov");
-            if (dealt > 0)
-            {
-                damaged++;
-                if (wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= GameRulesConfig.SkillLevelMax)
-                    other.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, unit);
-            }
-            other.ApplyStatus(StatusType.Burning, GameRulesConfig.BurningRounds, unit);
-        }
+        var (hits, damaged) = ResolveAreaDamage(
+            unit, target, blast, damage,
+            magicDamage: true, fromBombOrMine: false, via: "molotov",
+            wasHidden: wasHidden, applyBurning: true);
 
         HazardManager.Instance?.PlaceFlameArea(target, blast, GameRulesConfig.MolotovFlameRounds);
         // 铺火后再扫一次：爆点内角色（含未扣血）立刻着火
@@ -1420,8 +1442,8 @@ public static class ActionService
             if (dealt > 0)
             {
                 damaged++;
-                if (wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= GameRulesConfig.SkillLevelMax)
-                    other.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, unit);
+                if (wasHidden)
+                    ApplyCatStealthPoison(unit, other);
             }
         }
 
@@ -1614,8 +1636,8 @@ public static class ActionService
                 int dealt = occ.TakeDamage(damage, magicDamage: false);
                 if (!occ.IsDead)
                     occ.ApplyStatus(StatusType.Stun, GameRulesConfig.StunRounds, unit);
-                if (dealt > 0 && wasHidden && unit.Role == RoleType.Cat && unit.SkillLevel >= GameRulesConfig.SkillLevelMax)
-                    occ.ApplyStatus(StatusType.Poison, GameRulesConfig.PoisonRounds, unit);
+                if (dealt > 0 && wasHidden)
+                    ApplyCatStealthPoison(unit, occ);
             }
         }
 
