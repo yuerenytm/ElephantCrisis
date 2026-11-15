@@ -47,6 +47,7 @@ public class GameBootstrap : MonoBehaviour
     {
         matchRunning = false;
         MatchConfig.Clear();
+        WirePresentation(BootFlags.HeadlessRequested);   // 菜单按钮要能调到这里
         if (MainMenuUI.Instance == null)
             gameObject.AddComponent<MainMenuUI>();
         MainMenuUI.Instance.Show();
@@ -77,6 +78,28 @@ public class GameBootstrap : MonoBehaviour
             return;
         transitionQueued = true;
         StartCoroutine(CoReturnToMenu());
+    }
+
+    /// <summary>
+    /// 装配表现层：无头模式退化为空实现，有头模式注入真实实现与流程委托。
+    /// 显示主菜单时就要调用一次——否则菜单按钮拿到的是空实现，点了没反应。
+    /// </summary>
+    private void WirePresentation(bool lean)
+    {
+        if (lean)
+        {
+            Presentation.Clear();
+            return;
+        }
+
+        Presentation.Wire(new UnityPresentation
+        {
+            StartHotseatAction = StartHotseat,
+            StartAiBattleAction = StartAiBattle,
+            StartAdminAction = StartAdminMode,
+            RestartAction = RequestRestartMatch,
+            ReturnToMenuAction = RequestReturnToMenu,
+        });
     }
 
     private IEnumerator CoRestartMatch()
@@ -292,17 +315,7 @@ public class GameBootstrap : MonoBehaviour
             Rng.Reset((int)(System.DateTime.Now.Ticks & 0x7FFFFFFF));
 
         bool lean = MatchConfig.IsLogicSim;
-        if (lean)
-            Presentation.Clear();   // 无头：表现层全部空转
-        else
-            Presentation.Wire(new UnityPresentation
-            {
-                StartHotseatAction = StartHotseat,
-                StartAiBattleAction = StartAiBattle,
-                StartAdminAction = StartAdminMode,
-                RestartAction = RequestRestartMatch,
-                ReturnToMenuAction = RequestReturnToMenu,
-            });
+        WirePresentation(lean);
         EnsureSystems(lean);
         if (!lean)
             SetupCamera();
@@ -450,10 +463,10 @@ public class GameBootstrap : MonoBehaviour
 
             // 逻辑单位是普通类；场景对象由 UnitHost 承载（无头模式不挂外皮）
             var unit = new UnitActor();
+            unit.Setup(roles[i], starts[i]);   // 必须先 Setup：Role/MaxHp 等在外皮构建时要用
+
             if (!MatchConfig.IsLogicSim)
                 go.AddComponent<UnitHost>().Bind(unit);
-
-            unit.Setup(roles[i], starts[i]);
             list.Add(unit);
         }
 

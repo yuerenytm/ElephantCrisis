@@ -32,5 +32,9 @@ public sealed class UnitHost : MonoBehaviour
         var view = gameObject.AddComponent<UnitView>();
         view.Attach(unit);
         unit.AttachView(view);
+
+        // Setup 期间还没有外皮，位置与着色要在这里补一次
+        view.PlaceAt(unit, unit.Cell);
+        unit.RefreshVisual();
     }
 }
