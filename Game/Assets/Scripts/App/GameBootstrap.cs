@@ -22,6 +22,20 @@ public class GameBootstrap : MonoBehaviour
     private bool matchRunning;
     private bool transitionQueued;
 
+    /// <summary>
+    /// 比配置加载（BeforeSceneLoad）更早执行：把"外部世界"注入核心。
+    /// 顺序很关键——晚一步，GameRulesConfig 就会在空路径下退回内置默认值。
+    /// </summary>
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterAssembliesLoaded)]
+    private static void InjectHostServices()
+    {
+        GameRulesConfig.ConfigDirectory = System.IO.Path.Combine(
+            UnityEngine.Application.streamingAssetsPath, "Config");
+        Log.Info = UnityEngine.Debug.Log;
+        Log.Warning = UnityEngine.Debug.LogWarning;
+        Log.Error = UnityEngine.Debug.LogError;
+    }
+
     private void Awake()
     {
         Instance = this;

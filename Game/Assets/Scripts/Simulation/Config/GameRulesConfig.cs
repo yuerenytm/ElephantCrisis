@@ -88,7 +88,7 @@ public static class GameRulesConfig
         string path = ResolveRulesPath();
         if (string.IsNullOrEmpty(path) || !File.Exists(path))
         {
-            Debug.LogWarning($"[GameRulesConfig] 未找到 game_rules.json，使用内置默认值。尝试路径: {path}");
+            Log.Warning($"[GameRulesConfig] 未找到 game_rules.json，使用内置默认值。尝试路径: {path}");
             return;
         }
 
@@ -98,13 +98,13 @@ public static class GameRulesConfig
             ParseJsonDocument(text);
             ApplyParsedRoles();
             ApplyParsedDeck();
-            Debug.Log(
+            Log.Info(
                 $"[GameRulesConfig] 已加载: {path} · deck 条目 {deckCounts.Count} · " +
                 $"熔岩缩圈每 {LavaShrinkEveryRounds} 回合 · 天气锁 {WeatherLockMin}-{WeatherLockMax}");
         }
         catch (Exception e)
         {
-            Debug.LogWarning($"[GameRulesConfig] 读取失败，使用内置默认值: {e.Message}");
+            Log.Warning($"[GameRulesConfig] 读取失败，使用内置默认值: {e.Message}");
             ApplyFallbacks();
         }
     }
@@ -510,18 +510,26 @@ public static class GameRulesConfig
         }
 
         if (unused.Count > 0)
-            Debug.LogWarning(
+            Log.Warning(
                 $"[GameRulesConfig] 配置中未被代码读取的键 {unused.Count} 个: {string.Join(", ", unused)}");
         if (missing.Count > 0)
-            Debug.LogWarning(
+            Log.Warning(
                 $"[GameRulesConfig] 代码读取但配置缺失的键 {missing.Count} 个（将用内置默认值）: {string.Join(", ", missing)}");
         if (unused.Count == 0 && missing.Count == 0)
-            Debug.Log("[GameRulesConfig] 配置键校验通过：配置与代码完全对应。");
+            Log.Info("[GameRulesConfig] 配置键校验通过：配置与代码完全对应。");
     }
+
+    /// <summary>
+    /// 配置目录；由宿主（Unity 启动代码 / 服务器）在启动时设置。
+    /// 未设置时直接用代码内置默认值——核心库不猜路径。
+    /// </summary>
+    public static string ConfigDirectory;
 
     public static string ResolveRulesPath()
     {
-        string dir = Path.Combine(Application.streamingAssetsPath, "Config");
+        if (string.IsNullOrEmpty(ConfigDirectory))
+            return null;
+        string dir = ConfigDirectory;
 
         // 权威链路：Design/*.csv → build.py → game_rules.json（JsonUtility 读取）
         string json = Path.Combine(dir, "game_rules.json");
@@ -692,7 +700,7 @@ public static class GameRulesConfig
         spawnCells[RoleType.Cat] = FallbackSpawnCell(RoleType.Cat);
 
         deckCounts.Clear();
-        Debug.LogError("[GameRulesConfig] 配置里没有 deck 段，牌库将为空。" +
+        Log.Error("[GameRulesConfig] 配置里没有 deck 段，牌库将为空。" +
             "请运行 python Tools/config/build.py 生成配置（Design/*.csv 是权威）。");
     }
 
