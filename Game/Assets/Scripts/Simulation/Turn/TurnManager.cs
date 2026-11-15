@@ -612,8 +612,7 @@ public class TurnManager : MonoBehaviour
     public void Log(string msg)
     {
         // LogicSim 无头跑局：战报已完整写入 events.jsonl，跳过 Debug.Log（否则批量跑局会刷出带堆栈的巨量日志）
-        if (!MatchConfig.IsLogicSim)
-            Debug.Log(msg);
+        Presentation.Current.LogConsole(msg);
         OnLog?.Invoke(msg);
     }
 
@@ -622,8 +621,7 @@ public class TurnManager : MonoBehaviour
     /// </summary>
     public void LogFor(UnitActor subject, string msg)
     {
-        if (!MatchConfig.IsLogicSim)
-            Debug.Log(msg);
+        Presentation.Current.LogConsole(msg);
         // 管理员模式可见全部战报；普通 AI 对战隐藏对手私密行动
         if (MatchConfig.IsAiBattle && !MatchConfig.IsAdminMode && !MatchConfig.IsHumanControlled(subject))
             return;

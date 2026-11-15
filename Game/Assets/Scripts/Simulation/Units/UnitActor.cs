@@ -929,10 +929,10 @@ public class UnitActor : MonoBehaviour
         IsDead = false;
         DyingActionsLeft = 0;
 
-        if (!MatchConfig.IsLogicSim)
+        if (Presentation.Enabled)
             EnsureVisuals();
         PlaceAt(startCell, true);
-        if (!MatchConfig.IsLogicSim)
+        if (Presentation.Enabled)
             RefreshVisual();
     }
 

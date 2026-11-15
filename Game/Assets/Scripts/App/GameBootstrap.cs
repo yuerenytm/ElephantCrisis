@@ -156,7 +156,7 @@ public class GameBootstrap : MonoBehaviour
         GameManager.Instance?.ClearMatch();
         Presentation.Clear();
 
-        if (PlayerInputController.Instance != null && !MatchConfig.IsLeanRuntime)
+        if (PlayerInputController.Instance != null && !MatchConfig.IsLogicSim)
             PlayerInputController.Instance.enabled = true;
     }
 
@@ -287,7 +287,7 @@ public class GameBootstrap : MonoBehaviour
         MainMenuUI.Instance?.Hide();
         GameRulesConfig.ValidateKeysOnce();
 
-        bool lean = MatchConfig.IsLeanRuntime;
+        bool lean = MatchConfig.IsLogicSim;
         if (lean)
             Presentation.Clear();   // 无头：表现层全部空转
         else

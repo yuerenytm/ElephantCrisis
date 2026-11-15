@@ -26,6 +26,9 @@ public interface IPresentation
     /// <summary>进入射击模式并指定弹药。</summary>
     void BeginShootWithAmmo(int weaponIndex, ItemKind ammo);
 
+    /// <summary>把战报镜射到控制台（无头批跑时抑制，避免刷出巨量堆栈）。</summary>
+    void LogConsole(string message);
+
     /// <summary>隐藏主菜单（开始对局时）。</summary>
     void HideMenu();
 
@@ -66,6 +69,7 @@ public static class Presentation
         public void RequestHud() { }
         public void BeginItemTargeting(int itemIndex, ItemKind kind) { }
         public void BeginShootWithAmmo(int weaponIndex, ItemKind ammo) { }
+        public void LogConsole(string message) { }
         public void HideMenu() { }
         public void StyleLoot(GameObject go, Color fill, Color border, Vector2Int cell, bool emphasize) { }
         public GameObject BuildFlameVisual(Vector2Int cell, Transform parent) => null;

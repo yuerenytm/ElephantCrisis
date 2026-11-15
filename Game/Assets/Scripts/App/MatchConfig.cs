@@ -33,11 +33,6 @@ public static class MatchConfig
     public static bool IsLogicSim => Mode == GameMode.LogicSim;
 
     /// <summary>
-    /// 无 UI / 瘦表现（LogicSim）。
-    /// </summary>
-    public static bool IsLeanRuntime => IsLogicSim;
-
-    /// <summary>
     /// 切换到热座模式。
     /// </summary>
     public static void SetHotseat()

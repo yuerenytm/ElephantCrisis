@@ -55,6 +55,11 @@ public sealed class UnityPresentation : IPresentation
         PlayerInputController.Instance?.StartShootModeWithAmmo(weaponIndex, ammo);
     }
 
+    public void LogConsole(string message)
+    {
+        Debug.Log(message);
+    }
+
     public void HideMenu()
     {
         MainMenuUI.Instance?.Hide();
