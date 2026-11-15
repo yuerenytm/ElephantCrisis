@@ -248,6 +248,7 @@ public class GridManager
         return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
     }
 
+#if UNITY_EDITOR
     private void OnDrawGizmos()
     {
         Gizmos.color = Color.gray;
@@ -264,4 +265,5 @@ public class GridManager
             Gizmos.DrawLine(start, end);
         }
     }
+#endif
 }

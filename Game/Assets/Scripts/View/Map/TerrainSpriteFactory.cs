@@ -9,8 +9,8 @@ public static class TerrainSpriteFactory
     {
         var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
         tex.filterMode = FilterMode.Point;
-        var fill = TerrainInfo.GetFillColor(type, checkerAlt);
-        var border = TerrainInfo.GetBorderColor(type);
+        var fill = TerrainInfo.GetFillColor(type, checkerAlt).ToColor();
+        var border = TerrainInfo.GetBorderColor(type).ToColor();
         var accent = Accent(type, fill);
 
         for (int y = 0; y < size; y++)

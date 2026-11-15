@@ -186,10 +186,10 @@ public static class ItemInfo
     /// <summary>
     /// 玩偶卡 UI / 掉落角标用金色。
     /// </summary>
-    public static Color GetDollGoldFill() => new Color(0.92f, 0.72f, 0.18f, 1f);
-    public static Color GetDollGoldBorder() => new Color(0.55f, 0.38f, 0.08f, 1f);
-    public static Color GetDollGoldUiBg() => new Color(0.42f, 0.32f, 0.1f, 0.95f);
-    public static Color GetDollGoldText() => new Color(1f, 0.9f, 0.4f, 1f);
+    public static Rgba GetDollGoldFill() => new Rgba(0.92f, 0.72f, 0.18f, 1f);
+    public static Rgba GetDollGoldBorder() => new Rgba(0.55f, 0.38f, 0.08f, 1f);
+    public static Rgba GetDollGoldUiBg() => new Rgba(0.42f, 0.32f, 0.1f, 0.95f);
+    public static Rgba GetDollGoldText() => new Rgba(1f, 0.9f, 0.4f, 1f);
 
     public static bool IsStackableAmmo(ItemKind kind)
     {

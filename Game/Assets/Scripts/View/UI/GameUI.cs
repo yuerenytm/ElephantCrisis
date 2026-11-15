@@ -1141,7 +1141,7 @@ public class GameUI : MonoBehaviour
             if (img != null)
             {
                 img.color = ItemInfo.IsDoll(kind)
-                    ? ItemInfo.GetDollGoldUiBg()
+                    ? ItemInfo.GetDollGoldUiBg().ToColor()
                     : new Color(0.28f, 0.2f, 0.32f, 0.95f);
             }
             adminGrantRows.Add(row);
@@ -1263,10 +1263,10 @@ public class GameUI : MonoBehaviour
             {
                 var img = btn.targetGraphic as Image;
                 if (img != null)
-                    img.color = ItemInfo.GetDollGoldUiBg();
+                    img.color = ItemInfo.GetDollGoldUiBg().ToColor();
                 var txt = btn.GetComponentInChildren<Text>();
                 if (txt != null)
-                    txt.color = ItemInfo.GetDollGoldText();
+                    txt.color = ItemInfo.GetDollGoldText().ToColor();
             }
             itemRows.Add(row);
         }
@@ -1305,7 +1305,7 @@ public class GameUI : MonoBehaviour
             bg.sprite = UiTheme.RoundSprite();
             bg.type = Image.Type.Sliced;
             bg.color = isDoll
-                ? ItemInfo.GetDollGoldUiBg()
+                ? ItemInfo.GetDollGoldUiBg().ToColor()
                 : faceDown
                     ? new Color(0.32f, 0.3f, 0.28f, 0.95f)
                     : UiTheme.Row;
@@ -1321,7 +1321,7 @@ public class GameUI : MonoBehaviour
                 lootName = ItemInfo.GetDisplayName(kind);
             label.text = $"{lootName}\n<size=11>({cell.x},{cell.y}) 距{dist}</size>";
             if (isDoll)
-                label.color = ItemInfo.GetDollGoldText();
+                label.color = ItemInfo.GetDollGoldText().ToColor();
             else if (faceDown)
                 label.color = new Color(0.75f, 0.72f, 0.68f);
 
@@ -1399,7 +1399,7 @@ public class GameUI : MonoBehaviour
             bool isDoll = ItemInfo.IsDoll(kind);
             bg.sprite = UiTheme.RoundSprite();
             bg.type = Image.Type.Sliced;
-            bg.color = isDoll ? ItemInfo.GetDollGoldUiBg() : UiTheme.Row;
+            bg.color = isDoll ? ItemInfo.GetDollGoldUiBg().ToColor() : UiTheme.Row;
 
             var label = CreateText(row.transform, "Name", new Vector2(0.02f, 0.05f), new Vector2(0.48f, 0.95f), 13, TextAnchor.MiddleLeft);
             string name = ItemInfo.GetDisplayName(kind);
@@ -1422,7 +1422,7 @@ public class GameUI : MonoBehaviour
                 name = $"{name}（装备）";
             label.text = $"{name}\n<size=11>{desc}</size>";
             if (isDoll)
-                label.color = ItemInfo.GetDollGoldText();
+                label.color = ItemInfo.GetDollGoldText().ToColor();
 
             bool isEquip = ItemInfo.IsEquipable(kind);
             string useLabel = "使用";
@@ -1462,7 +1462,7 @@ public class GameUI : MonoBehaviour
             if (entry.Equipped)
                 bg.color = UiTheme.RowEquipped;
             else if (isDoll)
-                bg.color = ItemInfo.GetDollGoldUiBg();
+                bg.color = ItemInfo.GetDollGoldUiBg().ToColor();
 
             bool canUseItems = allowActions && turn.Phase == TurnPhase.WaitingAction;
             bool canDiscardItems = allowActions && turn.Phase == TurnPhase.WaitingAction;

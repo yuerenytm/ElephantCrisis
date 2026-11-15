@@ -144,7 +144,7 @@ public sealed class UnityPresentation : IPresentation
             case LootStyle.Scatter:
                 fill = ScatterFill; border = ScatterBorder; emphasize = false; break;
             case LootStyle.Doll:
-                fill = ItemInfo.GetDollGoldFill(); border = ItemInfo.GetDollGoldBorder(); emphasize = true; break;
+                fill = ItemInfo.GetDollGoldFill().ToColor(); border = ItemInfo.GetDollGoldBorder().ToColor(); emphasize = true; break;
             default:
                 fill = DropFill; border = DropBorder; emphasize = false; break;
         }

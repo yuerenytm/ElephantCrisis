@@ -51,7 +51,7 @@ public static class RolePortrait
 
     private static Sprite CreateFallbackIcon(RoleType role)
     {
-        Color fill = RoleInfo.GetColor(role);
+        Color fill = RoleInfo.GetColor(role).ToColor();
         Color border = new Color(0.08f, 0.08f, 0.08f);
         const int size = 48;
 

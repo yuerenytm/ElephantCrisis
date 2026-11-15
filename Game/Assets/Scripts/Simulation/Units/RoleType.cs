@@ -26,15 +26,15 @@ public static class RoleInfo
         }
     }
 
-    public static UnityEngine.Color GetColor(RoleType role)
+    public static Rgba GetColor(RoleType role)
     {
         switch (role)
         {
-            case RoleType.Elephant: return new UnityEngine.Color(0.55f, 0.55f, 0.6f);
-            case RoleType.Human: return new UnityEngine.Color(0.35f, 0.55f, 0.95f);
-            case RoleType.Monkey: return new UnityEngine.Color(0.85f, 0.55f, 0.25f);
-            case RoleType.Cat: return new UnityEngine.Color(0.95f, 0.75f, 0.2f);
-            default: return UnityEngine.Color.white;
+            case RoleType.Elephant: return new Rgba(0.55f, 0.55f, 0.6f);
+            case RoleType.Human: return new Rgba(0.35f, 0.55f, 0.95f);
+            case RoleType.Monkey: return new Rgba(0.85f, 0.55f, 0.25f);
+            case RoleType.Cat: return new Rgba(0.95f, 0.75f, 0.2f);
+            default: return Rgba.White;
         }
     }
 

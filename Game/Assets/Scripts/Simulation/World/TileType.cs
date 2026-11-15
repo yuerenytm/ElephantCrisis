@@ -60,52 +60,52 @@ public static class TerrainInfo
     public static string GetDescription(TileType type)
         => $"{GetDisplayName(type)}：{GetShortEffect(type)}";
 
-    public static Color GetFillColor(TileType type, bool checkerAlt)
+    public static Rgba GetFillColor(TileType type, bool checkerAlt)
     {
         switch (type)
         {
             case TileType.Sand:
                 return checkerAlt
-                    ? new Color(0.78f, 0.68f, 0.42f)
-                    : new Color(0.85f, 0.75f, 0.48f);
+                    ? new Rgba(0.78f, 0.68f, 0.42f)
+                    : new Rgba(0.85f, 0.75f, 0.48f);
             case TileType.Swamp:
                 // 浊橄榄褐，与普通草地拉开色相
                 return checkerAlt
-                    ? new Color(0.32f, 0.34f, 0.16f)
-                    : new Color(0.38f, 0.40f, 0.20f);
+                    ? new Rgba(0.32f, 0.34f, 0.16f)
+                    : new Rgba(0.38f, 0.40f, 0.20f);
             case TileType.Ice:
                 // 淡蓝色
                 return checkerAlt
-                    ? new Color(0.55f, 0.78f, 0.92f)
-                    : new Color(0.62f, 0.84f, 0.96f);
+                    ? new Rgba(0.55f, 0.78f, 0.92f)
+                    : new Rgba(0.62f, 0.84f, 0.96f);
             case TileType.Jungle:
                 return checkerAlt
-                    ? new Color(0.12f, 0.38f, 0.18f)
-                    : new Color(0.16f, 0.45f, 0.22f);
+                    ? new Rgba(0.12f, 0.38f, 0.18f)
+                    : new Rgba(0.16f, 0.45f, 0.22f);
             case TileType.Highland:
                 return checkerAlt
-                    ? new Color(0.48f, 0.42f, 0.36f)
-                    : new Color(0.55f, 0.48f, 0.4f);
+                    ? new Rgba(0.48f, 0.42f, 0.36f)
+                    : new Rgba(0.55f, 0.48f, 0.4f);
             case TileType.Lava:
-                return new Color(0.85f, 0.28f, 0.1f);
+                return new Rgba(0.85f, 0.28f, 0.1f);
             default: // Normal：偏亮草绿
                 return checkerAlt
-                    ? new Color(0.26f, 0.42f, 0.30f)
-                    : new Color(0.32f, 0.48f, 0.34f);
+                    ? new Rgba(0.26f, 0.42f, 0.30f)
+                    : new Rgba(0.32f, 0.48f, 0.34f);
         }
     }
 
-    public static Color GetBorderColor(TileType type)
+    public static Rgba GetBorderColor(TileType type)
     {
         switch (type)
         {
-            case TileType.Sand: return new Color(0.45f, 0.35f, 0.18f);
-            case TileType.Swamp: return new Color(0.18f, 0.16f, 0.08f);
-            case TileType.Ice: return new Color(0.3f, 0.5f, 0.65f);
-            case TileType.Jungle: return new Color(0.05f, 0.18f, 0.08f);
-            case TileType.Highland: return new Color(0.28f, 0.22f, 0.18f);
-            case TileType.Lava: return new Color(0.4f, 0.1f, 0.05f);
-            default: return new Color(0.12f, 0.16f, 0.12f);
+            case TileType.Sand: return new Rgba(0.45f, 0.35f, 0.18f);
+            case TileType.Swamp: return new Rgba(0.18f, 0.16f, 0.08f);
+            case TileType.Ice: return new Rgba(0.3f, 0.5f, 0.65f);
+            case TileType.Jungle: return new Rgba(0.05f, 0.18f, 0.08f);
+            case TileType.Highland: return new Rgba(0.28f, 0.22f, 0.18f);
+            case TileType.Lava: return new Rgba(0.4f, 0.1f, 0.05f);
+            default: return new Rgba(0.12f, 0.16f, 0.12f);
         }
     }
 
