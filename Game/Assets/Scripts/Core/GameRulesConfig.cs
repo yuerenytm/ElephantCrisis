@@ -8,8 +8,10 @@ using System.Text.RegularExpressions;
 using UnityEngine;
 
 /// <summary>
-/// 从 StreamingAssets/Config/game_rules.yaml 加载规则（与 LogicSim / Tools/sim 共用）。
-/// 解析失败时回退内置默认值（与现行规则一致）。
+/// 从 StreamingAssets/Config 加载规则（与 LogicSim / Tools/sim 共用）。
+/// 优先读 game_rules.json（由 Design/*.csv 生成，JsonUtility 反序列化），
+/// 读不到再回落 game_rules.gen.yaml / game_rules.yaml（迁移期回退路径）。
+/// 解析失败时回退内置默认值。
 /// </summary>
 public static class GameRulesConfig
 {
@@ -21,6 +23,24 @@ public static class GameRulesConfig
         public int Def;
         public int Bag;
         public int MagicResist;
+    }
+
+    /// <summary>JSON 配置的一条扁平记录（section / key / value 全为字符串）。</summary>
+    [Serializable]
+    public class ConfigEntry
+    {
+        public string section;
+        public string key;
+        public string value;
+    }
+
+    /// <summary>JSON 配置文档。</summary>
+    [Serializable]
+    public class ConfigDocument
+    {
+        public int schema;
+        public string source;
+        public ConfigEntry[] entries;
     }
 
     private static bool loaded;
@@ -85,7 +105,10 @@ public static class GameRulesConfig
         try
         {
             string text = File.ReadAllText(path);
-            ParseDocument(text);
+            if (path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
+                ParseJsonDocument(text);
+            else
+                ParseDocument(text);
             ApplyParsedRoles();
             ApplyParsedDeck();
             Debug.Log(
@@ -513,8 +536,12 @@ public static class GameRulesConfig
     {
         string dir = Path.Combine(Application.streamingAssetsPath, "Config");
 
-        // 权威已切到 Design/*.csv：由 Tools/config/build.py 生成的 game_rules.gen.yaml 优先。
-        // 保守迁移：删掉这个生成物即可回退到手写的 game_rules.yaml。
+        // 权威链路：Design/*.csv → build.py → game_rules.json（JsonUtility 读取）
+        string json = Path.Combine(dir, "game_rules.json");
+        if (File.Exists(json))
+            return json;
+
+        // 迁移期回退：旧生成物与手写 yaml（删掉它们即可回到更早的形态）
         string generated = Path.Combine(dir, "game_rules.gen.yaml");
         if (File.Exists(generated))
             return generated;
@@ -547,6 +574,80 @@ public static class GameRulesConfig
     }
 
     public static string ItemKindToYamlKey(ItemKind kind) => ToSnakeCase(kind.ToString());
+
+    /// <summary>
+    /// 解析 JSON 配置：扁平 entries 直接填 sections；roles 与 spawn_cells 由 sections 复原。
+    /// 相比手写行解析器，这里没有缩进/注释/引号这些格式假设。
+    /// </summary>
+    private static void ParseJsonDocument(string text)
+    {
+        sections.Clear();
+        var doc = JsonUtility.FromJson<ConfigDocument>(text);
+        if (doc?.entries == null)
+            return;
+
+        foreach (var entry in doc.entries)
+        {
+            if (entry == null || string.IsNullOrEmpty(entry.section) || string.IsNullOrEmpty(entry.key))
+                continue;
+            EnsureSection(entry.section)[entry.key] = entry.value;
+        }
+
+        LoadRolesFromSections();
+        LoadSpawnFromSections();
+    }
+
+    /// <summary>从 roles 段的 "角色.属性" 键复原四维与法抗。</summary>
+    private static void LoadRolesFromSections()
+    {
+        if (!sections.TryGetValue("roles", out var map))
+            return;
+
+        foreach (var kv in map)
+        {
+            int dot = kv.Key.IndexOf('.');
+            if (dot <= 0)
+                continue;
+            if (!Enum.TryParse(kv.Key.Substring(0, dot), true, out RoleType role))
+                continue;
+            if (!int.TryParse(kv.Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int value))
+                continue;
+
+            roleStats.TryGetValue(role, out var stats);
+            switch (kv.Key.Substring(dot + 1))
+            {
+                case "move": stats.Move = value; break;
+                case "hp": stats.Hp = value; break;
+                case "atk": stats.Atk = value; break;
+                case "def": stats.Def = value; break;
+                case "bag": stats.Bag = value; break;
+                case "magic_resist": stats.MagicResist = value; break;
+                default: continue;
+            }
+            roleStats[role] = stats;
+        }
+    }
+
+    /// <summary>从 grid.spawn_cells.&lt;角色&gt; 复原出生点（值形如 "2,2"）。</summary>
+    private static void LoadSpawnFromSections()
+    {
+        if (!sections.TryGetValue("grid", out var map))
+            return;
+
+        const string prefix = "spawn_cells.";
+        foreach (var kv in map)
+        {
+            if (!kv.Key.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+                continue;
+            if (!Enum.TryParse(kv.Key.Substring(prefix.Length), true, out RoleType role))
+                continue;
+            string[] parts = kv.Value.Split(',');
+            if (parts.Length != 2)
+                continue;
+            if (int.TryParse(parts[0].Trim(), out int x) && int.TryParse(parts[1].Trim(), out int y))
+                spawnCells[role] = new Vector2Int(x, y);
+        }
+    }
 
     private static void ParseDocument(string text)
     {

@@ -1,0 +1,1876 @@
+{
+  "schema": 2,
+  "source": "design_csv",
+  "entries": [
+    {
+      "section": "roles",
+      "key": "elephant.move",
+      "value": "3"
+    },
+    {
+      "section": "roles",
+      "key": "elephant.hp",
+      "value": "100"
+    },
+    {
+      "section": "roles",
+      "key": "elephant.atk",
+      "value": "9"
+    },
+    {
+      "section": "roles",
+      "key": "elephant.def",
+      "value": "10"
+    },
+    {
+      "section": "roles",
+      "key": "elephant.magic_resist",
+      "value": "0"
+    },
+    {
+      "section": "roles",
+      "key": "elephant.bag",
+      "value": "30"
+    },
+    {
+      "section": "roles",
+      "key": "human.move",
+      "value": "5"
+    },
+    {
+      "section": "roles",
+      "key": "human.hp",
+      "value": "90"
+    },
+    {
+      "section": "roles",
+      "key": "human.atk",
+      "value": "10"
+    },
+    {
+      "section": "roles",
+      "key": "human.def",
+      "value": "8"
+    },
+    {
+      "section": "roles",
+      "key": "human.magic_resist",
+      "value": "20"
+    },
+    {
+      "section": "roles",
+      "key": "human.bag",
+      "value": "48"
+    },
+    {
+      "section": "roles",
+      "key": "monkey.move",
+      "value": "6"
+    },
+    {
+      "section": "roles",
+      "key": "monkey.hp",
+      "value": "90"
+    },
+    {
+      "section": "roles",
+      "key": "monkey.atk",
+      "value": "8"
+    },
+    {
+      "section": "roles",
+      "key": "monkey.def",
+      "value": "6"
+    },
+    {
+      "section": "roles",
+      "key": "monkey.magic_resist",
+      "value": "20"
+    },
+    {
+      "section": "roles",
+      "key": "monkey.bag",
+      "value": "36"
+    },
+    {
+      "section": "roles",
+      "key": "cat.move",
+      "value": "8"
+    },
+    {
+      "section": "roles",
+      "key": "cat.hp",
+      "value": "60"
+    },
+    {
+      "section": "roles",
+      "key": "cat.atk",
+      "value": "6"
+    },
+    {
+      "section": "roles",
+      "key": "cat.def",
+      "value": "4"
+    },
+    {
+      "section": "roles",
+      "key": "cat.magic_resist",
+      "value": "50"
+    },
+    {
+      "section": "roles",
+      "key": "cat.bag",
+      "value": "30"
+    },
+    {
+      "section": "deck",
+      "key": "doll_elephant",
+      "value": "1"
+    },
+    {
+      "section": "deck",
+      "key": "doll_human",
+      "value": "1"
+    },
+    {
+      "section": "deck",
+      "key": "doll_monkey",
+      "value": "1"
+    },
+    {
+      "section": "deck",
+      "key": "doll_cat",
+      "value": "1"
+    },
+    {
+      "section": "deck",
+      "key": "small_potion",
+      "value": "10"
+    },
+    {
+      "section": "deck",
+      "key": "bomb",
+      "value": "10"
+    },
+    {
+      "section": "deck",
+      "key": "mega_bomb",
+      "value": "4"
+    },
+    {
+      "section": "deck",
+      "key": "timed_bomb",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "reinforce",
+      "value": "10"
+    },
+    {
+      "section": "deck",
+      "key": "bow",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "crossbow",
+      "value": "2"
+    },
+    {
+      "section": "deck",
+      "key": "arrow",
+      "value": "30"
+    },
+    {
+      "section": "deck",
+      "key": "poison_arrow",
+      "value": "12"
+    },
+    {
+      "section": "deck",
+      "key": "fire_rocket",
+      "value": "12"
+    },
+    {
+      "section": "deck",
+      "key": "banana_peel",
+      "value": "10"
+    },
+    {
+      "section": "deck",
+      "key": "flamethrower",
+      "value": "2"
+    },
+    {
+      "section": "deck",
+      "key": "wood_armor",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "iron_armor",
+      "value": "2"
+    },
+    {
+      "section": "deck",
+      "key": "rubber_raincoat",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "energy_shield",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "thorns_armor",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "tactical_vest",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "adrenaline",
+      "value": "10"
+    },
+    {
+      "section": "deck",
+      "key": "mine",
+      "value": "10"
+    },
+    {
+      "section": "deck",
+      "key": "large_potion",
+      "value": "4"
+    },
+    {
+      "section": "deck",
+      "key": "skill_upgrade",
+      "value": "24"
+    },
+    {
+      "section": "deck",
+      "key": "night_vision",
+      "value": "4"
+    },
+    {
+      "section": "deck",
+      "key": "telescope",
+      "value": "4"
+    },
+    {
+      "section": "deck",
+      "key": "skateboard",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "motorcycle",
+      "value": "2"
+    },
+    {
+      "section": "deck",
+      "key": "ice_skates",
+      "value": "4"
+    },
+    {
+      "section": "deck",
+      "key": "grapple_hook",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "amulet",
+      "value": "2"
+    },
+    {
+      "section": "deck",
+      "key": "flashbang",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "dagger",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "longsword",
+      "value": "4"
+    },
+    {
+      "section": "deck",
+      "key": "armor_piercing_blade",
+      "value": "8"
+    },
+    {
+      "section": "deck",
+      "key": "cursed_blade",
+      "value": "2"
+    },
+    {
+      "section": "deck",
+      "key": "gasoline_bottle",
+      "value": "20"
+    },
+    {
+      "section": "deck",
+      "key": "lighter",
+      "value": "8"
+    },
+    {
+      "section": "deck",
+      "key": "boomerang",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "milk",
+      "value": "8"
+    },
+    {
+      "section": "deck",
+      "key": "weather_clear",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "weather_rain",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "weather_fog",
+      "value": "6"
+    },
+    {
+      "section": "deck",
+      "key": "red_bull",
+      "value": "12"
+    },
+    {
+      "section": "items",
+      "key": "molotov_damage",
+      "value": "10"
+    },
+    {
+      "section": "items",
+      "key": "molotov_radius",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "molotov_range",
+      "value": "5"
+    },
+    {
+      "section": "items",
+      "key": "molotov_flame_rounds",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "thorns_reflect_pct",
+      "value": "50"
+    },
+    {
+      "section": "items",
+      "key": "ammo_per_card",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "shoot_ammo_cost",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "fuel_cost",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "armor_durability_loss",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "weight_per_card",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "amulet_shield_charges",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "armor_piercing_blade_atk",
+      "value": "6"
+    },
+    {
+      "section": "items",
+      "key": "armor_piercing_blade_range",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "bomb_damage",
+      "value": "15"
+    },
+    {
+      "section": "items",
+      "key": "bomb_radius",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "bomb_range",
+      "value": "5"
+    },
+    {
+      "section": "items",
+      "key": "boomerang_damage",
+      "value": "15"
+    },
+    {
+      "section": "items",
+      "key": "boomerang_range",
+      "value": "4"
+    },
+    {
+      "section": "items",
+      "key": "bow_atk",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "bow_range",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "crossbow_atk",
+      "value": "10"
+    },
+    {
+      "section": "items",
+      "key": "crossbow_range",
+      "value": "5"
+    },
+    {
+      "section": "items",
+      "key": "cursed_blade_range",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "dagger_atk",
+      "value": "6"
+    },
+    {
+      "section": "items",
+      "key": "dagger_range",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "doll_cat_move",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "doll_elephant_def",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "doll_human_atk",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "doll_human_bag",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "doll_monkey_atk",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "doll_monkey_move",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "energy_shield_charges",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "flamethrower_damage",
+      "value": "10"
+    },
+    {
+      "section": "items",
+      "key": "flamethrower_flame_rounds",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "flamethrower_range",
+      "value": "5"
+    },
+    {
+      "section": "items",
+      "key": "flashbang_blind_rounds",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "flashbang_radius",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "flashbang_range",
+      "value": "5"
+    },
+    {
+      "section": "items",
+      "key": "grapple_hook_range",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "ice_skates_ice_move",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "iron_armor_charges",
+      "value": "8"
+    },
+    {
+      "section": "items",
+      "key": "iron_armor_def",
+      "value": "8"
+    },
+    {
+      "section": "items",
+      "key": "large_potion_heal",
+      "value": "15"
+    },
+    {
+      "section": "items",
+      "key": "longsword_atk",
+      "value": "8"
+    },
+    {
+      "section": "items",
+      "key": "longsword_range",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "mega_bomb_damage",
+      "value": "24"
+    },
+    {
+      "section": "items",
+      "key": "mine_damage",
+      "value": "15"
+    },
+    {
+      "section": "items",
+      "key": "motorcycle_duration",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "motorcycle_move",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "motorcycle_ram_damage",
+      "value": "10"
+    },
+    {
+      "section": "items",
+      "key": "motorcycle_ram_max",
+      "value": "10"
+    },
+    {
+      "section": "items",
+      "key": "motorcycle_ram_min",
+      "value": "6"
+    },
+    {
+      "section": "items",
+      "key": "motorcycle_ram_width",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "night_vision_clear",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "night_vision_fog",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "night_vision_rain",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "red_bull_extra_actions",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "reinforce_amount",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "rubber_raincoat_charges",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "rubber_raincoat_def",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "skateboard_move",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "skill_upgrade_cards",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "skill_upgrade_level_base",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "skill_upgrade_level_max",
+      "value": "3"
+    },
+    {
+      "section": "items",
+      "key": "small_potion_heal",
+      "value": "9"
+    },
+    {
+      "section": "items",
+      "key": "tactical_vest_bag",
+      "value": "5"
+    },
+    {
+      "section": "items",
+      "key": "tactical_vest_charges",
+      "value": "6"
+    },
+    {
+      "section": "items",
+      "key": "tactical_vest_def",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "tactical_vest_extra_mitigation",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "telescope_fog",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "thorns_armor_charges",
+      "value": "4"
+    },
+    {
+      "section": "items",
+      "key": "thorns_armor_def",
+      "value": "2"
+    },
+    {
+      "section": "items",
+      "key": "timed_bomb_damage",
+      "value": "15"
+    },
+    {
+      "section": "items",
+      "key": "timed_bomb_max_rounds",
+      "value": "5"
+    },
+    {
+      "section": "items",
+      "key": "timed_bomb_min_rounds",
+      "value": "1"
+    },
+    {
+      "section": "items",
+      "key": "timed_bomb_radius",
+      "value": "4"
+    },
+    {
+      "section": "items",
+      "key": "wood_armor_charges",
+      "value": "5"
+    },
+    {
+      "section": "items",
+      "key": "wood_armor_def",
+      "value": "4"
+    },
+    {
+      "section": "status",
+      "key": "adrenaline_move",
+      "value": "2"
+    },
+    {
+      "section": "status",
+      "key": "adrenaline_atk",
+      "value": "3"
+    },
+    {
+      "section": "status",
+      "key": "adrenaline_duration",
+      "value": "3"
+    },
+    {
+      "section": "status",
+      "key": "adrenaline_hp_threshold_pct",
+      "value": "30"
+    },
+    {
+      "section": "status",
+      "key": "dying_visibility",
+      "value": "1"
+    },
+    {
+      "section": "status",
+      "key": "dying_actions",
+      "value": "12"
+    },
+    {
+      "section": "status",
+      "key": "swamp_poison_rounds",
+      "value": "1"
+    },
+    {
+      "section": "status",
+      "key": "trip_def",
+      "value": "-3"
+    },
+    {
+      "section": "status",
+      "key": "trip_move",
+      "value": "-1"
+    },
+    {
+      "section": "status",
+      "key": "trip_rounds",
+      "value": "3"
+    },
+    {
+      "section": "status",
+      "key": "poison_per_stack_atk",
+      "value": "-2"
+    },
+    {
+      "section": "status",
+      "key": "poison_per_stack_def",
+      "value": "-2"
+    },
+    {
+      "section": "status",
+      "key": "poison_per_stack_move",
+      "value": "-2"
+    },
+    {
+      "section": "status",
+      "key": "poison_max_stacks",
+      "value": "3"
+    },
+    {
+      "section": "status",
+      "key": "poison_end_damage_per_stack",
+      "value": "2"
+    },
+    {
+      "section": "status",
+      "key": "poison_visibility",
+      "value": "2"
+    },
+    {
+      "section": "status",
+      "key": "poison_rounds",
+      "value": "1"
+    },
+    {
+      "section": "status",
+      "key": "burning_rounds",
+      "value": "1"
+    },
+    {
+      "section": "status",
+      "key": "hidden_reveal_range",
+      "value": "1"
+    },
+    {
+      "section": "status",
+      "key": "leader_atk",
+      "value": "9"
+    },
+    {
+      "section": "status",
+      "key": "leader_def",
+      "value": "9"
+    },
+    {
+      "section": "status",
+      "key": "leader_move",
+      "value": "3"
+    },
+    {
+      "section": "status",
+      "key": "leader_start_damage",
+      "value": "6"
+    },
+    {
+      "section": "status",
+      "key": "stun_rounds",
+      "value": "1"
+    },
+    {
+      "section": "status",
+      "key": "blind_visibility",
+      "value": "0"
+    },
+    {
+      "section": "status",
+      "key": "blind_rounds",
+      "value": "1"
+    },
+    {
+      "section": "terrain",
+      "key": "biome_ratio",
+      "value": "0.1"
+    },
+    {
+      "section": "terrain",
+      "key": "biome_min_cells",
+      "value": "8"
+    },
+    {
+      "section": "terrain",
+      "key": "biome_blob_min",
+      "value": "1"
+    },
+    {
+      "section": "terrain",
+      "key": "biome_blob_max",
+      "value": "2"
+    },
+    {
+      "section": "terrain",
+      "key": "biome_split_min_ratio",
+      "value": "0.3"
+    },
+    {
+      "section": "terrain",
+      "key": "biome_split_min_cells",
+      "value": "4"
+    },
+    {
+      "section": "terrain",
+      "key": "spawn_protect_radius",
+      "value": "2"
+    },
+    {
+      "section": "terrain",
+      "key": "biome_seed_spacing",
+      "value": "4"
+    },
+    {
+      "section": "terrain",
+      "key": "sand_move",
+      "value": "-1"
+    },
+    {
+      "section": "terrain",
+      "key": "sand_magic_resist",
+      "value": "-10"
+    },
+    {
+      "section": "terrain",
+      "key": "swamp_magic_resist",
+      "value": "-20"
+    },
+    {
+      "section": "terrain",
+      "key": "ice_move",
+      "value": "1"
+    },
+    {
+      "section": "terrain",
+      "key": "ice_trip_chance",
+      "value": "0.2"
+    },
+    {
+      "section": "terrain",
+      "key": "jungle_magic_resist",
+      "value": "20"
+    },
+    {
+      "section": "terrain",
+      "key": "highland_atk",
+      "value": "3"
+    },
+    {
+      "section": "terrain",
+      "key": "highland_def",
+      "value": "3"
+    },
+    {
+      "section": "terrain",
+      "key": "highland_range",
+      "value": "1"
+    },
+    {
+      "section": "grid",
+      "key": "spawn_cells.elephant",
+      "value": "2,2"
+    },
+    {
+      "section": "grid",
+      "key": "spawn_cells.human",
+      "value": "15,2"
+    },
+    {
+      "section": "grid",
+      "key": "spawn_cells.monkey",
+      "value": "2,15"
+    },
+    {
+      "section": "grid",
+      "key": "spawn_cells.cat",
+      "value": "15,15"
+    },
+    {
+      "section": "grid",
+      "key": "width",
+      "value": "18"
+    },
+    {
+      "section": "grid",
+      "key": "height",
+      "value": "18"
+    },
+    {
+      "section": "combat",
+      "key": "melee_range",
+      "value": "1"
+    },
+    {
+      "section": "combat",
+      "key": "lava_true_damage",
+      "value": "20"
+    },
+    {
+      "section": "combat",
+      "key": "burning_magic_damage",
+      "value": "10"
+    },
+    {
+      "section": "combat",
+      "key": "cursed_blade_target_mult",
+      "value": "2"
+    },
+    {
+      "section": "combat",
+      "key": "cursed_blade_self_mult",
+      "value": "1"
+    },
+    {
+      "section": "combat",
+      "key": "move_min_alive",
+      "value": "1"
+    },
+    {
+      "section": "clock",
+      "key": "start_hour",
+      "value": "6"
+    },
+    {
+      "section": "clock",
+      "key": "hours_per_round",
+      "value": "2"
+    },
+    {
+      "section": "clock",
+      "key": "period_dawn_start",
+      "value": "4"
+    },
+    {
+      "section": "clock",
+      "key": "period_day_start",
+      "value": "8"
+    },
+    {
+      "section": "clock",
+      "key": "period_dusk_start",
+      "value": "16"
+    },
+    {
+      "section": "clock",
+      "key": "period_night_start",
+      "value": "20"
+    },
+    {
+      "section": "clock",
+      "key": "dawn_rep_hour",
+      "value": "6"
+    },
+    {
+      "section": "clock",
+      "key": "day_rep_hour",
+      "value": "12"
+    },
+    {
+      "section": "clock",
+      "key": "dusk_rep_hour",
+      "value": "18"
+    },
+    {
+      "section": "clock",
+      "key": "night_rep_hour",
+      "value": "0"
+    },
+    {
+      "section": "visibility",
+      "key": "full_map",
+      "value": "40"
+    },
+    {
+      "section": "visibility",
+      "key": "night_clear",
+      "value": "5"
+    },
+    {
+      "section": "visibility",
+      "key": "night_rain",
+      "value": "4"
+    },
+    {
+      "section": "visibility",
+      "key": "night_fog",
+      "value": "3"
+    },
+    {
+      "section": "visibility",
+      "key": "fog_day",
+      "value": "8"
+    },
+    {
+      "section": "visibility",
+      "key": "fog_dawn_dusk",
+      "value": "6"
+    },
+    {
+      "section": "weather",
+      "key": "rain_def_mod",
+      "value": "-3"
+    },
+    {
+      "section": "weather",
+      "key": "rain_magic_resist",
+      "value": "25"
+    },
+    {
+      "section": "weather",
+      "key": "fog_magic_resist",
+      "value": "10"
+    },
+    {
+      "section": "weather",
+      "key": "lock_min",
+      "value": "6"
+    },
+    {
+      "section": "weather",
+      "key": "lock_max",
+      "value": "10"
+    },
+    {
+      "section": "lava",
+      "key": "shrink_every_rounds",
+      "value": "5"
+    },
+    {
+      "section": "match",
+      "key": "max_full_rounds",
+      "value": "80"
+    },
+    {
+      "section": "match",
+      "key": "actions_per_round",
+      "value": "4"
+    },
+    {
+      "section": "match",
+      "key": "pickup_range",
+      "value": "1"
+    },
+    {
+      "section": "skills",
+      "key": "human_cooldown_lv1",
+      "value": "8"
+    },
+    {
+      "section": "skills",
+      "key": "human_cooldown_lv2",
+      "value": "6"
+    },
+    {
+      "section": "skills",
+      "key": "human_cooldown_lv3",
+      "value": "5"
+    },
+    {
+      "section": "skills",
+      "key": "human_reinforce_amount",
+      "value": "1"
+    },
+    {
+      "section": "skills",
+      "key": "monkey_cooldown_lv1",
+      "value": "5"
+    },
+    {
+      "section": "skills",
+      "key": "monkey_cooldown_lv2",
+      "value": "4"
+    },
+    {
+      "section": "skills",
+      "key": "monkey_cooldown_lv3",
+      "value": "3"
+    },
+    {
+      "section": "skills",
+      "key": "monkey_radius_lv1",
+      "value": "2"
+    },
+    {
+      "section": "skills",
+      "key": "monkey_radius_lv2",
+      "value": "3"
+    },
+    {
+      "section": "skills",
+      "key": "monkey_radius_lv3",
+      "value": "4"
+    },
+    {
+      "section": "skills",
+      "key": "cat_cooldown_lv1",
+      "value": "5"
+    },
+    {
+      "section": "skills",
+      "key": "cat_cooldown_lv2",
+      "value": "4"
+    },
+    {
+      "section": "skills",
+      "key": "cat_cooldown_lv3",
+      "value": "3"
+    },
+    {
+      "section": "skills",
+      "key": "deterrence_outer_lv1",
+      "value": "3"
+    },
+    {
+      "section": "skills",
+      "key": "deterrence_outer_lv2",
+      "value": "5"
+    },
+    {
+      "section": "skills",
+      "key": "deterrence_outer_lv3",
+      "value": "7"
+    },
+    {
+      "section": "skills",
+      "key": "deterrence_inner_radius",
+      "value": "2"
+    },
+    {
+      "section": "skills",
+      "key": "deterrence_inner_penalty",
+      "value": "2"
+    },
+    {
+      "section": "skills",
+      "key": "deterrence_outer_penalty",
+      "value": "1"
+    },
+    {
+      "section": "leader",
+      "key": "duration",
+      "value": "10"
+    },
+    {
+      "section": "leader",
+      "key": "random_draw",
+      "value": "5"
+    },
+    {
+      "section": "leader",
+      "key": "doll_required",
+      "value": "3"
+    },
+    {
+      "section": "display",
+      "key": "card_doll_elephant_name",
+      "value": "象玩偶"
+    },
+    {
+      "section": "display",
+      "key": "card_doll_elephant_desc",
+      "value": "金色·持有增益/集齐获胜"
+    },
+    {
+      "section": "display",
+      "key": "card_doll_human_name",
+      "value": "人玩偶"
+    },
+    {
+      "section": "display",
+      "key": "card_doll_human_desc",
+      "value": "金色·持有增益/集齐获胜"
+    },
+    {
+      "section": "display",
+      "key": "card_doll_monkey_name",
+      "value": "猴玩偶"
+    },
+    {
+      "section": "display",
+      "key": "card_doll_monkey_desc",
+      "value": "金色·持有增益/集齐获胜"
+    },
+    {
+      "section": "display",
+      "key": "card_doll_cat_name",
+      "value": "猫玩偶"
+    },
+    {
+      "section": "display",
+      "key": "card_doll_cat_desc",
+      "value": "金色·持有增益/集齐获胜"
+    },
+    {
+      "section": "display",
+      "key": "card_small_potion_name",
+      "value": "小血瓶"
+    },
+    {
+      "section": "display",
+      "key": "card_small_potion_desc",
+      "value": "+9血"
+    },
+    {
+      "section": "display",
+      "key": "card_bomb_name",
+      "value": "炸弹"
+    },
+    {
+      "section": "display",
+      "key": "card_bomb_desc",
+      "value": "掷地，15物伤，半径2"
+    },
+    {
+      "section": "display",
+      "key": "card_mega_bomb_name",
+      "value": "高爆炸弹"
+    },
+    {
+      "section": "display",
+      "key": "card_mega_bomb_desc",
+      "value": "掷地，24物伤，半径2"
+    },
+    {
+      "section": "display",
+      "key": "card_timed_bomb_name",
+      "value": "定时炸弹"
+    },
+    {
+      "section": "display",
+      "key": "card_timed_bomb_desc",
+      "value": "安放，1–5回合(×4行动)后爆半径4，仅自己可见"
+    },
+    {
+      "section": "display",
+      "key": "card_reinforce_name",
+      "value": "强化剂"
+    },
+    {
+      "section": "display",
+      "key": "card_reinforce_desc",
+      "value": "攻/防/移 永久+1（三选一）"
+    },
+    {
+      "section": "display",
+      "key": "card_bow_name",
+      "value": "弓"
+    },
+    {
+      "section": "display",
+      "key": "card_bow_desc",
+      "value": "攻+2 射距3，耗1弹药（须装备）"
+    },
+    {
+      "section": "display",
+      "key": "card_crossbow_name",
+      "value": "弩"
+    },
+    {
+      "section": "display",
+      "key": "card_crossbow_desc",
+      "value": "攻+10 射距5，耗1；须蓄力，同行动不可射"
+    },
+    {
+      "section": "display",
+      "key": "card_arrow_name",
+      "value": "弓箭"
+    },
+    {
+      "section": "display",
+      "key": "card_arrow_desc",
+      "value": "弹药，1支/张，重1，可合并"
+    },
+    {
+      "section": "display",
+      "key": "card_poison_arrow_name",
+      "value": "毒箭"
+    },
+    {
+      "section": "display",
+      "key": "card_poison_arrow_desc",
+      "value": "1支/张，命中中毒1回合"
+    },
+    {
+      "section": "display",
+      "key": "card_fire_rocket_name",
+      "value": "火箭"
+    },
+    {
+      "section": "display",
+      "key": "card_fire_rocket_desc",
+      "value": "1支/张，命中着火1回合"
+    },
+    {
+      "section": "display",
+      "key": "card_banana_peel_name",
+      "value": "香蕉皮"
+    },
+    {
+      "section": "display",
+      "key": "card_banana_peel_desc",
+      "value": "投掷隐身陷阱，踩踏跌倒"
+    },
+    {
+      "section": "display",
+      "key": "card_flamethrower_name",
+      "value": "火焰喷射器"
+    },
+    {
+      "section": "display",
+      "key": "card_flamethrower_desc",
+      "value": "须装备+耗1汽油；直线5格10法伤+着火；路径火焰2回合(×4行动)"
+    },
+    {
+      "section": "display",
+      "key": "card_wood_armor_name",
+      "value": "木甲"
+    },
+    {
+      "section": "display",
+      "key": "card_wood_armor_desc",
+      "value": "装备防+4；物伤即耗耐久"
+    },
+    {
+      "section": "display",
+      "key": "card_iron_armor_name",
+      "value": "铁甲"
+    },
+    {
+      "section": "display",
+      "key": "card_iron_armor_desc",
+      "value": "装备防+8；物伤即耗耐久"
+    },
+    {
+      "section": "display",
+      "key": "card_rubber_raincoat_name",
+      "value": "橡胶雨衣"
+    },
+    {
+      "section": "display",
+      "key": "card_rubber_raincoat_desc",
+      "value": "装备防+3；免雨天减益；免着火耗耐久；耐久3"
+    },
+    {
+      "section": "display",
+      "key": "card_energy_shield_name",
+      "value": "能量护盾"
+    },
+    {
+      "section": "display",
+      "key": "card_energy_shield_desc",
+      "value": "装备，吸收物伤/法伤（不挡真伤）"
+    },
+    {
+      "section": "display",
+      "key": "card_thorns_armor_name",
+      "value": "荆棘护甲"
+    },
+    {
+      "section": "display",
+      "key": "card_thorns_armor_desc",
+      "value": "装备防+2；近战反伤实际伤害50%真伤"
+    },
+    {
+      "section": "display",
+      "key": "card_tactical_vest_name",
+      "value": "战术背心"
+    },
+    {
+      "section": "display",
+      "key": "card_tactical_vest_desc",
+      "value": "装备防+2 包+5；炸/雷额外-2；耐久6"
+    },
+    {
+      "section": "display",
+      "key": "card_adrenaline_name",
+      "value": "肾上腺素"
+    },
+    {
+      "section": "display",
+      "key": "card_adrenaline_desc",
+      "value": "HP低于30%：移+2攻+3，3回合"
+    },
+    {
+      "section": "display",
+      "key": "card_mine_name",
+      "value": "地雷"
+    },
+    {
+      "section": "display",
+      "key": "card_mine_desc",
+      "value": "放置陷阱，踩中15法伤；弃置可捡"
+    },
+    {
+      "section": "display",
+      "key": "card_large_potion_name",
+      "value": "大血瓶"
+    },
+    {
+      "section": "display",
+      "key": "card_large_potion_desc",
+      "value": "+15血"
+    },
+    {
+      "section": "display",
+      "key": "card_skill_upgrade_name",
+      "value": "技能升级卡"
+    },
+    {
+      "section": "display",
+      "key": "card_skill_upgrade_desc",
+      "value": "集齐3张：技能等级+1"
+    },
+    {
+      "section": "display",
+      "key": "card_night_vision_name",
+      "value": "夜视镜"
+    },
+    {
+      "section": "display",
+      "key": "card_night_vision_desc",
+      "value": "装备；黑夜晴+3/雨+2/雾+1 能见度"
+    },
+    {
+      "section": "display",
+      "key": "card_telescope_name",
+      "value": "望远镜"
+    },
+    {
+      "section": "display",
+      "key": "card_telescope_desc",
+      "value": "装备；昼间雾+2；非黑夜窥隐匿与背包"
+    },
+    {
+      "section": "display",
+      "key": "card_skateboard_name",
+      "value": "滑板"
+    },
+    {
+      "section": "display",
+      "key": "card_skateboard_desc",
+      "value": "装备；移动力+2"
+    },
+    {
+      "section": "display",
+      "key": "card_motorcycle_name",
+      "value": "摩托车"
+    },
+    {
+      "section": "display",
+      "key": "card_motorcycle_desc",
+      "value": "装备；耗1油发动3回合：移+3/冲击6–10宽3"
+    },
+    {
+      "section": "display",
+      "key": "card_ice_skates_name",
+      "value": "滑行靴"
+    },
+    {
+      "section": "display",
+      "key": "card_ice_skates_desc",
+      "value": "装备；冰地移+2且不跌倒"
+    },
+    {
+      "section": "display",
+      "key": "card_grapple_hook_name",
+      "value": "抢夺勾爪"
+    },
+    {
+      "section": "display",
+      "key": "card_grapple_hook_desc",
+      "value": "装备；半径3抢一件，用后毁"
+    },
+    {
+      "section": "display",
+      "key": "card_amulet_name",
+      "value": "护身符"
+    },
+    {
+      "section": "display",
+      "key": "card_amulet_desc",
+      "value": "装备；致命伤免伤一次+护盾+隐匿"
+    },
+    {
+      "section": "display",
+      "key": "card_flashbang_name",
+      "value": "闪光弹"
+    },
+    {
+      "section": "display",
+      "key": "card_flashbang_desc",
+      "value": "投掷；爆点半径2致盲1回合"
+    },
+    {
+      "section": "display",
+      "key": "card_dagger_name",
+      "value": "匕首"
+    },
+    {
+      "section": "display",
+      "key": "card_dagger_desc",
+      "value": "装备；近战距1 伤害+6"
+    },
+    {
+      "section": "display",
+      "key": "card_longsword_name",
+      "value": "长剑"
+    },
+    {
+      "section": "display",
+      "key": "card_longsword_desc",
+      "value": "装备；近战距2 伤害+8"
+    },
+    {
+      "section": "display",
+      "key": "card_armor_piercing_blade_name",
+      "value": "破甲刃"
+    },
+    {
+      "section": "display",
+      "key": "card_armor_piercing_blade_desc",
+      "value": "装备；近战距1 伤害+6；无视防具"
+    },
+    {
+      "section": "display",
+      "key": "card_cursed_blade_name",
+      "value": "诅咒之刃"
+    },
+    {
+      "section": "display",
+      "key": "card_cursed_blade_desc",
+      "value": "装备；第x次：己1x/敌2x真伤；移动后不可用"
+    },
+    {
+      "section": "display",
+      "key": "card_gasoline_bottle_name",
+      "value": "汽油瓶"
+    },
+    {
+      "section": "display",
+      "key": "card_gasoline_bottle_desc",
+      "value": "弹药：喷火耗1；或+打火机投掷燃瓶"
+    },
+    {
+      "section": "display",
+      "key": "card_lighter_name",
+      "value": "打火机"
+    },
+    {
+      "section": "display",
+      "key": "card_lighter_desc",
+      "value": "点燃汽油瓶投掷（保留打火机）"
+    },
+    {
+      "section": "display",
+      "key": "card_boomerang_name",
+      "value": "回旋镖"
+    },
+    {
+      "section": "display",
+      "key": "card_boomerang_desc",
+      "value": "射程4，15物伤；击杀回手否则弃牌"
+    },
+    {
+      "section": "display",
+      "key": "card_milk_name",
+      "value": "牛奶"
+    },
+    {
+      "section": "display",
+      "key": "card_milk_desc",
+      "value": "清除自身中毒/着火/跌倒"
+    },
+    {
+      "section": "display",
+      "key": "card_weather_clear_name",
+      "value": "晴天弹"
+    },
+    {
+      "section": "display",
+      "key": "card_weather_clear_desc",
+      "value": "立刻将天气转为晴天"
+    },
+    {
+      "section": "display",
+      "key": "card_weather_rain_name",
+      "value": "雨天弹"
+    },
+    {
+      "section": "display",
+      "key": "card_weather_rain_desc",
+      "value": "立刻将天气转为雨天"
+    },
+    {
+      "section": "display",
+      "key": "card_weather_fog_name",
+      "value": "雾天弹"
+    },
+    {
+      "section": "display",
+      "key": "card_weather_fog_desc",
+      "value": "立刻将天气转为雾天"
+    },
+    {
+      "section": "display",
+      "key": "card_red_bull_name",
+      "value": "红牛"
+    },
+    {
+      "section": "display",
+      "key": "card_red_bull_desc",
+      "value": "行动结束后额外行动1次"
+    },
+    {
+      "section": "display",
+      "key": "tile_normal_name",
+      "value": "普通"
+    },
+    {
+      "section": "display",
+      "key": "tile_normal_effect",
+      "value": "无修正"
+    },
+    {
+      "section": "display",
+      "key": "tile_sand_name",
+      "value": "沙地"
+    },
+    {
+      "section": "display",
+      "key": "tile_sand_effect",
+      "value": "移动力-1；法抗-10"
+    },
+    {
+      "section": "display",
+      "key": "tile_swamp_name",
+      "value": "沼泽"
+    },
+    {
+      "section": "display",
+      "key": "tile_swamp_effect",
+      "value": "中毒；每行动始叠层；离开清地形层；法抗-20"
+    },
+    {
+      "section": "display",
+      "key": "tile_ice_name",
+      "value": "冰地"
+    },
+    {
+      "section": "display",
+      "key": "tile_ice_effect",
+      "value": "移动力+1；行动开始20%跌倒；不铺火焰"
+    },
+    {
+      "section": "display",
+      "key": "tile_jungle_name",
+      "value": "丛林"
+    },
+    {
+      "section": "display",
+      "key": "tile_jungle_effect",
+      "value": "进入获得隐匿（有火除外）；法抗+20"
+    },
+    {
+      "section": "display",
+      "key": "tile_highland_name",
+      "value": "高地"
+    },
+    {
+      "section": "display",
+      "key": "tile_highland_effect",
+      "value": "攻击+3 防御+3 射程+1"
+    },
+    {
+      "section": "display",
+      "key": "tile_lava_name",
+      "value": "熔岩"
+    },
+    {
+      "section": "display",
+      "key": "tile_lava_effect",
+      "value": "行动开始20真伤"
+    },
+    {
+      "section": "display",
+      "key": "status_trip_name",
+      "value": "跌倒"
+    },
+    {
+      "section": "display",
+      "key": "status_trip_tip",
+      "value": "防-3 移-1"
+    },
+    {
+      "section": "display",
+      "key": "status_poison_name",
+      "value": "中毒"
+    },
+    {
+      "section": "display",
+      "key": "status_poison_tip",
+      "value": "每层攻防移-2 视2；终每层2毒伤；最多3层"
+    },
+    {
+      "section": "display",
+      "key": "status_burning_name",
+      "value": "着火"
+    },
+    {
+      "section": "display",
+      "key": "status_burning_tip",
+      "value": "行动开始10火焰法伤"
+    },
+    {
+      "section": "display",
+      "key": "status_hidden_name",
+      "value": "隐匿"
+    },
+    {
+      "section": "display",
+      "key": "status_hidden_tip",
+      "value": "非邻接不可被攻"
+    },
+    {
+      "section": "display",
+      "key": "status_leader_name",
+      "value": "领袖"
+    },
+    {
+      "section": "display",
+      "key": "status_leader_tip",
+      "value": "攻防+9 移+3；行动开始6真伤"
+    },
+    {
+      "section": "display",
+      "key": "status_stun_name",
+      "value": "晕眩"
+    },
+    {
+      "section": "display",
+      "key": "status_stun_tip",
+      "value": "跳过本次行动"
+    },
+    {
+      "section": "display",
+      "key": "status_blind_name",
+      "value": "致盲"
+    },
+    {
+      "section": "display",
+      "key": "status_blind_tip",
+      "value": "能见度0"
+    },
+    {
+      "section": "display",
+      "key": "role_elephant_name",
+      "value": "象"
+    },
+    {
+      "section": "display",
+      "key": "role_human_name",
+      "value": "人"
+    },
+    {
+      "section": "display",
+      "key": "role_monkey_name",
+      "value": "猴"
+    },
+    {
+      "section": "display",
+      "key": "role_cat_name",
+      "value": "猫"
+    }
+  ]
+}

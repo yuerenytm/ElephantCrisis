@@ -32,6 +32,7 @@ REPO = Path(__file__).resolve().parents[2]
 DESIGN = REPO / "Design"
 RULE_YAML = REPO / "Game" / "Assets" / "StreamingAssets" / "Config" / "game_rules.yaml"
 RULE_GEN = REPO / "Game" / "Assets" / "StreamingAssets" / "Config" / "game_rules.gen.yaml"
+RULE_JSON = REPO / "Game" / "Assets" / "StreamingAssets" / "Config" / "game_rules.json"
 
 # 输出顺序（与原 yaml 一致，便于人工对照）
 SECTION_ORDER = [
@@ -370,6 +371,34 @@ def format_scalar(value) -> str:
     return str(value)
 
 
+def flatten_sections(sections: dict) -> List[dict]:
+    """把嵌套结构拍平成 entries（C# 用 JsonUtility 读，字段必须扁平）。"""
+    entries: List[dict] = []
+
+    def push(section: str, key: str, value) -> None:
+        entries.append({"section": section, "key": key, "value": format_scalar(value)})
+
+    for section, body in sections.items():
+        for key, value in body.items():
+            if isinstance(value, dict):
+                for sub, sub_value in value.items():
+                    if isinstance(sub_value, list):
+                        push(section, f"{key}.{sub}", ",".join(str(v) for v in sub_value))
+                    else:
+                        push(section, f"{key}.{sub}", sub_value)
+            else:
+                push(section, key, value)
+    return entries
+
+
+def emit_json(sections: dict, display: dict) -> str:
+    """生成 game_rules.json：C# 侧 JsonUtility 直接反序列化，无需手写解析器。"""
+    merged = dict(sections)
+    merged["display"] = display
+    payload = {"schema": 2, "source": "design_csv", "entries": flatten_sections(merged)}
+    return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+
+
 def emit_yaml(sections: dict) -> str:
     """按原 yaml 的写法生成文档。
 
@@ -500,8 +529,11 @@ def main(argv: List[str]) -> int:
         return 0
 
     RULE_GEN.write_text(generated, encoding="utf-8")
+    json_text = emit_json(sections, build_display())
+    RULE_JSON.write_text(json_text, encoding="utf-8")
     print(f"\n✓ 校验通过，已生成 {RULE_GEN.relative_to(REPO)}（{len(generated.splitlines())} 行）")
-    print("回退：删除该文件即可回到 game_rules.yaml")
+    print(f"  与 {RULE_JSON.relative_to(REPO)}（{len(json_text.splitlines())} 行）")
+    print("回退：删除这两个文件即可回到 game_rules.yaml")
     return 0
 
 
