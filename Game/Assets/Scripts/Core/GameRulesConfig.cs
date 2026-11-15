@@ -816,8 +816,8 @@ public static class GameRulesConfig
         spawnCells[RoleType.Cat] = FallbackSpawnCell(RoleType.Cat);
 
         deckCounts.Clear();
-        foreach (var kv in FallbackDeck())
-            deckCounts[kv.Key] = kv.Value;
+        Debug.LogError("[GameRulesConfig] 配置里没有 deck 段，牌库将为空。" +
+            "请运行 python Tools/config/build.py 生成配置（Design/*.csv 是权威）。");
     }
 
     private static Vector2Int FallbackSpawnCell(RoleType role)
@@ -849,58 +849,6 @@ public static class GameRulesConfig
         }
     }
 
-    /// <summary>
-    /// 与改表前 DeckManager.BuildDemoDeck 硬编码一致，供缺文件时回退。
-    /// </summary>
-    private static IEnumerable<KeyValuePair<ItemKind, int>> FallbackDeck()
-    {
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.SmallPotion, 10);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.LargePotion, 4);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Bomb, 10);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.MegaBomb, 4);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.TimedBomb, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Reinforce, 10);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Bow, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Crossbow, 2);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Dagger, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Longsword, 4);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.ArmorPiercingBlade, 8);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.CursedBlade, 2);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Arrow, 30);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.PoisonArrow, 12);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.FireRocket, 12);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.BananaPeel, 10);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Mine, 10);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Flamethrower, 2);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.WoodArmor, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.IronArmor, 2);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.RubberRaincoat, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.ThornsArmor, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.TacticalVest, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.EnergyShield, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Adrenaline, 10);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.NightVision, 4);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Telescope, 4);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Skateboard, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Motorcycle, 2);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.IceSkates, 4);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.GrappleHook, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Amulet, 2);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Flashbang, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Boomerang, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Milk, 8);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.WeatherClear, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.WeatherRain, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.WeatherFog, 6);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.RedBull, 12);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.GasolineBottle, 20);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.Lighter, 8);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.SkillUpgrade, 24);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.DollElephant, 1);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.DollHuman, 1);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.DollMonkey, 1);
-        yield return new KeyValuePair<ItemKind, int>(ItemKind.DollCat, 1);
-    }
 
     private static int CountIndent(string line)
     {

@@ -233,6 +233,22 @@ public static class ItemUseService
 public static class ActionService
 {
     /// <summary>
+    /// 动作前置检查：自己活着、轮到自己、且处于预期阶段。
+    /// 原先这套三连判断在 16 个 Try* 里各写一遍。
+    /// </summary>
+    private static bool Guard(UnitActor unit, TurnPhase phase)
+    {
+        if (unit == null || unit.IsDead || unit.IsDying)
+            return false;
+        var turn = TurnManager.Instance;
+        if (turn == null || turn.CurrentUnit != unit)
+            return false;
+        if (turn.Phase != phase)
+            return false;
+        return true;
+    }
+
+    /// <summary>
     /// 普攻：校验隐匿、视野、次数与距离，结算伤害与反伤。
     /// </summary>
     public static bool TryAttack(UnitActor attacker, UnitActor defender)
@@ -711,9 +727,7 @@ public static class ActionService
     /// </summary>
     public static bool TryUseEquipable(UnitActor unit, int itemIndex)
     {
-        if (unit == null || unit.IsDead || unit.IsDying)
-            return false;
-        if (TurnManager.Instance.CurrentUnit != unit || TurnManager.Instance.Phase != TurnPhase.WaitingAction)
+        if (!Guard(unit, TurnPhase.WaitingAction))
             return false;
         if (itemIndex < 0 || itemIndex >= unit.Inventory.Count)
             return false;
@@ -798,11 +812,7 @@ public static class ActionService
     /// </summary>
     public static bool TryToggleEquip(UnitActor unit, int itemIndex)
     {
-        if (unit == null || unit.IsDead || unit.IsDying)
-            return false;
-        if (TurnManager.Instance.CurrentUnit != unit)
-            return false;
-        if (TurnManager.Instance.Phase != TurnPhase.WaitingAction)
+        if (!Guard(unit, TurnPhase.WaitingAction))
             return false;
         if (itemIndex < 0 || itemIndex >= unit.Inventory.Count)
             return false;
@@ -1036,11 +1046,7 @@ public static class ActionService
     /// </summary>
     public static bool TryUseSkillUpgrade(UnitActor unit)
     {
-        if (unit == null || unit.IsDead || unit.IsDying)
-            return false;
-        if (TurnManager.Instance == null || TurnManager.Instance.CurrentUnit != unit)
-            return false;
-        if (TurnManager.Instance.Phase != TurnPhase.WaitingAction)
+        if (!Guard(unit, TurnPhase.WaitingAction))
             return false;
         if (!unit.TryConsumeSkillUpgradeCards(out string reason))
         {
@@ -1205,11 +1211,7 @@ public static class ActionService
     /// </summary>
     public static bool TryThrowBomb(UnitActor unit, Vector2Int target)
     {
-        if (unit == null || unit.IsDead || unit.IsDying)
-            return false;
-        if (TurnManager.Instance.CurrentUnit != unit)
-            return false;
-        if (TurnManager.Instance.Phase != TurnPhase.SelectingBombTarget)
+        if (!Guard(unit, TurnPhase.SelectingBombTarget))
             return false;
 
         int idx = TurnManager.Instance.PendingItemIndex;
@@ -1251,11 +1253,7 @@ public static class ActionService
     /// </summary>
     public static bool TryThrowMolotov(UnitActor unit, Vector2Int target)
     {
-        if (unit == null || unit.IsDead || unit.IsDying)
-            return false;
-        if (TurnManager.Instance.CurrentUnit != unit)
-            return false;
-        if (TurnManager.Instance.Phase != TurnPhase.SelectingBombTarget)
+        if (!Guard(unit, TurnPhase.SelectingBombTarget))
             return false;
         if (!ItemInfo.CanThrowMolotov(unit))
             return false;
@@ -1304,11 +1302,7 @@ public static class ActionService
     /// </summary>
     public static bool TryThrowBanana(UnitActor unit, Vector2Int target)
     {
-        if (unit == null || unit.IsDead || unit.IsDying)
-            return false;
-        if (TurnManager.Instance.CurrentUnit != unit)
-            return false;
-        if (TurnManager.Instance.Phase != TurnPhase.SelectingBananaTarget)
+        if (!Guard(unit, TurnPhase.SelectingBananaTarget))
             return false;
 
         int idx = TurnManager.Instance.PendingItemIndex;
@@ -1335,11 +1329,7 @@ public static class ActionService
     /// </summary>
     public static bool TryPlaceMine(UnitActor unit, Vector2Int target)
     {
-        if (unit == null || unit.IsDead || unit.IsDying)
-            return false;
-        if (TurnManager.Instance.CurrentUnit != unit)
-            return false;
-        if (TurnManager.Instance.Phase != TurnPhase.SelectingMineTarget)
+        if (!Guard(unit, TurnPhase.SelectingMineTarget))
             return false;
 
         int idx = TurnManager.Instance.PendingItemIndex;
@@ -1476,11 +1466,7 @@ public static class ActionService
     /// </summary>
     public static bool TryThrowFlashbang(UnitActor unit, Vector2Int target)
     {
-        if (unit == null || unit.IsDead || unit.IsDying)
-            return false;
-        if (TurnManager.Instance.CurrentUnit != unit)
-            return false;
-        if (TurnManager.Instance.Phase != TurnPhase.SelectingBombTarget)
+        if (!Guard(unit, TurnPhase.SelectingBombTarget))
             return false;
 
         int idx = TurnManager.Instance.PendingItemIndex;
@@ -1520,11 +1506,7 @@ public static class ActionService
     /// </summary>
     public static bool TryStartMotorcycle(UnitActor unit, int itemIndex)
     {
-        if (unit == null || unit.IsDead || unit.IsDying)
-            return false;
-        if (TurnManager.Instance.CurrentUnit != unit)
-            return false;
-        if (TurnManager.Instance.Phase != TurnPhase.WaitingAction)
+        if (!Guard(unit, TurnPhase.WaitingAction))
             return false;
         if (itemIndex < 0 || itemIndex >= unit.Inventory.Count
             || unit.Inventory.Items[itemIndex].Kind != ItemKind.Motorcycle)
@@ -1561,11 +1543,7 @@ public static class ActionService
     /// </summary>
     public static bool TryMotorcycleRam(UnitActor unit, Vector2Int target)
     {
-        if (unit == null || unit.IsDead || unit.IsDying)
-            return false;
-        if (TurnManager.Instance.CurrentUnit != unit)
-            return false;
-        if (TurnManager.Instance.Phase != TurnPhase.SelectingMotorcycleRam)
+        if (!Guard(unit, TurnPhase.SelectingMotorcycleRam))
             return false;
         if (TurnManager.Instance.HasMoved)
             return false;
