@@ -150,21 +150,7 @@ LogicSimRunner.CoRunOne
 
 ---
 
-## 8. 已知债务
-
-| 债务 | 位置 | 影响 |
-|---|---|---|
-| **上帝类** | `UnitActor`（1634 行） | 状态、结算、表现混在一起，难测 |
-| **巨型服务** | `ActionService`（1761 行，30+ 个 `TryUse*`） | 高度重复，适合按物品类型拆分 |
-| **模式判断散落** | `if (!MatchConfig.IsLogicSim)` 多处 | 逻辑与表现耦合，无头模式靠"打补丁"实现 |
-| **全局随机流** | `UnityEngine.Random` | 改任意一处随机调用，整局结果偏移 |
-| **单例遍地** | 多数 Manager 是 `Instance` | 隐式依赖，测试难注入 |
-| **目录不一致** | `GridManager.cs` 在 Scripts 根 | 与 `World/` 同类职责却不同位置 |
-| **战斗规则无独立层** | 伤害公式在 `UnitActor`，命中在 `ActionService` | 规则分散，文档与代码易漂移 |
-
----
-
-## 9. 目录速查
+## 8. 目录速查
 
 ```
 Scripts/

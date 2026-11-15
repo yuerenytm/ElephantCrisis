@@ -17,6 +17,10 @@ from elephant_sim.unity_batch import run_unity_logic_sim  # noqa: E402
 
 
 def _summarize_from_disk(out_dir: Path) -> dict:
+    """从磁盘重读所有 match_*，汇总局数、胜者分布、平均回合与事件数。
+
+    刻意不依赖本次进程内存：手动放进来的旧数据也能被统计。
+    """
     results = []
     for d in iter_match_dirs(out_dir):
         try:
@@ -50,6 +54,11 @@ def _summarize_from_disk(out_dir: Path) -> dict:
 
 
 def main() -> int:
+    """命令行入口：解析参数 → 调 Unity 跑批 → 写 batch_summary.json。
+
+    Returns:
+        0 成功且至少有一局数据；其余情况透传 Unity 退出码，或无数据时返回 1。
+    """
     p = argparse.ArgumentParser(description="ElephantCrisis 批量对局：Unity Game LogicSim（真源）")
     p.add_argument("--matches", type=int, default=100, help="对局数量")
     p.add_argument("--out", type=str, default="output", help="输出目录")
@@ -64,6 +73,12 @@ def main() -> int:
     )
     p.add_argument("--unity", type=str, default=None, help="Unity.exe 路径（默认自动探测 / UNITY_EDITOR）")
     p.add_argument(
+        "--timeout",
+        type=float,
+        default=1800.0,
+        help="整批超时秒数（默认 1800 = 30 分钟；0 表示不限制）",
+    )
+    p.add_argument(
         "--no-clean",
         action="store_true",
         help="保留 output 中已有 match_*",
@@ -75,6 +90,7 @@ def main() -> int:
         out_dir = ROOT / out_dir
 
     unity = Path(args.unity) if args.unity else None
+    timeout = args.timeout if args.timeout and args.timeout > 0 else None
     code = run_unity_logic_sim(
         matches=args.matches,
         out_dir=out_dir,
@@ -83,6 +99,7 @@ def main() -> int:
         unity_exe=unity,
         clean=not args.no_clean,
         collect=args.collect,
+        timeout=timeout,
     )
     payload = _summarize_from_disk(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
