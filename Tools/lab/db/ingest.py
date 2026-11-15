@@ -24,8 +24,8 @@ import sys
 from pathlib import Path
 from urllib.parse import urlparse
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-DEFAULT_OUT = REPO_ROOT / "Tools" / "sim" / "output"
+REPO_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_OUT = REPO_ROOT / "Tools" / "lab" / "output"
 
 
 # --------------------------------------------------------------- 读取

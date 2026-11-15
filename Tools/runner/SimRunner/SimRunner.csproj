@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    无头跑批器：用 dotnet 直接跑对局，不启动 Unity。
+
+    它编译的是和 Unity 同一批源码（Simulation + AI 的决策代码），
+    因此不存在"第二份规则"——只有宿主不同。
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>disable</Nullable>
+    <LangVersion>9</LangVersion>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>CS0649;CS0169;CS0414;CS0219</NoWarn>
+    <AssemblyName>SimRunner</AssemblyName>
+    <RootNamespace>ElephantCrisis.SimRunner</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\..\Game\Assets\Scripts\Simulation\**\*.cs" />
+    <Compile Include="..\..\..\Game\Assets\Scripts\AI\SimpleHeuristicAi.cs" />
+    <Compile Include="Program.cs" />
+  </ItemGroup>
+
+</Project>

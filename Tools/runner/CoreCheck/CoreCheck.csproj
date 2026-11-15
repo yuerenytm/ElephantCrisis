@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    引擎无关性检查：只编译 Simulation 源码，不提供任何 UnityEngine 程序集。
+    能编过 = 规则代码确实不依赖 Unity。CI 里跑这一条即可。
+  -->
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <Nullable>disable</Nullable>
+    <LangVersion>9</LangVersion>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <NoWarn>CS0649;CS0169;CS0414</NoWarn>
+    <AssemblyName>ElephantCrisis.Core</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="..\..\..\Game\Assets\Scripts\Simulation\**\*.cs" />
+  </ItemGroup>
+
+</Project>

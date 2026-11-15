@@ -17,7 +17,7 @@ from .runner import REPO_ROOT, run_batch
 
 CONFIG_DIR = REPO_ROOT / "Game" / "Assets" / "StreamingAssets" / "Config"
 RULES_JSON = CONFIG_DIR / "game_rules.json"
-DEFAULT_OUTPUT = REPO_ROOT / "Tools" / "sim" / "output"
+DEFAULT_OUTPUT = REPO_ROOT / "Tools" / "lab" / "output"
 
 
 def _config_fingerprint() -> str:

@@ -9,8 +9,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-RUNNER_DIR = REPO_ROOT / "Tools" / "sim_runner"
+REPO_ROOT = Path(__file__).resolve().parents[2]
+RUNNER_DIR = REPO_ROOT / "Tools" / "runner" / "SimRunner"
 
 
 def run_batch(
