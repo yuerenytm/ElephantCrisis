@@ -102,30 +102,7 @@ public class AiController : MonoBehaviour
     private void PumpLogicSim()
     {
         int maxFull = LogicSimRunner.GetIntArg("-maxRounds", GameRulesConfig.MaxFullRounds);
-        int guard = 0;
-        while (guard++ < 50000)
-        {
-            var turn = TurnManager.Instance;
-            if (turn == null || turn.Phase == TurnPhase.GameOver)
-                break;
-            if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
-                break;
-
-            int full = Mathf.Max(0, turn.RoundNumber - 1);
-            if (full >= maxFull)
-            {
-                GameManager.Instance?.ForceEndForLogicSim("max_rounds");
-                break;
-            }
-
-            var unit = turn.CurrentUnit;
-            if (unit == null || unit.IsDead)
-                break;
-            if (MatchConfig.IsHumanControlled(unit))
-                break;
-
-            PlayTurnSync(unit);
-        }
+        MatchDriver.PumpToEnd(SimpleHeuristicAi.TryActOnce, maxFull);
     }
 
     private void StopAi()
@@ -141,39 +118,6 @@ public class AiController : MonoBehaviour
     /// <summary>
     /// LogicSim：无延时同步推进当前单位一整回合并结束行动。
     /// </summary>
-    private void PlayTurnSync(UnitActor unit)
-    {
-        actingUnit = unit;
-        int safety = 0;
-        while (safety++ < 24)
-        {
-            var turn = TurnManager.Instance;
-            if (turn == null || turn.Phase == TurnPhase.GameOver)
-                break;
-            if (turn.CurrentUnit != unit || unit.IsDead)
-                break;
-            if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
-                break;
-
-            if (!SimpleHeuristicAi.TryActOnce(unit))
-                break;
-
-            if (unit.IsDying && !ActionService.HasGroundPotionAt(unit))
-                break;
-        }
-
-        var endTurn = TurnManager.Instance;
-        if (endTurn != null &&
-            endTurn.Phase != TurnPhase.GameOver &&
-            endTurn.CurrentUnit == unit &&
-            !(GameManager.Instance?.IsGameOver ?? false))
-        {
-            endTurn.RequestEndTurn();
-        }
-
-        actingUnit = null;
-    }
-
     private IEnumerator CoPlayTurn(UnitActor unit)
     {
         yield return new WaitForSeconds(turnStartDelay);

@@ -196,6 +196,14 @@ public class GameBootstrap : MonoBehaviour
         GameManager.Instance?.ClearMatch();
         Presentation.Clear();
 
+        // 每局一世界：管理器全部丢弃，下一局由 EnsureSystems 重建。
+        // 只 reset 不丢弃会残留状态——批跑的第二局就会被第一局影响，
+        // 同一种子在不同批次里结果不同（dotnet 跑批器暴露了这点）。
+        TurnManager.Instance = null;
+        GameManager.Instance = null;
+        DeckManager.Instance = null;
+        GridManager.Instance = null;
+
         if (PlayerInputController.Instance != null && !MatchConfig.IsLogicSim)
             PlayerInputController.Instance.enabled = true;
     }
@@ -254,6 +262,18 @@ public class GameBootstrap : MonoBehaviour
         TurnManager.Instance?.ResetMatch();
         GameManager.Instance?.ClearMatch();
         Presentation.Clear();
+
+        // 每局一世界：管理器全部丢弃，下一局由 EnsureSystems 重建。
+        // 只 reset 不丢弃会残留状态——批跑的第二局会受第一局影响，
+        // 同一种子在"单跑"和"批跑第 N 局"里结果不同（dotnet 跑批器暴露了这点）。
+        TurnManager.Instance = null;
+        GameManager.Instance = null;
+        DeckManager.Instance = null;
+        GridManager.Instance = null;
+
+        // 进程级计数器也要归零，否则同种子在不同批次里不相等
+        InventoryItem.ResetIdCounter();
+        WeatherService.ResetForMatch(1);
     }
 
     /// <summary>
@@ -359,10 +379,17 @@ public class GameBootstrap : MonoBehaviour
         else if (PlayerInputController.Instance != null)
             PlayerInputController.Instance.enabled = false;
 
-        // 开局快照须在 Setup/AI 泵开始之前（LogicSim 会在 Setup 内同步打完整局）
+        // 开局快照须在 Setup 之前（Setup 会立刻开始第一回合）
         LogicMatchLogger.Active?.EmitSnapshot();
 
         TurnManager.Instance.Setup(units);
+
+        // 无头模式：由核心推进器把整局打完（与 dotnet 跑批器同一段代码）
+        if (lean)
+        {
+            MatchDriver.PumpToEnd(SimpleHeuristicAi.TryActOnce, GameRulesConfig.MaxFullRounds);
+            return;
+        }
 
         // Setup 之后再刷 UI：此前 CurrentUnit 为空，管理员模式会 NRE
         if (!lean)
@@ -395,7 +422,8 @@ public class GameBootstrap : MonoBehaviour
             gameObject.AddComponent<PlayerInputController>();
         if (GameUI.Instance == null && !leanLogicSim)
             gameObject.AddComponent<GameUI>();
-        if (AiController.Instance == null)
+        // 无头模式不挂 AI 组件：整局由 MatchDriver 同步推进，避免两条推进路径
+        if (!leanLogicSim && AiController.Instance == null)
             gameObject.AddComponent<AiController>();
 
         if (!leanLogicSim)

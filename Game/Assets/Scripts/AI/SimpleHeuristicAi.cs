@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using UnityEngine;
 
 /// <summary>
 /// 首期启发式 AI：治疗/穿甲 → 射击/近战/炸弹 → 拾取 → 移动。
@@ -371,7 +370,7 @@ public static class SimpleHeuristicAi
                 if (dist > range)
                     continue;
 
-                int expected = Mathf.Max(0, power - other.CurrentDef);
+                int expected = System.Math.Max(0, power - other.CurrentDef);
                 float score = expected * 10f - dist;
                 if (other.IsDying)
                     score += 80f;
@@ -438,8 +437,8 @@ public static class SimpleHeuristicAi
                 int physical = unit.Role == RoleType.Cat
                     ? 0
                     : other.GetDefenseForPhysicalHit(ItemInfo.MeleeIgnoresArmor(unit));
-                expected = Mathf.FloorToInt(unit.MeleeAtk * (1f - resist)) - physical;
-                expected = Mathf.Max(0, expected);
+                expected = (int)System.Math.Floor(unit.MeleeAtk * (1f - resist)) - physical;
+                expected = System.Math.Max(0, expected);
                 score = expected * 10f - dist;
             }
 
@@ -478,7 +477,7 @@ public static class SimpleHeuristicAi
             if (dist > ItemInfo.BoomerangRange)
                 continue;
 
-            int expected = Mathf.Max(0, ItemInfo.BoomerangDamage - other.CurrentDef);
+            int expected = System.Math.Max(0, ItemInfo.BoomerangDamage - other.CurrentDef);
             float score = expected * 10f - dist;
             if (other.IsDying) score += 120f; // 击杀可回手
             else if (expected >= other.Hp) score += 40f;
@@ -525,7 +524,7 @@ public static class SimpleHeuristicAi
         {
             for (int dy = -throwRange; dy <= throwRange; dy++)
             {
-                if (Mathf.Abs(dx) + Mathf.Abs(dy) > throwRange)
+                if (System.Math.Abs(dx) + System.Math.Abs(dy) > throwRange)
                     continue;
                 var cell = unit.Cell + new Int2(dx, dy);
                 if (!grid.IsValidCell(cell))
@@ -542,7 +541,7 @@ public static class SimpleHeuristicAi
                         continue;
                     if (grid.GetManhattanDistance(cell, other.Cell) > blast)
                         continue;
-                    int expected = Mathf.Max(0, damage - other.CurrentDef);
+                    int expected = System.Math.Max(0, damage - other.CurrentDef);
                     score += expected * 12f;
                     if (expected >= other.Hp || other.IsDying)
                         score += 50f;
@@ -584,7 +583,7 @@ public static class SimpleHeuristicAi
         {
             for (int dy = -throwRange; dy <= throwRange; dy++)
             {
-                if (Mathf.Abs(dx) + Mathf.Abs(dy) > throwRange)
+                if (System.Math.Abs(dx) + System.Math.Abs(dy) > throwRange)
                     continue;
                 var cell = unit.Cell + new Int2(dx, dy);
                 if (!grid.IsValidCell(cell))
@@ -600,7 +599,7 @@ public static class SimpleHeuristicAi
                         continue;
                     if (grid.GetManhattanDistance(cell, other.Cell) > blast)
                         continue;
-                    int expected = Mathf.Max(0, damage); // 法伤不减防
+                    int expected = System.Math.Max(0, damage); // 法伤不减防
                     score += expected * 12f;
                     if (expected >= other.Hp || other.IsDying)
                         score += 50f;
@@ -679,7 +678,7 @@ public static class SimpleHeuristicAi
         {
             for (int dy = -move; dy <= move; dy++)
             {
-                int dist = Mathf.Abs(dx) + Mathf.Abs(dy);
+                int dist = System.Math.Abs(dx) + System.Math.Abs(dy);
                 if (dist == 0 || dist > move)
                     continue;
                 var cell = unit.Cell + new Int2(dx, dy);
@@ -729,7 +728,7 @@ public static class SimpleHeuristicAi
             if (d <= unit.AttackRange)
                 score += 35f;
             else
-                score += Mathf.Max(0f, 18f - d);
+                score += System.Math.Max(0f, 18f - d);
         }
 
         // 有武器时偏好进入射程
@@ -740,7 +739,7 @@ public static class SimpleHeuristicAi
                 continue;
             if (unit.Inventory.TotalAmmoCharges() < ItemInfo.GetArrowCost(item.Kind))
                 continue;
-            weaponRange = Mathf.Max(weaponRange, unit.GetShootRange(item.Kind));
+            weaponRange = System.Math.Max(weaponRange, unit.GetShootRange(item.Kind));
         }
         if (weaponRange > 0 && nearest != null)
         {
@@ -748,7 +747,7 @@ public static class SimpleHeuristicAi
             if (d <= weaponRange)
                 score += 40f;
             else
-                score += Mathf.Max(0f, 25f - (d - weaponRange));
+                score += System.Math.Max(0f, 25f - (d - weaponRange));
         }
 
         // 地面玩偶
@@ -775,7 +774,7 @@ public static class SimpleHeuristicAi
                     }
                     int d = grid.GetManhattanDistance(cell, c);
                     if (doll)
-                        score += Mathf.Max(0f, 50f - d * 3f);
+                        score += System.Math.Max(0f, 50f - d * 3f);
                     else if (anyLoot && d <= 2)
                         score += 8f;
                 }
@@ -784,11 +783,9 @@ public static class SimpleHeuristicAi
 
         // 远离熔岩环（外圈危险）
         int inset = grid.LavaInset;
-        int edgeDist = Mathf.Min(
-            cell.x - inset,
-            cell.y - inset,
-            grid.gridWidth - 1 - inset - cell.x,
-            grid.gridHeight - 1 - inset - cell.y);
+        int edgeDist = System.Math.Min(
+            System.Math.Min(cell.x - inset, cell.y - inset),
+            System.Math.Min(grid.gridWidth - 1 - inset - cell.x, grid.gridHeight - 1 - inset - cell.y));
         if (edgeDist <= 1)
             score -= 40f;
         else if (edgeDist <= 2)
