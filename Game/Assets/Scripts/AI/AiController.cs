@@ -13,7 +13,6 @@ public class AiController : MonoBehaviour
 
     private Coroutine running;
     private UnitActor actingUnit;
-    private bool logicSimPumping;
 
     private void Awake()
     {
@@ -78,31 +77,8 @@ public class AiController : MonoBehaviour
         if (MatchConfig.IsHumanControlled(unit))
             return;
 
-        if (MatchConfig.IsLogicSim)
-        {
-            // 避免 RequestEndTurn → BeginTurnFor → OnTurnChanged 递归爆栈：外层泵推进整局
-            if (logicSimPumping)
-                return;
-            logicSimPumping = true;
-            try
-            {
-                PumpLogicSim();
-            }
-            finally
-            {
-                logicSimPumping = false;
-            }
-            return;
-        }
-
         actingUnit = unit;
         running = StartCoroutine(CoPlayTurn(unit));
-    }
-
-    private void PumpLogicSim()
-    {
-        int maxFull = LogicSimRunner.GetIntArg("-maxRounds", GameRulesConfig.MaxFullRounds);
-        MatchDriver.PumpToEnd(SimpleHeuristicAi.TryActOnce, maxFull);
     }
 
     private void StopAi()

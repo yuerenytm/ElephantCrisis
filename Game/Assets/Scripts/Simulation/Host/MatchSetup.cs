@@ -51,6 +51,26 @@ public static class MatchSetup
             DeckManager.Instance = new DeckManager();
     }
 
+    /// <summary>
+    /// 丢弃所有系统单例，让下一局从零开始（"每局一世界"）。
+    ///
+    /// 必须在**每局开始前**调用：只 reset 不丢弃会让上一局的残留影响下一局，
+    /// 同一种子在"单跑"和"批跑第 N 局"里结果就会不同。两个宿主都走这里。
+    /// </summary>
+    public static void ResetAll()
+    {
+        GridManager.Instance = null;
+        TurnManager.Instance = null;
+        GameManager.Instance = null;
+        GroundItemManager.Instance = null;
+        HazardManager.Instance = null;
+        DeckManager.Instance = null;
+
+        InventoryItem.ResetIdCounter();
+        // 天气不在这里重置：TurnManager.Setup 会做，且它会消耗随机数，
+        // 这里多做一次就会让整条随机流错位（同种子跑出不同对局）。
+    }
+
     /// <summary>四个单位按固定顺序出生。</summary>
     public static List<UnitActor> SpawnUnits()
     {

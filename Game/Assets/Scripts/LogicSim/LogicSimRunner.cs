@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
@@ -10,17 +9,23 @@ using UnityEditor;
 #endif
 
 /// <summary>
-/// 命令行 -logicSim：进程内连跑 N 局全 AI 逻辑仿真，写出 match_*/events.jsonl。
+/// 命令行 -logicSim：连跑 N 局全 AI 对局，写出 match_*&#47;events.jsonl 与 batch_summary.json。
+///
+/// 它只是"宿主"：装配与推进都调核心（MatchSetup / MatchDriver），
+/// 与 Tools/sim_runner（dotnet）走同一条路，因此两者可以逐局对齐。
+/// 整局是同步跑完的，不需要协程。
 /// </summary>
 public class LogicSimRunner : MonoBehaviour
 {
-    public static bool IsRequested { get; private set; }
+    private static readonly Dictionary<string, string> Strategies = new Dictionary<string, string>
+    {
+        { "elephant", "game_heuristic" },
+        { "human", "game_heuristic" },
+        { "monkey", "game_heuristic" },
+        { "cat", "game_heuristic" }
+    };
 
-    private int matches = 1;
-    private int baseSeed = 1;
-    private int maxFullRounds = GameRulesConfig.MaxFullRounds;
-    private string outRoot;
-    private string collect = "both";
+    public static bool IsRequested { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Boot()
@@ -37,16 +42,93 @@ public class LogicSimRunner : MonoBehaviour
 
     private void Start()
     {
-        ParseArgs();
-        StartCoroutine(CoRunBatch());
+        int code = RunBatch();
+        Quit(code);
     }
 
-    private void ParseArgs()
+    // ------------------------------------------------------------ 一轮跑批
+
+    private struct Options
     {
-        matches = Mathf.Max(1, GetIntArg("-matches", 1));
-        baseSeed = GetIntArg("-seed", 1);
-        maxFullRounds = Mathf.Max(5, GetIntArg("-maxRounds", GameRulesConfig.MaxFullRounds));
-        outRoot = GetStringArg("-out", null);
+        public int Matches;
+        public int Seed;
+        public int MaxRounds;
+        public string OutRoot;
+        public string Collect;
+    }
+
+    private struct Row
+    {
+        public int Seed;
+        public string Winner;
+        public string Reason;
+        public int Rounds;
+        public string Path;
+    }
+
+    private int RunBatch()
+    {
+        var opt = ReadOptions();
+        if (GameBootstrap.Instance == null)
+        {
+            Debug.LogError("[LogicSim] 缺少 GameBootstrap，无法启动");
+            return 1;
+        }
+
+        var rows = new List<Row>(opt.Matches);
+        var started = DateTime.UtcNow;
+
+        for (int i = 0; i < opt.Matches; i++)
+        {
+            int seed = opt.Seed + i;
+            Debug.Log($"[LogicSim] match {i + 1}/{opt.Matches} seed={seed}");
+            rows.Add(RunOne(seed, opt));
+        }
+
+        WriteSummary(rows, (DateTime.UtcNow - started).TotalSeconds, opt.OutRoot);
+        Debug.Log($"[LogicSim] 完成 {opt.Matches} 局 → {opt.OutRoot}");
+        return 0;
+    }
+
+    private Row RunOne(int seed, Options opt)
+    {
+        Rng.Reset(seed);                    // 逻辑随机流（确定性）
+        UnityEngine.Random.InitState(seed); // 表现随机流，与结算无关
+
+        var logger = new LogicMatchLogger(seed, Strategies, opt.Collect);
+        MatchConfig.SetLogicSim();
+
+        MatchSetup.ResetAll();                                  // 每局一世界
+        MatchSetup.AssembleLean();
+        MatchDriver.PumpToEnd(SimpleHeuristicAi.TryActOnce, opt.MaxRounds);
+
+        string matchDir = Path.Combine(opt.OutRoot, $"match_{seed}");
+        if (Directory.Exists(matchDir))
+            Directory.Delete(matchDir, true);
+        Directory.CreateDirectory(matchDir);
+        logger.Save(matchDir);
+
+        var row = new Row
+        {
+            Seed = seed,
+            Winner = GameManager.Instance?.WinnerRole.HasValue == true
+                ? LogicSimNaming.Role(GameManager.Instance.WinnerRole.Value)
+                : null,
+            Reason = GameManager.Instance?.EndReason ?? "unknown",
+            Rounds = TurnManager.Instance != null
+                ? Math.Max(0, TurnManager.Instance.RoundNumber - 1)
+                : 0,
+            Path = matchDir.Replace("\\", "/")
+        };
+
+        LogicMatchLogger.ClearActive();
+        MatchConfig.Clear();
+        return row;
+    }
+
+    private Options ReadOptions()
+    {
+        string outRoot = GetStringArg("-out", null);
         if (string.IsNullOrEmpty(outRoot))
         {
             var data = Application.dataPath;
@@ -58,151 +140,52 @@ public class LogicSimRunner : MonoBehaviour
         }
         outRoot = Path.GetFullPath(outRoot);
         Directory.CreateDirectory(outRoot);
-        collect = GetStringArg("-collect", "both").ToLowerInvariant();
+
+        string collect = GetStringArg("-collect", "both").ToLowerInvariant();
         if (collect != "balance" && collect != "logic" && collect != "both")
             collect = "both";
-        Debug.Log($"[LogicSim] out={outRoot} matches={matches} seed={baseSeed} maxRounds={maxFullRounds} collect={collect}");
-    }
 
-    private IEnumerator CoRunBatch()
-    {
-        yield return null;
-        yield return null;
-
-        float wait = 0f;
-        while (GameBootstrap.Instance == null && wait < 10f)
+        var opt = new Options
         {
-            wait += Time.unscaledDeltaTime;
-            yield return null;
-        }
-
-        if (GameBootstrap.Instance == null)
-        {
-            Debug.LogError("[LogicSim] GameBootstrap missing");
-            Quit(1);
-            yield break;
-        }
-
-        Presentation.Current.HideMenu();
-        Time.timeScale = 20f;
-
-        var results = new List<Dictionary<string, object>>();
-        var t0 = Time.realtimeSinceStartup;
-
-        for (int i = 0; i < matches; i++)
-        {
-            int seed = baseSeed + i;
-            Debug.Log($"[LogicSim] === match {i + 1}/{matches} seed={seed} ===");
-            yield return CoRunOne(seed, results);
-            yield return null;
-        }
-
-        WriteBatchSummary(results, Time.realtimeSinceStartup - t0);
-        Debug.Log($"[LogicSim] done {matches} matches in {Time.realtimeSinceStartup - t0:0.00}s → {outRoot}");
-        Time.timeScale = 1f;
-        Quit(0);
-    }
-
-    private IEnumerator CoRunOne(int seed, List<Dictionary<string, object>> results)
-    {
-        Rng.Reset(seed);                    // 逻辑随机流（确定性）
-        UnityEngine.Random.InitState(seed); // 表现随机流（火焰闪烁等），与结算无关
-
-        var strategies = new Dictionary<string, string>
-        {
-            { "elephant", "game_heuristic" },
-            { "human", "game_heuristic" },
-            { "monkey", "game_heuristic" },
-            { "cat", "game_heuristic" }
+            Matches = Math.Max(1, GetIntArg("-matches", 1)),
+            Seed = GetIntArg("-seed", 1),
+            MaxRounds = Math.Max(5, GetIntArg("-maxRounds", GameRulesConfig.MaxFullRounds)),
+            OutRoot = outRoot,
+            Collect = collect
         };
 
-        var logger = new LogicMatchLogger(seed, strategies, collect);
-        MatchConfig.SetLogicSim();
-        GameBootstrap.Instance.StartLogicSimMatch();
-
-        float deadline = Time.realtimeSinceStartup + 180f;
-        while (true)
-        {
-            if (GameManager.Instance != null && GameManager.Instance.IsGameOver)
-                break;
-
-            var tm = TurnManager.Instance;
-            if (tm != null)
-            {
-                int full = Mathf.Max(0, tm.RoundNumber - 1);
-                if (full >= maxFullRounds)
-                {
-                    GameManager.Instance?.ForceEndForLogicSim("max_rounds");
-                    break;
-                }
-            }
-
-            if (Time.realtimeSinceStartup > deadline)
-            {
-                GameManager.Instance?.ForceEndForLogicSim("timeout");
-                break;
-            }
-
-            yield return null;
-        }
-
-        string matchDir = Path.Combine(outRoot, $"match_{seed}");
-        if (Directory.Exists(matchDir))
-            Directory.Delete(matchDir, true);
-
-        // EndGame 已 FinishMatch；若异常未写则补
-        if (GameManager.Instance != null && GameManager.Instance.IsGameOver
-            && !string.IsNullOrEmpty(GameManager.Instance.EndReason))
-        {
-            // already finished inside EndGame
-        }
-
-        logger.Save(matchDir);
-
-        string winner = GameManager.Instance?.WinnerRole.HasValue == true
-            ? LogicSimNaming.Role(GameManager.Instance.WinnerRole.Value)
-            : null;
-        string reason = GameManager.Instance?.EndReason ?? "unknown";
-        int fullRounds = TurnManager.Instance != null
-            ? Mathf.Max(0, TurnManager.Instance.RoundNumber - 1)
-            : 0;
-
-        results.Add(new Dictionary<string, object>
-        {
-            { "seed", seed },
-            { "winner", winner },
-            { "reason", reason },
-            { "full_rounds", fullRounds },
-            { "path", matchDir.Replace("\\", "/") }
-        });
-
-        GameBootstrap.Instance.TeardownForLogicSim();
-        MatchConfig.Clear();
-        LogicMatchLogger.ClearActive();
+        Debug.Log($"[LogicSim] out={opt.OutRoot} matches={opt.Matches} seed={opt.Seed} " +
+                  $"maxRounds={opt.MaxRounds} collect={opt.Collect}");
+        return opt;
     }
 
-    private void WriteBatchSummary(List<Dictionary<string, object>> results, float elapsed)
+    // ------------------------------------------------------------ 落盘
+
+    private void WriteSummary(List<Row> rows, double elapsed, string outRoot)
     {
-        var path = Path.Combine(outRoot, "batch_summary.json");
         var sb = new StringBuilder();
         sb.Append("{\n");
         sb.Append("  \"source\": \"game_logic_sim\",\n");
-        sb.Append("  \"elapsed_sec\": ").Append(elapsed.ToString("0.###", CultureInfo.InvariantCulture)).Append(",\n");
-        sb.Append("  \"matches\": ").Append(results.Count).Append(",\n");
+        sb.Append("  \"elapsed_sec\": ")
+          .Append(elapsed.ToString("0.###", CultureInfo.InvariantCulture)).Append(",\n");
+        sb.Append("  \"matches\": ").Append(rows.Count).Append(",\n");
         sb.Append("  \"results\": [\n");
-        for (int i = 0; i < results.Count; i++)
+
+        for (int i = 0; i < rows.Count; i++)
         {
-            var r = results[i];
-            string w = r["winner"] != null ? "\"" + r["winner"] + "\"" : "null";
-            sb.Append("    {\"seed\":").Append(r["seed"])
-                .Append(",\"winner\":").Append(w)
-                .Append(",\"reason\":\"").Append(r["reason"]).Append("\"")
-                .Append(",\"full_rounds\":").Append(r["full_rounds"])
-                .Append(",\"path\":\"").Append(r["path"]).Append("\"}");
-            sb.Append(i + 1 < results.Count ? ",\n" : "\n");
+            var r = rows[i];
+            string winner = r.Winner != null ? "\"" + r.Winner + "\"" : "null";
+            sb.Append("    {\"seed\":").Append(r.Seed)
+              .Append(",\"winner\":").Append(winner)
+              .Append(",\"reason\":\"").Append(r.Reason).Append("\"")
+              .Append(",\"full_rounds\":").Append(r.Rounds)
+              .Append(",\"path\":\"").Append(r.Path).Append("\"}");
+            sb.Append(i + 1 < rows.Count ? ",\n" : "\n");
         }
+
         sb.Append("  ]\n}\n");
-        File.WriteAllText(path, sb.ToString(), new UTF8Encoding(false));
+        File.WriteAllText(Path.Combine(outRoot, "batch_summary.json"),
+            sb.ToString(), new UTF8Encoding(false));
     }
 
     private static void Quit(int code)
@@ -214,23 +197,21 @@ public class LogicSimRunner : MonoBehaviour
 #endif
     }
 
-    /// <summary>
-    /// 命令行里是否带某标志。
-    /// </summary>
+    // ------------------------------------------------------------ 命令行
+
+    /// <summary>命令行里是否带某标志。</summary>
     public static bool HasArg(string flag)
     {
         var args = Environment.GetCommandLineArgs();
-        for (int i = 0; i < args.Length; i++)
+        foreach (var a in args)
         {
-            if (string.Equals(args[i], flag, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(a, flag, StringComparison.OrdinalIgnoreCase))
                 return true;
         }
         return false;
     }
 
-    /// <summary>
-    /// 读整数参数，缺省用 fallback。
-    /// </summary>
+    /// <summary>读整数参数，缺省用 fallback。</summary>
     public static int GetIntArg(string flag, int fallback)
     {
         var args = Environment.GetCommandLineArgs();
@@ -243,9 +224,7 @@ public class LogicSimRunner : MonoBehaviour
         return fallback;
     }
 
-    /// <summary>
-    /// 读字符串参数，缺省用 fallback。
-    /// </summary>
+    /// <summary>读字符串参数，缺省用 fallback。</summary>
     public static string GetStringArg(string flag, string fallback)
     {
         var args = Environment.GetCommandLineArgs();

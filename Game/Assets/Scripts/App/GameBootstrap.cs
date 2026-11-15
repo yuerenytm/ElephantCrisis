@@ -64,7 +64,7 @@ public class GameBootstrap : MonoBehaviour
     {
         matchRunning = false;
         MatchConfig.Clear();
-        WirePresentation(BootFlags.HeadlessRequested);   // 菜单按钮要能调到这里
+        WirePresentation();   // 菜单按钮要能调到这里
         if (MainMenuUI.Instance == null)
             gameObject.AddComponent<MainMenuUI>();
         MainMenuUI.Instance.Show();
@@ -101,14 +101,8 @@ public class GameBootstrap : MonoBehaviour
     /// 装配表现层：无头模式退化为空实现，有头模式注入真实实现与流程委托。
     /// 显示主菜单时就要调用一次——否则菜单按钮拿到的是空实现，点了没反应。
     /// </summary>
-    private void WirePresentation(bool lean)
+    private void WirePresentation()
     {
-        if (lean)
-        {
-            Presentation.Clear();
-            return;
-        }
-
         Presentation.Wire(new UnityPresentation
         {
             StartHotseatAction = StartHotseat,
@@ -171,7 +165,7 @@ public class GameBootstrap : MonoBehaviour
             Destroy(go);
         }
 
-        if (AtmosphereVisual.Instance != null && MatchConfig.IsLogicSim)
+        if (AtmosphereVisual.Instance != null)
             Destroy(AtmosphereVisual.Instance.gameObject);
 
         if (GroundItemManager.Instance != null)
@@ -204,79 +198,11 @@ public class GameBootstrap : MonoBehaviour
         DeckManager.Instance = null;
         GridManager.Instance = null;
 
-        if (PlayerInputController.Instance != null && !MatchConfig.IsLogicSim)
+        if (PlayerInputController.Instance != null)
             PlayerInputController.Instance.enabled = true;
     }
 
-    /// <summary>
-    /// LogicSim 局间清理（保留 Bootstrap 与系统组件）。
-    /// </summary>
-    public void TeardownForLogicSim()
-    {
-        // 必须同步销毁：延迟 Destroy 会使下一局同帧仍拿到已毁单例
-        TeardownGameplayImmediate();
-        matchRunning = false;
-        transitionQueued = false;
-    }
-
-    private void TeardownGameplayImmediate()
-    {
-        if (PlayerInputController.Instance != null)
-            PlayerInputController.Instance.enabled = false;
-
-        if (AiController.Instance != null)
-            AiController.Instance.enabled = false;
-
-        if (GameUI.Instance != null)
-            GameUI.Instance.Teardown();
-
-        var unitsRoot = GameObject.Find("Units");
-        if (unitsRoot != null)
-            DestroyImmediate(unitsRoot);
-
-        if (MapVisual.Instance != null)
-            DestroyImmediate(MapVisual.Instance.gameObject);
-
-        if (AtmosphereVisual.Instance != null)
-            DestroyImmediate(AtmosphereVisual.Instance.gameObject);
-
-        if (GroundItemManager.Instance != null)
-        {
-            GroundItemManager.Instance.ClearAll();
-            GroundItemManager.Instance = null;
-        }
-
-        if (HazardManager.Instance != null)
-        {
-            HazardManager.Instance.ClearAll();
-            HazardManager.Instance = null;
-        }
-
-        if (GridManager.Instance != null)
-        {
-            GridManager.Instance.ClearAllOccupants();
-            // 保留 GridManager 组件，仅重置格子
-            GridManager.Instance.InitTiles();
-        }
-
-        TurnManager.Instance?.ResetMatch();
-        GameManager.Instance?.ClearMatch();
-        Presentation.Clear();
-
-        // 每局一世界：管理器全部丢弃，下一局由 EnsureSystems 重建。
-        // 只 reset 不丢弃会残留状态——批跑的第二局会受第一局影响，
-        // 同一种子在"单跑"和"批跑第 N 局"里结果不同（dotnet 跑批器暴露了这点）。
-        TurnManager.Instance = null;
-        GameManager.Instance = null;
-        DeckManager.Instance = null;
-        GridManager.Instance = null;
-
-        // 进程级计数器也要归零，否则同种子在不同批次里不相等
-        InventoryItem.ResetIdCounter();
-        WeatherService.ResetForMatch(1);
-    }
-
-    /// <summary>
+        /// <summary>
     /// 开始热座对局（四人都可操作）。
     /// </summary>
     public void StartHotseat()
@@ -303,41 +229,6 @@ public class GameBootstrap : MonoBehaviour
         StartMatch();
     }
 
-    /// <summary>
-    /// LogicSim：全 AI 瘦开局（调用前须 MatchConfig.SetLogicSim）。
-    /// </summary>
-    public void StartLogicSimMatch()
-    {
-        if (!MatchConfig.IsLogicSim)
-            MatchConfig.SetLogicSim();
-        matchRunning = false;
-        StartMatch();
-    }
-
-    /// <summary>
-    /// 局间清理后允许再次 StartMatch（LogicSim 连跑）。
-    /// </summary>
-    public void ResetMatchRunningFlag()
-    {
-        matchRunning = false;
-    }
-
-    /// <summary>
-    /// 兼容旧入口。
-    /// </summary>
-    public void StartAiBattle() => MainMenuUI.Instance?.OnAiBattleClicked();
-
-    /// <summary>
-    /// 联机入口（预留，当前跳主菜单提示）。
-    /// </summary>
-    public void StartOnline() => MainMenuUI.Instance?.OnOnlineClicked();
-
-    /// <summary>
-    /// 兼容旧按钮：等同热座开局。
-    /// </summary>
-    [ContextMenu("Start Hotseat")]
-    public void StartDemo() => StartHotseat();
-
     private void StartMatch()
     {
         if (matchRunning)
@@ -348,57 +239,38 @@ public class GameBootstrap : MonoBehaviour
         GameRulesConfig.ValidateKeysOnce();
 
         // 有头游玩用时间播种；无头跑批由 LogicSimRunner 按 seed 播种
-        if (!BootFlags.HeadlessRequested)
-            Rng.Reset((int)(System.DateTime.Now.Ticks & 0x7FFFFFFF));
+        Rng.Reset((int)(System.DateTime.Now.Ticks & 0x7FFFFFFF));
 
-        bool lean = MatchConfig.IsLogicSim;
-        WirePresentation(lean);
-        EnsureSystems(lean);
-        if (!lean)
-            SetupCamera();
+        WirePresentation();
+        EnsureSystems();
+        SetupCamera();
 
         var grid = GridManager.Instance;
         grid.InitTiles();
         grid.ClearAllOccupants();
 
-        if (!lean)
-        {
-            var map = MapVisual.Instance;
-            map.Build(grid);
-            map.RefreshAllTiles(grid);
-            AtmosphereVisual.Instance?.Build();
-        }
+        var map = MapVisual.Instance;
+        map.Build(grid);
+        map.RefreshAllTiles(grid);
+        AtmosphereVisual.Instance?.Build();
 
         var units = SpawnUnits();
         GameManager.Instance.BeginMatch();
         DeckManager.Instance.BuildDemoDeck();
         DeckManager.Instance.ScatterDrawPileOntoMap();
 
-        if (!lean)
-            GameUI.Instance.Build();
-        else if (PlayerInputController.Instance != null)
-            PlayerInputController.Instance.enabled = false;
+        GameUI.Instance.Build();
 
         // 开局快照须在 Setup 之前（Setup 会立刻开始第一回合）
         LogicMatchLogger.Active?.EmitSnapshot();
 
         TurnManager.Instance.Setup(units);
 
-        // 无头模式：由核心推进器把整局打完（与 dotnet 跑批器同一段代码）
-        if (lean)
-        {
-            MatchDriver.PumpToEnd(SimpleHeuristicAi.TryActOnce, GameRulesConfig.MaxFullRounds);
-            return;
-        }
-
         // Setup 之后再刷 UI：此前 CurrentUnit 为空，管理员模式会 NRE
-        if (!lean)
-        {
-            GameUI.Instance.ForceRefresh();
-            PlayerInputController.Instance.RefreshHints();
-            VisibilityService.RefreshWorld();
-            BoardCameraController.Instance?.SnapBehindFollowUnit();
-        }
+        GameUI.Instance.ForceRefresh();
+        PlayerInputController.Instance.RefreshHints();
+        VisibilityService.RefreshWorld();
+        BoardCameraController.Instance?.SnapBehindFollowUnit();
 
         if (AiController.Instance != null)
         {
@@ -409,7 +281,7 @@ public class GameBootstrap : MonoBehaviour
         }
     }
 
-    private void EnsureSystems(bool leanLogicSim = false)
+    private void EnsureSystems()
     {
         if (GridManager.Instance == null)
             GridManager.Create();
@@ -420,25 +292,21 @@ public class GameBootstrap : MonoBehaviour
             TurnManager.Instance = new TurnManager();
         if (PlayerInputController.Instance == null)
             gameObject.AddComponent<PlayerInputController>();
-        if (GameUI.Instance == null && !leanLogicSim)
+        if (GameUI.Instance == null)
             gameObject.AddComponent<GameUI>();
-        // 无头模式不挂 AI 组件：整局由 MatchDriver 同步推进，避免两条推进路径
-        if (!leanLogicSim && AiController.Instance == null)
+        if (AiController.Instance == null)
             gameObject.AddComponent<AiController>();
 
-        if (!leanLogicSim)
+        if (MapVisual.Instance == null)
         {
-            if (MapVisual.Instance == null)
-            {
-                var mapGo = new GameObject("MapVisual");
-                mapGo.AddComponent<MapVisual>();
-            }
+            var mapGo = new GameObject("MapVisual");
+            mapGo.AddComponent<MapVisual>();
+        }
 
-            if (AtmosphereVisual.Instance == null)
-            {
-                var atmoGo = new GameObject("Atmosphere");
-                atmoGo.AddComponent<AtmosphereVisual>();
-            }
+        if (AtmosphereVisual.Instance == null)
+        {
+            var atmoGo = new GameObject("Atmosphere");
+            atmoGo.AddComponent<AtmosphereVisual>();
         }
 
         if (GroundItemManager.Instance == null)
@@ -478,40 +346,22 @@ public class GameBootstrap : MonoBehaviour
         boardCam.FrameBoard(w, d);
     }
 
+    /// <summary>
+    /// 造四个单位并挂上场景外壳。单位本身由核心创建（与无头模式同一份逻辑），
+    /// 这里只负责 GameObject 与 UnitHost。
+    /// </summary>
     private List<UnitActor> SpawnUnits()
     {
-        var list = new List<UnitActor>();
-        var roles = new[]
-        {
-            RoleType.Elephant,
-            RoleType.Human,
-            RoleType.Monkey,
-            RoleType.Cat
-        };
-        var starts = new[]
-        {
-            GameRulesConfig.SpawnCell(roles[0]),
-            GameRulesConfig.SpawnCell(roles[1]),
-            GameRulesConfig.SpawnCell(roles[2]),
-            GameRulesConfig.SpawnCell(roles[3])
-        };
+        var units = MatchSetup.SpawnUnits();
 
         var root = new GameObject("Units").transform;
-
-        for (int i = 0; i < 4; i++)
+        foreach (var unit in units)
         {
-            var go = new GameObject(RoleInfo.GetDisplayName(roles[i]));
+            var go = new GameObject(RoleInfo.GetDisplayName(unit.Role));
             go.transform.SetParent(root, false);
-
-            // 逻辑单位是普通类；场景对象由 UnitHost 承载（无头模式不挂外皮）
-            var unit = new UnitActor();
-            unit.Setup(roles[i], starts[i]);   // 必须先 Setup：Role/MaxHp 等在外皮构建时要用
-
-            if (!MatchConfig.IsLogicSim)
-                go.AddComponent<UnitHost>().Bind(unit);
-            list.Add(unit);
+            go.AddComponent<UnitHost>().Bind(unit);
         }
 
-        return list;
+        return units;
     }
 }
