@@ -26,6 +26,9 @@ public interface IPresentation
     /// <summary>进入射击模式并指定弹药。</summary>
     void BeginShootWithAmmo(int weaponIndex, ItemKind ammo);
 
+    /// <summary>开始一局对局（菜单 / 流程控制用）。</summary>
+    void StartMatch(GameMode mode, RoleType human);
+
     /// <summary>重开一局（表现层负责销毁重建）。</summary>
     void RestartMatch();
 
@@ -75,6 +78,7 @@ public static class Presentation
         public void RequestHud() { }
         public void BeginItemTargeting(int itemIndex, ItemKind kind) { }
         public void BeginShootWithAmmo(int weaponIndex, ItemKind ammo) { }
+        public void StartMatch(GameMode mode, RoleType human) { }
         public void RestartMatch() { }
         public void ReturnToMenu() { }
         public void LogConsole(string message) { }

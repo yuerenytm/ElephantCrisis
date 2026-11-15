@@ -125,7 +125,7 @@ public class MainMenuUI : MonoBehaviour
         float step = 0.15f;
         CreateMenuButton(menuPlate, "热座模式", ref y, step, UiTheme.ButtonTintMoss, () =>
         {
-            GameBootstrap.Instance?.StartHotseat();
+            Presentation.Current.StartMatch(GameMode.Hotseat, RoleType.Human);
         }, wide: true);
 
         CreateMenuButton(menuPlate, "AI 对战", ref y, step, UiTheme.ButtonTintMoss, OnAiBattleClicked, wide: true);
@@ -244,9 +244,9 @@ public class MainMenuUI : MonoBehaviour
             CreateMenuButton(plate, text, ref y, step, colors[i], () =>
             {
                 if (roleSelectForAdmin)
-                    GameBootstrap.Instance?.StartAdminMode(role);
+                    Presentation.Current.StartMatch(GameMode.AdminMode, role);
                 else
-                    GameBootstrap.Instance?.StartAiBattle(role);
+                    Presentation.Current.StartMatch(GameMode.AiBattle, role);
             }, new Vector2(0.1f, bottom), new Vector2(0.9f, y));
             y -= step;
         }

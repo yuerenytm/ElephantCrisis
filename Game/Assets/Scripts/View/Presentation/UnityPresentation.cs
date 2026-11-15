@@ -6,6 +6,13 @@ using UnityEngine;
 /// </summary>
 public sealed class UnityPresentation : IPresentation
 {
+    // 由 App 注入的流程控制委托：表现层不认识 GameBootstrap，只负责转发
+    public System.Action StartHotseatAction;
+    public System.Action<RoleType> StartAiBattleAction;
+    public System.Action<RoleType> StartAdminAction;
+    public System.Action RestartAction;
+    public System.Action ReturnToMenuAction;
+
     public void ApplyFog(UnitActor viewer)
     {
         MapVisual.Instance?.ApplyFog(viewer);
@@ -55,14 +62,24 @@ public sealed class UnityPresentation : IPresentation
         PlayerInputController.Instance?.StartShootModeWithAmmo(weaponIndex, ammo);
     }
 
+    public void StartMatch(GameMode mode, RoleType human)
+    {
+        switch (mode)
+        {
+            case GameMode.Hotseat: StartHotseatAction?.Invoke(); break;
+            case GameMode.AdminMode: StartAdminAction?.Invoke(human); break;
+            default: StartAiBattleAction?.Invoke(human); break;
+        }
+    }
+
     public void RestartMatch()
     {
-        GameBootstrap.Instance?.RequestRestartMatch();
+        RestartAction?.Invoke();
     }
 
     public void ReturnToMenu()
     {
-        GameBootstrap.Instance?.RequestReturnToMenu();
+        ReturnToMenuAction?.Invoke();
     }
 
     public void LogConsole(string message)

@@ -291,7 +291,14 @@ public class GameBootstrap : MonoBehaviour
         if (lean)
             Presentation.Clear();   // 无头：表现层全部空转
         else
-            Presentation.Wire(new UnityPresentation());
+            Presentation.Wire(new UnityPresentation
+            {
+                StartHotseatAction = StartHotseat,
+                StartAiBattleAction = StartAiBattle,
+                StartAdminAction = StartAdminMode,
+                RestartAction = RequestRestartMatch,
+                ReturnToMenuAction = RequestReturnToMenu,
+            });
         EnsureSystems(lean);
         if (!lean)
             SetupCamera();
