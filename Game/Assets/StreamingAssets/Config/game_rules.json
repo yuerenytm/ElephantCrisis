@@ -1254,6 +1254,26 @@
     },
     {
       "section": "display",
+      "key": "role_elephant_name",
+      "value": "象"
+    },
+    {
+      "section": "display",
+      "key": "role_human_name",
+      "value": "人"
+    },
+    {
+      "section": "display",
+      "key": "role_monkey_name",
+      "value": "猴"
+    },
+    {
+      "section": "display",
+      "key": "role_cat_name",
+      "value": "猫"
+    },
+    {
+      "section": "display",
       "key": "card_doll_elephant_name",
       "value": "象玩偶"
     },
@@ -1851,26 +1871,6 @@
       "section": "display",
       "key": "status_blind_tip",
       "value": "能见度0"
-    },
-    {
-      "section": "display",
-      "key": "role_elephant_name",
-      "value": "象"
-    },
-    {
-      "section": "display",
-      "key": "role_human_name",
-      "value": "人"
-    },
-    {
-      "section": "display",
-      "key": "role_monkey_name",
-      "value": "猴"
-    },
-    {
-      "section": "display",
-      "key": "role_cat_name",
-      "value": "猫"
     }
   ]
 }

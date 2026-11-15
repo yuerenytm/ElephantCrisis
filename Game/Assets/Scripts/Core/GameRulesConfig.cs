@@ -4,13 +4,12 @@ using System.Globalization;
 using System.IO;
 using System.Reflection;
 using System.Text;
-using System.Text.RegularExpressions;
 using UnityEngine;
 
 /// <summary>
 /// 从 StreamingAssets/Config 加载规则（与 LogicSim / Tools/sim 共用）。
 /// 优先读 game_rules.json（由 Design/*.csv 生成，JsonUtility 反序列化），
-/// 读不到再回落 game_rules.gen.yaml / game_rules.yaml（迁移期回退路径）。
+/// 由 Design/*.csv 生成（见 Tools/config/build.py）；缺失时用内置默认值并告警。
 /// 解析失败时回退内置默认值。
 /// </summary>
 public static class GameRulesConfig
@@ -46,7 +45,7 @@ public static class GameRulesConfig
     private static bool loaded;
 
     /// <summary>
-    /// 代码实际请求过的配置键（section.key），供启动校验比对 yaml。
+    /// 代码实际请求过的配置键（section.key），供启动校验比对配置。
     /// </summary>
     private static readonly HashSet<string> requestedKeys =
         new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -70,17 +69,8 @@ public static class GameRulesConfig
     private static readonly Dictionary<RoleType, Vector2Int> spawnCells =
         new Dictionary<RoleType, Vector2Int>();
 
-    private static readonly Regex InlineRole = new Regex(
-        @"^\s*(elephant|human|monkey|cat)\s*:\s*\{\s*move\s*:\s*(-?\d+)\s*,\s*hp\s*:\s*(-?\d+)\s*,\s*atk\s*:\s*(-?\d+)\s*,\s*def\s*:\s*(-?\d+)\s*,\s*bag\s*:\s*(-?\d+)\s*(,\s*magic_resist\s*:\s*(-?\d+))?\s*\}\s*$",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
-    private static readonly Regex ScalarLine = new Regex(
-        @"^([A-Za-z0-9_]+)\s*:\s*(.+?)\s*$",
-        RegexOptions.Compiled);
 
-    private static readonly Regex SpawnCellLine = new Regex(
-        @"^\s*(elephant|human|monkey|cat)\s*:\s*\[\s*(-?\d+)\s*,\s*(-?\d+)\s*\]\s*$",
-        RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
     private static void AutoLoad()
@@ -98,17 +88,14 @@ public static class GameRulesConfig
         string path = ResolveRulesPath();
         if (string.IsNullOrEmpty(path) || !File.Exists(path))
         {
-            Debug.LogWarning($"[GameRulesConfig] 未找到 game_rules.yaml，使用内置默认值。尝试路径: {path}");
+            Debug.LogWarning($"[GameRulesConfig] 未找到 game_rules.json，使用内置默认值。尝试路径: {path}");
             return;
         }
 
         try
         {
             string text = File.ReadAllText(path);
-            if (path.EndsWith(".json", StringComparison.OrdinalIgnoreCase))
-                ParseJsonDocument(text);
-            else
-                ParseDocument(text);
+            ParseJsonDocument(text);
             ApplyParsedRoles();
             ApplyParsedDeck();
             Debug.Log(
@@ -458,8 +445,8 @@ public static class GameRulesConfig
     }
 
     /// <summary>
-    /// 启动校验（只跑一次）：对比 yaml 里的键和代码真正读取的键。
-    /// 覆盖两类隐患：① yaml 有、代码不读（改了没效果）② 代码读、yaml 没有（静默用默认值）。
+    /// 启动校验（只跑一次）：对比配置里的键和代码真正读取的键。
+    /// 覆盖两类隐患：① 配置有、代码不读（改了没效果）② 代码读、配置没有（静默用默认值）。
     /// </summary>
     public static void ValidateKeysOnce()
     {
@@ -524,12 +511,12 @@ public static class GameRulesConfig
 
         if (unused.Count > 0)
             Debug.LogWarning(
-                $"[GameRulesConfig] yaml 中未被代码读取的键 {unused.Count} 个: {string.Join(", ", unused)}");
+                $"[GameRulesConfig] 配置中未被代码读取的键 {unused.Count} 个: {string.Join(", ", unused)}");
         if (missing.Count > 0)
             Debug.LogWarning(
-                $"[GameRulesConfig] 代码读取但 yaml 缺失的键 {missing.Count} 个（将用内置默认值）: {string.Join(", ", missing)}");
+                $"[GameRulesConfig] 代码读取但配置缺失的键 {missing.Count} 个（将用内置默认值）: {string.Join(", ", missing)}");
         if (unused.Count == 0 && missing.Count == 0)
-            Debug.Log("[GameRulesConfig] 配置键校验通过：yaml 与代码完全对应。");
+            Debug.Log("[GameRulesConfig] 配置键校验通过：配置与代码完全对应。");
     }
 
     public static string ResolveRulesPath()
@@ -541,21 +528,7 @@ public static class GameRulesConfig
         if (File.Exists(json))
             return json;
 
-        // 迁移期回退：旧生成物与手写 yaml（删掉它们即可回到更早的形态）
-        string generated = Path.Combine(dir, "game_rules.gen.yaml");
-        if (File.Exists(generated))
-            return generated;
-
-        string streaming = Path.Combine(dir, "game_rules.yaml");
-        if (File.Exists(streaming))
-            return streaming;
-
-#if UNITY_EDITOR
-        string project = Path.GetFullPath(Path.Combine(Application.dataPath, "StreamingAssets", "Config", "game_rules.yaml"));
-        if (File.Exists(project))
-            return project;
-#endif
-        return streaming;
+        return json;
     }
 
     public static string ToSnakeCase(string pascal)
@@ -649,118 +622,6 @@ public static class GameRulesConfig
         }
     }
 
-    private static void ParseDocument(string text)
-    {
-        sections.Clear();
-        if (string.IsNullOrEmpty(text))
-            return;
-
-        string section = null;
-        int sectionIndent = -1;
-        // nested block under a section (e.g. clock.visibility) — store as flat keys with parent prefix skipped;
-        // we only keep direct children of top-level sections for scalars.
-        string nested = null;
-        int nestedIndent = -1;
-
-        using (var reader = new StringReader(text))
-        {
-            string line;
-            while ((line = reader.ReadLine()) != null)
-            {
-                if (line.TrimStart().StartsWith("#"))
-                    continue;
-                if (string.IsNullOrWhiteSpace(line))
-                    continue;
-
-                int indent = CountIndent(line);
-                string trimmed = line.Trim();
-
-                // Top-level section header: "deck:"
-                if (indent == 0 && trimmed.EndsWith(":") && !trimmed.Contains(" "))
-                {
-                    section = trimmed.Substring(0, trimmed.Length - 1).Trim();
-                    sectionIndent = 0;
-                    nested = null;
-                    nestedIndent = -1;
-                    if (!sections.ContainsKey(section))
-                        sections[section] = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    continue;
-                }
-
-                if (section == null)
-                    continue;
-
-                // Leaving section
-                if (indent == 0)
-                {
-                    section = null;
-                    nested = null;
-                    continue;
-                }
-
-                // roles inline map
-                if (string.Equals(section, "roles", StringComparison.OrdinalIgnoreCase))
-                {
-                    var m = InlineRole.Match(line);
-                    if (m.Success)
-                    {
-                        // Applied later in ApplyParsedRoles via dedicated parse — also stash raw for completeness
-                        EnsureSection("roles")[m.Groups[1].Value] = "inline";
-                    }
-                    continue;
-                }
-
-                // Nested map header under section: e.g. "visibility:"
-                if (indent > sectionIndent
-                    && trimmed.EndsWith(":")
-                    && !trimmed.Contains("{")
-                    && trimmed.IndexOf(' ') < 0)
-                {
-                    nested = trimmed.Substring(0, trimmed.Length - 1);
-                    nestedIndent = indent;
-                    continue;
-                }
-
-                if (nested != null && indent <= nestedIndent)
-                    nested = null;
-
-                // Skip deeper nesting content for now (spawn_cells lists etc.)
-                if (nested != null)
-                {
-                    var nestMatch = ScalarLine.Match(trimmed);
-                    if (nestMatch.Success)
-                    {
-                        string nkey = nestMatch.Groups[1].Value;
-                        string nval = StripComment(nestMatch.Groups[2].Value);
-                        EnsureSection(section)[$"{nested}.{nkey}"] = nval;
-                    }
-                    continue;
-                }
-
-                var sm = ScalarLine.Match(trimmed);
-                if (!sm.Success)
-                    continue;
-                string key = sm.Groups[1].Value;
-                string val = StripComment(sm.Groups[2].Value);
-                if (val.StartsWith("{") || val.StartsWith("["))
-                    continue; // complex / list — ignore here
-                EnsureSection(section)[key] = val;
-            }
-        }
-
-        // Second pass for roles (keep existing robust parser)
-        if (TryParseRoles(text, out var parsedRoles))
-        {
-            foreach (var kv in parsedRoles)
-                roleStats[kv.Key] = kv.Value;
-        }
-
-        if (TryParseSpawnCells(text, out var parsedSpawns))
-        {
-            foreach (var kv in parsedSpawns)
-                spawnCells[kv.Key] = kv.Value;
-        }
-    }
 
     private static Dictionary<string, string> EnsureSection(string name)
     {
@@ -787,7 +648,7 @@ public static class GameRulesConfig
         if (!sections.TryGetValue("deck", out var map) || map.Count == 0)
             return;
 
-        // YAML 有 deck 段时：以表为准（未列出的卡 = 0），覆盖 fallback
+        // 配置有 deck 段时：以表为准（未列出的卡 = 0）
         deckCounts.Clear();
         foreach (ItemKind kind in Enum.GetValues(typeof(ItemKind)))
         {
@@ -804,56 +665,6 @@ public static class GameRulesConfig
         }
     }
 
-    private static bool TryParseRoles(string text, out Dictionary<RoleType, RoleBaseStats> result)
-    {
-        result = new Dictionary<RoleType, RoleBaseStats>();
-        if (string.IsNullOrEmpty(text))
-            return false;
-
-        bool inRoles = false;
-        using (var reader = new StringReader(text))
-        {
-            string line;
-            while ((line = reader.ReadLine()) != null)
-            {
-                string trimmed = line.Trim();
-                if (trimmed.StartsWith("#"))
-                    continue;
-
-                if (!inRoles)
-                {
-                    if (trimmed == "roles:" || trimmed.StartsWith("roles:"))
-                        inRoles = true;
-                    continue;
-                }
-
-                if (trimmed.Length > 0 && !char.IsWhiteSpace(line, 0) && !trimmed.StartsWith("roles"))
-                {
-                    if (trimmed.EndsWith(":") && !trimmed.Contains("{"))
-                        break;
-                }
-
-                var m = InlineRole.Match(line);
-                if (!m.Success)
-                    continue;
-
-                RoleType role = ParseRole(m.Groups[1].Value);
-                result[role] = new RoleBaseStats
-                {
-                    Move = int.Parse(m.Groups[2].Value),
-                    Hp = int.Parse(m.Groups[3].Value),
-                    Atk = int.Parse(m.Groups[4].Value),
-                    Def = int.Parse(m.Groups[5].Value),
-                    Bag = int.Parse(m.Groups[6].Value),
-                    MagicResist = m.Groups.Count > 8 && m.Groups[8].Success
-                        ? int.Parse(m.Groups[8].Value)
-                        : FallbackRole(role).MagicResist,
-                };
-            }
-        }
-
-        return result.Count > 0;
-    }
 
     private static RoleType ParseRole(string key)
     {
@@ -867,42 +678,6 @@ public static class GameRulesConfig
         }
     }
 
-    private static bool TryParseSpawnCells(string text, out Dictionary<RoleType, Vector2Int> result)
-    {
-        result = new Dictionary<RoleType, Vector2Int>();
-        if (string.IsNullOrEmpty(text))
-            return false;
-
-        bool inSpawn = false;
-        using (var reader = new StringReader(text))
-        {
-            string line;
-            while ((line = reader.ReadLine()) != null)
-            {
-                string trimmed = line.Trim();
-                if (trimmed.StartsWith("#"))
-                    continue;
-
-                if (!inSpawn)
-                {
-                    if (trimmed == "spawn_cells:" || trimmed.StartsWith("spawn_cells:"))
-                        inSpawn = true;
-                    continue;
-                }
-
-                // 退出：回到顶层（顶格的非 spawn_cells 行）
-                if (trimmed.Length > 0 && !char.IsWhiteSpace(line, 0) && !trimmed.StartsWith("spawn_cells"))
-                    break;
-
-                var m = SpawnCellLine.Match(line);
-                if (!m.Success)
-                    continue;
-                result[ParseRole(m.Groups[1].Value)] = new Vector2Int(
-                    int.Parse(m.Groups[2].Value), int.Parse(m.Groups[3].Value));
-            }
-        }
-        return result.Count > 0;
-    }
 
     private static void ApplyFallbacks()
     {
@@ -951,21 +726,5 @@ public static class GameRulesConfig
     }
 
 
-    private static int CountIndent(string line)
-    {
-        int n = 0;
-        while (n < line.Length && (line[n] == ' ' || line[n] == '\t'))
-            n++;
-        return n;
-    }
 
-    private static string StripComment(string raw)
-    {
-        if (string.IsNullOrEmpty(raw))
-            return raw;
-        int hash = raw.IndexOf('#');
-        if (hash >= 0)
-            raw = raw.Substring(0, hash);
-        return raw.Trim().Trim('"').Trim('\'');
-    }
 }
