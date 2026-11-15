@@ -118,6 +118,12 @@ def aggregate_records(records: Iterable[Dict[str, Any]]) -> Dict[str, Any]:
     }
 
 
+def aggregate_logs(logs) -> Dict[str, Any]:
+    """对一批已加载的对局算指标（数据库记录与文件记录都适用）。"""
+    records = [extract_match(m) for m in logs]
+    return aggregate_records(records)
+
+
 def aggregate_matches(input_dir: Path) -> Dict[str, Any]:
     records = [extract_match(m) for m in iter_matches(input_dir)]
     report = aggregate_records(records)

@@ -20,6 +20,55 @@ ADVISORY_RULES = {
 }
 
 
+def run_checks(records, out_dir: Path) -> Dict[str, Any]:
+    """对一批已加载的对局执行不变量检查。
+
+    records 只需有 .match_id / .meta / .events 三个属性
+    （数据库记录与文件记录都能满足）。
+    """
+    out_dir.mkdir(parents=True, exist_ok=True)
+    quarantine: List[str] = []
+    matches: List[Dict[str, Any]] = []
+    rule_counts: Counter = Counter()
+    total_violations = 0
+
+    for log in records:
+        viols = check_match_events(log.events, match_id=log.match_id)
+        total_violations += len(viols)
+        for v in viols:
+            rule_counts[v.rule_id] += 1
+        entry = {
+            "match_id": log.match_id,
+            "meta": log.meta,
+            "violation_count": len(viols),
+            "violations": [v.to_dict() for v in viols],
+            "pass": len(viols) == 0,
+        }
+        matches.append(entry)
+        if viols:
+            quarantine.append(log.match_id)
+
+    advisory = sum(n for r, n in rule_counts.items() if r in ADVISORY_RULES)
+    summary = {
+        "matches": len(matches),
+        "passed": sum(1 for m in matches if m["pass"]),
+        "failed": sum(1 for m in matches if not m["pass"]),
+        "total_violations": total_violations,
+        "advisory_violations": advisory,
+        "blocking_violations": total_violations - advisory,
+        "by_rule": dict(rule_counts),
+        "advisory_rules": sorted(ADVISORY_RULES),
+        "quarantine": quarantine,
+    }
+    report = {"summary": summary, "matches": matches}
+    with (out_dir / "baseline_report.json").open("w", encoding="utf-8") as f:
+        json.dump(report, f, ensure_ascii=False, indent=2)
+    with (out_dir / "baseline_quarantine.txt").open("w", encoding="utf-8") as f:
+        for p in quarantine:
+            f.write(p + "\n")
+    return report
+
+
 def run_baseline(input_dir: Path, out_dir: Path) -> Dict[str, Any]:
     """对目录下所有对局执行基线规则（不变量断言）。
 
