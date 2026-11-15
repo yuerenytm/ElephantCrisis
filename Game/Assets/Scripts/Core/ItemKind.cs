@@ -65,6 +65,12 @@ public enum ItemUseKind
 public static class ItemInfo
 {
     public static string GetDisplayName(ItemKind kind)
+        => GameRulesConfig.GetString("display",
+            "card_" + GameRulesConfig.ItemKindToYamlKey(kind) + "_name",
+            FallbackDisplayName(kind));
+
+    /// <summary>代码内置显示名；配置缺失时回退到这里。</summary>
+    private static string FallbackDisplayName(ItemKind kind)
     {
         switch (kind)
         {
@@ -119,6 +125,12 @@ public static class ItemInfo
     }
 
     public static string GetShortDesc(ItemKind kind)
+        => GameRulesConfig.GetString("display",
+            "card_" + GameRulesConfig.ItemKindToYamlKey(kind) + "_desc",
+            FallbackShortDesc(kind));
+
+    /// <summary>代码内置的卡面简述；配置缺失时回退到这里。</summary>
+    private static string FallbackShortDesc(ItemKind kind)
     {
         switch (kind)
         {

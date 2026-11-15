@@ -39,6 +39,11 @@ Game/Assets/StreamingAssets/Config/game_rules.gen.yaml  ← 游戏优先读它
 表里**只放能改的数据**。行为（例如"状态何时递减"）不放表——
 那是欠账 #2，等它变成字段后才有资格进表。
 
+**名字 / 描述也是可改的**：它们会进配置的 `display` 段，游戏按
+`GameRulesConfig.GetString` 读，读不到才回落到代码内置文案。
+重跑 `build_tables.py` 默认**保留表里已有的名字**，只有加
+`--reset-identity` 才会用代码里的值覆盖——否则"可改"就是假的。
+
 ## 已知缺口（表里没有的东西）
 
 | 缺口 | 在哪 | 说明 |

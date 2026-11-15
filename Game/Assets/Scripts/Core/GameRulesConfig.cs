@@ -423,6 +423,18 @@ public static class GameRulesConfig
     }
 
     /// <summary>
+    /// 读文本配置（显示名 / 描述）。缺失时静默回退到代码内置文案——
+    /// 文案允许缺，不像数值那样必须存在，所以不登记进 ValidateKeysOnce 的对账。
+    /// </summary>
+    public static string GetString(string section, string key, string fallback)
+    {
+        EnsureLoaded();
+        if (sections.TryGetValue(section, out var map) && map.TryGetValue(key, out string raw))
+            return string.IsNullOrEmpty(raw) ? fallback : raw;
+        return fallback;
+    }
+
+    /// <summary>
     /// 启动校验（只跑一次）：对比 yaml 里的键和代码真正读取的键。
     /// 覆盖两类隐患：① yaml 有、代码不读（改了没效果）② 代码读、yaml 没有（静默用默认值）。
     /// </summary>
@@ -456,10 +468,10 @@ public static class GameRulesConfig
             catch { }
         }
 
-        // 这些段落由专门的解析器处理（roles / grid / deck），不走 GetInt，跳过
+        // 这些段落由专门的解析器处理（roles / grid / deck）或按条目动态拼键（display），不走 GetInt，跳过
         var skippedSections = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
-            "roles", "grid", "deck"
+            "roles", "grid", "deck", "display"
         };
 
         var unused = new List<string>();

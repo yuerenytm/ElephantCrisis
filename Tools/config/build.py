@@ -36,7 +36,7 @@ RULE_GEN = REPO / "Game" / "Assets" / "StreamingAssets" / "Config" / "game_rules
 # 输出顺序（与原 yaml 一致，便于人工对照）
 SECTION_ORDER = [
     "grid", "roles", "combat", "clock", "visibility", "weather",
-    "lava", "match", "deck", "items", "status", "skills", "leader", "terrain",
+    "lava", "match", "deck", "items", "status", "skills", "leader", "terrain", "display",
 ]
 
 # 列名 → yaml 键名（唯一映射，不许有歧义；表里就按这些列存参数）
@@ -341,6 +341,27 @@ def diff_against_yaml(sections: dict) -> List[str]:
 # ---------------------------------------------------------------- 生成 yaml
 
 
+def build_display() -> dict:
+    """把"名字 / 描述"从表里搬进配置的 display 段。
+
+    键名要过 GameRulesConfig 的行解析器（只认 [A-Za-z0-9_]），所以用
+    `card_<id>_name` 这种扁平命名，而不是 `card.<id>.name`。
+    """
+    display: dict = {}
+    for row in read_csv("cards.csv"):
+        display[f"card_{row['id']}_name"] = row.get("名字", "")
+        display[f"card_{row['id']}_desc"] = row.get("一句话描述", "")
+    for row in read_csv("tiles.csv"):
+        display[f"tile_{row['id']}_name"] = row.get("名字", "")
+        display[f"tile_{row['id']}_effect"] = row.get("效果摘要", "")
+    for row in read_csv("statuses.csv"):
+        display[f"status_{row['id']}_name"] = row.get("名字", "")
+        display[f"status_{row['id']}_tip"] = row.get("提示文案", "")
+    for row in read_csv("roles.csv"):
+        display[f"role_{row['id']}_name"] = row.get("名字", "")
+    return display
+
+
 def format_scalar(value) -> str:
     if isinstance(value, bool):
         return "true" if value else "false"
@@ -404,22 +425,29 @@ def emit_yaml(sections: dict) -> str:
     return "\n".join(lines)
 
 
-def diff_documents(generated: str) -> List[str]:
-    """把生成文档与原件都用 YAML 解析后整篇比对（比逐键比对更强）。"""
+def diff_documents(generated: str):
+    """把生成文档与原件都用 YAML 解析后整篇比对。
+
+    返回 ``(problems, extras)``：
+    - problems：旧 yaml 里的键丢了、或值变了 —— 这些是**问题**
+    - extras：只在生成物里出现的新键（如 ``display`` 段）—— 这些是**新增**，不是问题
+    """
     try:
         left = yaml.safe_load(generated) or {}
     except yaml.YAMLError as exc:  # 生成器写坏了要立刻知道
-        return [f"生成的 yaml 无法解析：{exc}"]
+        return [f"生成的 yaml 无法解析：{exc}"], []
+
     right = yaml.safe_load(RULE_YAML.read_text(encoding="utf-8-sig")) or {}
-    if left == right:
-        return []
-    keys = sorted(set(flatten(left)) | set(flatten(right)))
     left_flat, right_flat = flatten(left), flatten(right)
-    return [
-        f"{key}: 生成={left_flat.get(key)!r} 原={right_flat.get(key)!r}"
-        for key in keys
-        if not same(left_flat.get(key), right_flat.get(key))
-    ]
+    problems, extras = [], []
+    for key in sorted(set(left_flat) | set(right_flat)):
+        if key not in left_flat:
+            problems.append(f"丢失：{key}（原值 {right_flat[key]!r}）")
+        elif key not in right_flat:
+            extras.append(key)
+        elif not same(left_flat[key], right_flat[key]):
+            problems.append(f"{key}: 生成={left_flat[key]!r} 原={right_flat[key]!r}")
+    return problems, extras
 
 
 # ---------------------------------------------------------------- 主流程
@@ -439,29 +467,32 @@ def main(argv: List[str]) -> int:
     meta = json.loads((DESIGN / "meta" / "meta.json").read_text(encoding="utf-8"))
     errors = errors + validate(meta)
     diffs = diff_against_yaml(sections)
-    generated = emit_yaml(sections)
-    doc_diffs = diff_documents(generated)
+    # display 段是纯新增（名字/描述），不参与"无损还原旧 yaml"的比对
+    generated = emit_yaml({**sections, "display": build_display()})
+    doc_problems, doc_extras = diff_documents(generated)
 
-    print(f"反向合成：{len(flatten(sections))} 个键")
+    print(f"反向合成：{len(flatten(sections))} 个键 + display {len(build_display())} 条文案")
     if errors:
         print(f"\n—— 校验失败 {len(errors)} 条 ——")
         for line in errors:
             print("  ✗ " + line)
 
     # 与 game_rules.yaml 的差异 = 本次改动摘要（迁移完成后这是**正常**的，不是错误）
-    if diffs or doc_diffs:
-        print(f"\n—— 相对 game_rules.yaml 快照的改动 {len(doc_diffs or diffs)} 处 ——")
-        for line in (doc_diffs or diffs)[:20]:
+    if diffs or doc_problems:
+        print(f"\n—— 相对 game_rules.yaml 快照的改动 {len(doc_problems or diffs)} 处 ——")
+        for line in (doc_problems or diffs)[:20]:
             print("  · " + line)
-        if len(doc_diffs or diffs) > 20:
-            print(f"  …… 另有 {len(doc_diffs or diffs) - 20} 处")
+        if len(doc_problems or diffs) > 20:
+            print(f"  …… 另有 {len(doc_problems or diffs) - 20} 处")
+    if doc_extras:
+        print(f"新增到配置的键 {len(doc_extras)} 个（旧快照里没有，属正常）")
 
     if errors:
         print("\n未生成：有校验错误，先修表。")
         return 1
 
-    if args.strict and (diffs or doc_diffs):
-        print("\n未生成：--strict 要求与 game_rules.yaml 完全一致，但仍存在差异。")
+    if args.strict and (diffs or doc_problems):
+        print("\n未生成：--strict 要求旧 yaml 的每个键都被表完整覆盖，但仍存在问题。")
         return 1
 
     if args.check:

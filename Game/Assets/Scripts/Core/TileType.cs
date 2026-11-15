@@ -17,6 +17,12 @@ public enum TileType
 public static class TerrainInfo
 {
     public static string GetDisplayName(TileType type)
+        => GameRulesConfig.GetString("display",
+            "tile_" + GameRulesConfig.ToSnakeCase(type.ToString()) + "_name",
+            FallbackDisplayName(type));
+
+    /// <summary>代码内置名称；配置缺失时回退。</summary>
+    private static string FallbackDisplayName(TileType type)
     {
         switch (type)
         {
@@ -32,6 +38,12 @@ public static class TerrainInfo
     }
 
     public static string GetShortEffect(TileType type)
+        => GameRulesConfig.GetString("display",
+            "tile_" + GameRulesConfig.ToSnakeCase(type.ToString()) + "_effect",
+            FallbackShortEffect(type));
+
+    /// <summary>代码内置效果摘要；配置缺失时回退。</summary>
+    private static string FallbackShortEffect(TileType type)
     {
         switch (type)
         {

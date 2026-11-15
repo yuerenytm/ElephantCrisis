@@ -95,6 +95,44 @@ def write_csv(path: Path, rows: List[dict], check_only: bool) -> Optional[str]:
 # ---------------------------------------------------------------- 各张表
 
 
+# 这些列一旦进表就该由人维护，重跑脚本不该覆盖
+IDENTITY_COLUMNS = {
+    "cards.csv": ["名字", "一句话描述"],
+    "tiles.csv": ["名字", "效果摘要"],
+    "statuses.csv": ["名字", "提示文案"],
+    "roles.csv": ["名字"],
+}
+
+
+def read_existing(name: str) -> List[dict]:
+    """读磁盘上已有的表（没有则空）。"""
+    path = DESIGN / name
+    if not path.is_file():
+        return []
+    with path.open(encoding="utf-8-sig", newline="") as handle:
+        return list(csv.DictReader(handle))
+
+
+def preserve_identity(tables: List[Tuple[str, List[dict]]]) -> None:
+    """保留表里已有的名字 / 描述。
+
+    权威已经切到 CSV：策划改名后如果重跑本脚本又被代码值盖回去，
+    "可编辑"就是假的。所以默认保留，只有 --reset-identity 才用代码值覆盖。
+    """
+    for name, rows in tables:
+        columns = IDENTITY_COLUMNS.get(name)
+        if not columns:
+            continue
+        old = {row.get("id"): row for row in read_existing(name)}
+        for row in rows:
+            previous = old.get(row.get("id"))
+            if not previous:
+                continue
+            for column in columns:
+                if previous.get(column):
+                    row[column] = previous[column]
+
+
 def build_roles(rules: dict, meta: dict) -> List[dict]:
     names = {r["id"]: r["name"] for r in meta.get("roles", [])}
     spawn = (rules.get("grid") or {}).get("spawn_cells") or {}
@@ -267,6 +305,11 @@ Game/Assets/StreamingAssets/Config/game_rules.gen.yaml  ← 游戏优先读它
 表里**只放能改的数据**。行为（例如"状态何时递减"）不放表——
 那是欠账 #2，等它变成字段后才有资格进表。
 
+**名字 / 描述也是可改的**：它们会进配置的 `display` 段，游戏按
+`GameRulesConfig.GetString` 读，读不到才回落到代码内置文案。
+重跑 `build_tables.py` 默认**保留表里已有的名字**，只有加
+`--reset-identity` 才会用代码里的值覆盖——否则"可改"就是假的。
+
 ## 已知缺口（表里没有的东西）
 
 | 缺口 | 在哪 | 说明 |
@@ -316,6 +359,11 @@ python Tools/config/build.py --check          # 与原 yaml 有差异则非零�
 def main(argv: List[str]) -> int:
     parser = argparse.ArgumentParser(description="合成策划表 Design/*.csv")
     parser.add_argument("--check", action="store_true", help="只比对不写文件")
+    parser.add_argument(
+        "--reset-identity",
+        action="store_true",
+        help="用代码里的名字/描述覆盖表（默认保留表里已有的，因为权威已切到 CSV）",
+    )
     parser.add_argument("--out", default=str(DESIGN), help="输出目录")
     args = parser.parse_args(argv)
 
@@ -342,6 +390,9 @@ def main(argv: List[str]) -> int:
             {"items": unmatched_items, "status": unmatched_status, "terrain": unmatched_terrain},
         )),
     ]
+
+    if not args.reset_identity:
+        preserve_identity(tables)
 
     problems = []
     for name, rows in tables:

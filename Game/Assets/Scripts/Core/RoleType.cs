@@ -9,6 +9,12 @@ public enum RoleType
 public static class RoleInfo
 {
     public static string GetDisplayName(RoleType role)
+        => GameRulesConfig.GetString("display",
+            "role_" + GameRulesConfig.ToSnakeCase(role.ToString()) + "_name",
+            FallbackDisplayName(role));
+
+    /// <summary>代码内置名称；配置缺失时回退。</summary>
+    private static string FallbackDisplayName(RoleType role)
     {
         switch (role)
         {

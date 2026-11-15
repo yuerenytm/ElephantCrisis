@@ -63,6 +63,12 @@ public struct StatusEffect
 public static class StatusInfo
 {
     public static string GetDisplayName(StatusType type)
+        => GameRulesConfig.GetString("display",
+            "status_" + GameRulesConfig.ToSnakeCase(type.ToString()) + "_name",
+            FallbackDisplayName(type));
+
+    /// <summary>代码内置名称；配置缺失时回退。</summary>
+    private static string FallbackDisplayName(StatusType type)
     {
         switch (type)
         {
@@ -78,6 +84,12 @@ public static class StatusInfo
     }
 
     public static string GetShortTip(StatusType type)
+        => GameRulesConfig.GetString("display",
+            "status_" + GameRulesConfig.ToSnakeCase(type.ToString()) + "_tip",
+            FallbackShortTip(type));
+
+    /// <summary>代码内置提示；配置缺失时回退。</summary>
+    private static string FallbackShortTip(StatusType type)
     {
         switch (type)
         {
