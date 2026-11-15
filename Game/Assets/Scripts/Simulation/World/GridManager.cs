@@ -17,7 +17,7 @@ public class GridManager : MonoBehaviour
     /// </summary>
     public const float HighlandElevation = 0.45f;
 
-    private Dictionary<Vector2Int, GameObject> occupiedCells = new Dictionary<Vector2Int, GameObject>();
+    private Dictionary<Vector2Int, UnitActor> occupiedCells = new Dictionary<Vector2Int, UnitActor>();
     private TileType[,] tiles;
     private int lavaInset;
 
@@ -140,7 +140,7 @@ public class GridManager : MonoBehaviour
     /// <summary>
     /// 登记占用者。
     /// </summary>
-    public void SetCellOccupied(Vector2Int cell, GameObject occupant)
+    public void SetCellOccupied(Vector2Int cell, UnitActor occupant)
     {
         occupiedCells[cell] = occupant;
     }
@@ -157,9 +157,9 @@ public class GridManager : MonoBehaviour
     /// <summary>
     /// 取占用者。
     /// </summary>
-    public GameObject GetOccupant(Vector2Int cell)
+    public UnitActor GetOccupant(Vector2Int cell)
     {
-        occupiedCells.TryGetValue(cell, out GameObject occupant);
+        occupiedCells.TryGetValue(cell, out UnitActor occupant);
         return occupant;
     }
 

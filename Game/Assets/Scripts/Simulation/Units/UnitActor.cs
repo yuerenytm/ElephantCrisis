@@ -939,14 +939,14 @@ public class UnitActor : MonoBehaviour
     public void PlaceAt(Vector2Int cell, bool register)
     {
         var grid = GridManager.Instance;
-        if (register && grid.IsValidCell(Cell) && grid.GetOccupant(Cell) == gameObject)
+        if (register && grid.IsValidCell(Cell) && grid.GetOccupant(Cell) == this)
             grid.ClearCell(Cell);
 
         Cell = cell;
         View?.PlaceAt(this, cell);
 
         if (register)
-            grid.SetCellOccupied(cell, gameObject);
+            grid.SetCellOccupied(cell, this);
     }
 
     /// <summary>
@@ -1378,7 +1378,7 @@ public class UnitActor : MonoBehaviour
         DropAllItems();
 
         var grid = GridManager.Instance;
-        if (grid != null && grid.GetOccupant(Cell) == gameObject)
+        if (grid != null && grid.GetOccupant(Cell) == this)
             grid.ClearCell(Cell);
 
         LogicMatchLogger.Active?.EmitDeath(this);
