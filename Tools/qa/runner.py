@@ -14,10 +14,12 @@ from .checks import Violation, check_match_events
 #   天气/地形改变法抗后必然对不上；引擎公式本身（floor(raw*(1-mr))）与规则一致。
 # - quasi_crossbow_requires_equipped：弩可能在使用后被移除，快照看不到中间态。
 # 需要严格模式（--strict）时才计入失败。
-ADVISORY_RULES = {
-    "dmg_magic_formula",
-    "quasi_crossbow_requires_equipped",
-}
+# 参考项（advisory）：目前为空 —— 两条曾经的误报规则都已从根上修好：
+# - dmg_magic_formula：引擎现在把"受击时刻的法抗"写进伤害事件（e["mr"]），
+#   不再靠"最近一次快照"猜；只有老数据才回退到快照估值。
+# - quasi_crossbow_requires_equipped：引擎现保证"弩不在身上 ⇒ 蓄力必然为 false"，
+#   不变量真正成立，因此升级为阻断。
+ADVISORY_RULES = set()
 
 
 def run_checks(records, out_dir: Path) -> Dict[str, Any]:

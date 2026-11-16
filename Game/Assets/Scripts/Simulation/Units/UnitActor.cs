@@ -30,10 +30,26 @@ public class UnitActor
     /// </summary>
     public int MotorcycleActiveRounds { get; set; }
 
+    private bool crossbowCharged;
+
     /// <summary>
     /// 弩已蓄力，可在后续行动射击。
+    ///
+    /// 读的时候顺手校验"弩还在身上"：弩被丢弃/被偷/被弃置后，
+    /// 蓄力必须随之失效。之前只在卸下时清，丢弃/偷走那条路会漏，
+    /// 于是出现"背包里没有弩却仍处于蓄力"的状态（QA 基线抓到过）。
+    /// 放在 getter 里是为了让任何移除路径都不会漏掉。
     /// </summary>
-    public bool CrossbowCharged { get; private set; }
+    public bool CrossbowCharged
+    {
+        get
+        {
+            if (crossbowCharged && FindEquippedIndex(ItemKind.Crossbow) < 0)
+                crossbowCharged = false;
+            return crossbowCharged;
+        }
+        private set => crossbowCharged = value;
+    }
     /// <summary>
     /// 本行动已对弩蓄力（同行动不可再射）。
     /// </summary>
@@ -1242,7 +1258,7 @@ public class UnitActor
             return;
         int burnDmg = GameRulesConfig.BurningMagicDamage;
         int dealt = TakeDamage(burnDmg, magicDamage: true);
-        LogicMatchLogger.Active?.EmitDamage("burning", LogicSimNaming.Role(Role), "magic", burnDmg, dealt, "burning");
+        LogicMatchLogger.Active?.EmitDamage("burning", LogicSimNaming.Role(Role), "magic", burnDmg, dealt, "burning", MagicResist);
         TurnManager.Instance?.Log(
             $"{RoleInfo.GetDisplayName(Role)} 处于着火，受到 {dealt} 点法伤（火焰）");
 
@@ -1260,7 +1276,7 @@ public class UnitActor
             return;
         int raw = GameRulesConfig.PoisonEndDamagePerStack * stacks;
         int dealt = TakeDamage(raw, magicDamage: true);
-        LogicMatchLogger.Active?.EmitDamage("poison", LogicSimNaming.Role(Role), "magic", raw, dealt, "poison");
+        LogicMatchLogger.Active?.EmitDamage("poison", LogicSimNaming.Role(Role), "magic", raw, dealt, "poison", MagicResist);
         TurnManager.Instance?.Log(
             $"{RoleInfo.GetDisplayName(Role)} 处于中毒×{stacks}，行动结束受到 {dealt} 点法伤（毒伤）");
         if (IsDead)

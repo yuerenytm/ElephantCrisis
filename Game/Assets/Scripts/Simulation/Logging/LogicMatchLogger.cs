@@ -107,7 +107,8 @@ public sealed class LogicMatchLogger
     /// <summary>
     /// 伤害事件（raw / dealt / 来源）。
     /// </summary>
-    public void EmitDamage(string actor, string target, string kind, int raw, int dealt, string via = null)
+    public void EmitDamage(string actor, string target, string kind, int raw, int dealt,
+        string via = null, int mr = -1)
     {
         var fields = new List<(string, string)>
         {
@@ -119,6 +120,10 @@ public sealed class LogicMatchLogger
         };
         if (!string.IsNullOrEmpty(via))
             fields.Add(("via", Q(via)));
+        // 法伤的实际减免率：记下来，基线检查才能精确核算，
+        // 而不是去猜"快照时刻的法抗"（天气/地形变了就对不上）
+        if (mr >= 0)
+            fields.Add(("mr", I(mr)));
         EmitRaw("damage", Obj(fields.ToArray()));
     }
 

@@ -55,10 +55,14 @@ def _statuses(u: Dict[str, Any]) -> Set[str]:
 
 def _check_damage_rules(events: List[Dict[str, Any]]) -> List[Violation]:
     viols: List[Violation] = []
-    # 最近一次快照各角色法抗（百分比），供法伤精确公式校验（仅对攻击者发起的 melee_magic/molotov 适用，
-    # 因为防守方在攻击者行动内不会移动、天气在回合边界才变，快照法抗即结算法抗；
-    # burning/poison 的结算时刻与快照可能有地形时点差，只查边界）。
+    # 最近一次快照各角色法抗（百分比），仅作老数据的兜底（新数据伤害事件自带 mr）。
     last_mr: Dict[str, int] = {}
+    # 死亡发生的 t，用于识别"溢出击杀"：目标只剩 2 血时吃 10 点法伤，只结算 2 点。
+    death_ts = {
+        int(e.get("t", 0))
+        for e in events
+        if e.get("type") == "death"
+    }
     for e in events:
         if e.get("type") == "snapshot":
             for u in e.get("units") or []:
@@ -120,21 +124,32 @@ def _check_damage_rules(events: List[Dict[str, Any]]) -> List[Violation]:
                     )
                 )
                 continue
-            # 精确公式校验：dealt 应为 ⌊raw × (1 − mr%)⌋，或为 0（护盾全额吸收）
-            if e.get("via") in ("melee_magic", "molotov"):
-                mr = last_mr.get(e.get("target"))
-                if isinstance(mr, int):
-                    expected = raw_i * (100 - mr) // 100
-                    if dealt_i != expected and dealt_i != 0:
-                        viols.append(
-                            Violation(
-                                "dmg_magic_formula",
-                                "major",
-                                t,
-                                f"法伤 dealt({dealt_i}) ≠ ⌊raw({raw_i}) × (1 − {mr}%)⌋ = {expected}，且非 0（护盾全额吸收）",
-                                {"target": e.get("target"), "actor": e.get("actor"), "via": e.get("via")},
-                            )
+            # 精确公式校验：dealt 上限为 ⌊raw × (1 − mr%)⌋。
+            #
+            # 允许两种"合法地少扣"：
+            #   1) dealt == 0：护盾 / 免疫全额吸收
+            #   2) 溢出击杀：目标剩余血量少于应扣值，只结算到血尽为止（±2 事件内出现死亡）
+            # 不允许的是"多扣"——那一定是公式错了。
+            #
+            # mr 优先取事件自带字段（引擎在受击时刻记录，精确）；
+            # 老数据没有该字段时退回最近一次快照的法抗，仅作兜底。
+            mr = e.get("mr")
+            if not isinstance(mr, int):
+                mr = last_mr.get(e.get("target")) if e.get("via") in ("melee_magic", "molotov") else None
+            if isinstance(mr, int):
+                expected = raw_i * (100 - mr) // 100
+                overkill = any(abs(t - dt) <= 2 for dt in death_ts)
+                if dealt_i > expected or (dealt_i < expected and dealt_i != 0 and not overkill):
+                    viols.append(
+                        Violation(
+                            "dmg_magic_formula",
+                            "major",
+                            t,
+                            f"法伤 dealt({dealt_i}) 超出 ⌊raw({raw_i}) × (1 − {mr}%)⌋ = {expected}"
+                            f"{'（非溢出击杀，也非全吸收）' if dealt_i < expected else '（多扣）'}",
+                            {"target": e.get("target"), "actor": e.get("actor"), "via": e.get("via")},
                         )
+                    )
     return viols
 
 

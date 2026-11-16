@@ -278,7 +278,8 @@ public static class ActionService
             LogicSimNaming.Role(attacker.Role),
             LogicSimNaming.Role(defender.Role),
             magicMelee ? "magic" : "physical", raw, dealt,
-            magicMelee ? "melee_magic" : pierce ? "melee_pierce" : "melee");
+            magicMelee ? "melee_magic" : pierce ? "melee_pierce" : "melee",
+            magicMelee ? defender.MagicResist : -1);
         TurnManager.Instance.MarkMeleeAttacked();
         TurnManager.Instance.Log(
             $"{RoleInfo.GetDisplayName(attacker.Role)} 近战攻击 {RoleInfo.GetDisplayName(defender.Role)}" +
@@ -1178,7 +1179,8 @@ public static class ActionService
             LogicMatchLogger.Active?.EmitDamage(
                 LogicSimNaming.Role(caster.Role),
                 LogicSimNaming.Role(other.Role),
-                magicDamage ? "magic" : "physical", damage, dealt, via);
+                magicDamage ? "magic" : "physical", damage, dealt, via,
+                magicDamage ? other.MagicResist : -1);
             if (dealt > 0)
             {
                 damaged++;
